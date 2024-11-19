@@ -1,0 +1,22 @@
+##
+## .gitignore for GLaDOS
+##
+
+## main
+glados
+
+## Binary
+*.o
+*.hi
+.stack-work/
+lambdananas
+
+## Unused files
+*~
+.vscode/
+**/*gdb*
+*.pdf
+*.log
+
+## .gitignore
+!.gitignore
