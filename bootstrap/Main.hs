@@ -77,9 +77,13 @@ astArithmeticOp :: (Int -> Int -> Int) -> [AST] -> Maybe AST
 astArithmeticOp f [(ASTNumber a), (ASTNumber b)] = Just $ ASTNumber (f a b)
 astArithmeticOp _ _ = Nothing
 
+astComparisonOp :: (Int -> Int -> Bool) -> [AST] -> Maybe AST
+astComparisonOp f [(ASTNumber a), (ASTNumber b)] = Just $ ASTBoolean (f a b)
+astComparisonOp _ _ = Nothing
+
 evaluateAST :: AST -> Maybe AST
-evaluateAST = evaluateAST' [("*", astArithmeticOp (*)), ("+", astArithmeticOp (+)), ("-", astArithmeticOp (-)), ("div", astArithmeticOp div), ("mod", astArithmeticOp mod)]
+evaluateAST = evaluateAST' [("*", astArithmeticOp (*)), ("+", astArithmeticOp (+)), ("-", astArithmeticOp (-)), ("div", astArithmeticOp div), ("mod", astArithmeticOp mod), (">", astComparisonOp (>)), ("<", astComparisonOp (<)), ("eq?", astComparisonOp (==))]
 
 main :: IO ()
 -- main = print $ sexprToAST $ List [Symbol "define", Symbol "x", List [Symbol "+", Number 6, Symbol "y"]]
-main = print $ ((sexprToAST $ List [Symbol "mod", List [Symbol "div", List [Symbol "*", Number 5, List [Symbol "+", Number 7, List [Symbol "-", Number 10, Number 2]]], Number 5], Number 7]) >>= evaluateAST)
+main = print $ ((sexprToAST $ List [Symbol "eq?", Number 1, List [Symbol "mod", List [Symbol "div", List [Symbol "*", Number 5, List [Symbol "+", Number 7, List [Symbol "-", Number 10, Number 2]]], Number 5], Number 7]]) >>= evaluateAST)
