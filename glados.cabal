@@ -27,6 +27,7 @@ library
   exposed-modules:
       Lib
       Parser.Parser
+      SExpression
   other-modules:
       Paths_glados
   autogen-modules:
