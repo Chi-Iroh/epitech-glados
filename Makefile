@@ -6,6 +6,7 @@ all:
 
 re: fclean all
 
+
 clean:
 	rm -rf .stack-work
 
@@ -14,3 +15,6 @@ fclean: clean
 
 style:
 	./lambdananas .
+
+unit_test:
+	${shell stack test}
