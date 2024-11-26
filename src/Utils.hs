@@ -1,7 +1,10 @@
 module Utils
-    ( concatMBStrings,
+    ( Safe(Value, Error),
+    concatMBStrings,
     joinMBStrings
     ) where
+
+data Safe a = Value a | Error String deriving (Eq, Ord, Read, Show)
 
 type MBString = Maybe String
 

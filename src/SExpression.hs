@@ -39,6 +39,6 @@ fromSymbol (SSymbol s) = s
 fromSymbol _ = ""
 
 --either
-checkError :: Maybe SExpr -> IO ()
-checkError (Just e) = print e
-checkError _ = exitWith(ExitFailure 84)
+checkError :: Safe SExpr -> IO ()
+checkError (Value e) = print e
+checkError (Error err) = print err >> exitWith(ExitFailure 84)
