@@ -1,7 +1,7 @@
 module Main (main) where
 
 import SExpression
---import System.Exit
+import System.Exit
 --import System.Environment
 
 --getFileName :: [String] -> Maybe String
@@ -17,5 +17,9 @@ import SExpression
 --    file <- readFile filename
 --    putStrLn file
 
+checkError :: Maybe SExpr -> IO ()
+checkError (Just e) = print e
+checkError _ = exitWith(ExitFailure 84)
+
 main :: IO ()
-main = print $ sexprToAST $ ex1
+main = checkError $ parseStringToSExpr "if (x < (y + 1)) True False"
