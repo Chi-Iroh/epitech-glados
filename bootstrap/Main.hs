@@ -68,7 +68,7 @@ sexprToAST (List ((Symbol x) : xs))
     | otherwise = mapM sexprToAST xs >>= (\xs -> Just $ ASTCall x xs)
 sexprToAST _ = Nothing
 
-builtins :: Functions
+builtins :: Symbols
 builtins = [("*", astArithmeticOp (*))
             , ("+", astArithmeticOp (+))
             , ("-", astArithmeticOp (-))
@@ -86,13 +86,13 @@ find f (x : xs) = if (f x) then Just x else find f xs
 isBuiltin :: String -> Bool
 isBuiltin x = isJust $ find ((== x) . fst) builtins
 
-type Function = (String, ([AST] -> Maybe AST))
-type Functions = [Function]
+type Symbol = (String, ([AST] -> Maybe AST))
+type Symbols = [Symbol]
 
-traceSymbols :: Functions -> Functions
+traceSymbols :: Symbols -> Symbols
 traceSymbols f = (traceShowId $ map fst f) >> f
 
-traceSymbol :: Maybe Function -> Maybe Function
+traceSymbol :: Maybe Symbol -> Maybe Symbol
 traceSymbol f@(Just _) = f
 traceSymbol Nothing = Nothing
 
@@ -102,14 +102,14 @@ updateOrAdd f a (x : xs)
     | f x = a : xs
     | otherwise = x : updateOrAdd f a xs
 
-registerSymbol :: Functions -> String -> ([AST] -> Maybe AST) -> Functions
+registerSymbol :: Symbols -> String -> ([AST] -> Maybe AST) -> Symbols
 registerSymbol symbols name f = updateOrAdd ((== name) . fst) (name, f) symbols
 
 symbolId :: [AST] -> Maybe AST
 symbolId [ast] = Just ast
 symbolId _ = Nothing
 
-evaluateAST1 :: Functions -> AST -> (Maybe AST, Functions)
+evaluateAST1 :: Symbols -> AST -> (Maybe AST, Symbols)
 evaluateAST1 symbols n@(ASTNumber _) = (Just n, symbols)
 evaluateAST1 symbols b@(ASTBoolean _) = (Just b, symbols)
 evaluateAST1 symbols (ASTSymbol s) = (find ((== s) . fst) symbols >>= (\(_, f) -> f [] >>= (fst . evaluateAST1 symbols)), symbols)
@@ -132,7 +132,7 @@ astIf :: [AST] -> Maybe AST
 astIf [(ASTBoolean condition), a, b] = if condition then Just a else Just b
 astIf _ = Nothing
 
-evaluateAST' :: Functions -> [AST] -> Maybe [AST]
+evaluateAST' :: Symbols -> [AST] -> Maybe [AST]
 evaluateAST' _ [] = Nothing
 evaluateAST' f [x] = fmap singleton (fst $ evaluateAST1 f x)
 evaluateAST' f (x : xs) = evaluated >>= (\x -> evaluateAST' symbols xs >>= (\xs -> Just (x : xs)))
