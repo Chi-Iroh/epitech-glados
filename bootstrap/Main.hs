@@ -149,6 +149,12 @@ test = [ List [Symbol "define", Symbol "x", List [Symbol "+", Number 6, Number 5
 join :: String -> [String] -> String
 join separator strings = foldr (\x y -> if null y then x else x ++ separator ++ y) "" strings
 
+putMaybeStr :: Maybe String -> IO ()
+putMaybeStr str = putStr $ fromMaybe "Nothing" str
+
+putMaybeStrLn :: Maybe String -> IO ()
+putMaybeStrLn str = putStrLn $ fromMaybe "Nothing" str
+
 main :: IO ()
 -- main = putStr $ join "\n" $ map (show . sexprToAST) test
-main = putStrLn $ fromMaybe "Nothing" (fmap (\x -> join "\n" (map show x)) (mapM sexprToAST test >>= evaluateAST))
+main = putMaybeStrLn (fmap (\x -> join "\n" (map show x)) (mapM sexprToAST test >>= evaluateAST))
