@@ -63,9 +63,8 @@ sexprToAST (Symbol "define") = Nothing
 sexprToAST (Symbol x) = Just $ ASTSymbol x
 sexprToAST (List [(Symbol "define")]) = Nothing
 sexprToAST (List [(Symbol "define"), (Symbol x), expr]) = sexprToAST expr >>= (\expr -> Just $ ASTDefine x expr)
-sexprToAST (List ((Symbol x) : xs))
-    | x == "define" = Nothing
-    | otherwise = mapM sexprToAST xs >>= (\xs -> Just $ ASTCall x xs)
+sexprToAST (List ((Symbol "define") : xs)) = Nothing
+sexprToAST (List ((Symbol x) : xs)) = mapM sexprToAST xs >>= (\xs -> Just $ ASTCall x xs)
 sexprToAST _ = Nothing
 
 builtins :: Symbols
