@@ -69,7 +69,15 @@ sexprToAST (List ((Symbol x) : xs))
 sexprToAST _ = Nothing
 
 builtins :: Functions
-builtins = [("*", astArithmeticOp (*)), ("+", astArithmeticOp (+)), ("-", astArithmeticOp (-)), ("div", astArithmeticOp div), ("mod", astArithmeticOp mod), (">", astComparisonOp (>)), ("<", astComparisonOp (<)), ("eq?", astComparisonOp (==)), ("if", astIf)]
+builtins = [("*", astArithmeticOp (*))
+            , ("+", astArithmeticOp (+))
+            , ("-", astArithmeticOp (-))
+            , ("div", astArithmeticOp div)
+            , ("mod", astArithmeticOp mod)
+            , (">", astComparisonOp (>))
+            , ("<", astComparisonOp (<))
+            , ("eq?", astComparisonOp (==))
+            , ("if", astIf)]
 
 find :: (a -> Bool) -> [a] -> Maybe a
 find _ [] = Nothing
