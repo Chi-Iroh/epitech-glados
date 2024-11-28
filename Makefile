@@ -2,7 +2,7 @@ BIN	=	glados
 
 all:
 	stack build
-	mv $(shell stack path --local-install-root)/bin/glados-exe $(BIN)
+	@cp $(shell stack path --local-install-root)/bin/glados-exe $(BIN)
 
 re: fclean all
 

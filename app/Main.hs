@@ -1,6 +1,7 @@
 module Main (main) where
 
-import Lib
+import SExpression
+import Parser
 import System.Exit
 import System.Environment
 
@@ -15,4 +16,4 @@ main = do
                 Nothing -> exitWith(ExitFailure 84)
                 Just filename -> pure filename
     file <- readFile filename
-    putStrLn file
+    checkError $ parse file
