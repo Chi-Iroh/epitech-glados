@@ -1,3 +1,4 @@
 module AST (AST(ASTDefine, ASTLambda, ASTSymbol, ASTNumber, ASTBoolean, ASTCall)) where
 
-data AST = ASTDefine String AST | ASTLambda [AST] AST | ASTSymbol String | ASTNumber Int | ASTBoolean Bool | ASTCall String [AST] deriving Show
+data Call = LambdaCall [AST] AST | FunctionCall String deriving Show
+data AST = ASTDefine String AST | ASTSymbol String | ASTNumber Int | ASTBoolean Bool | ASTCall Call [AST] | ASTLambda [AST] AST deriving Show
