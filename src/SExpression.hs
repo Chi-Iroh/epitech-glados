@@ -12,7 +12,7 @@ module SExpression
 import System.Exit
 import Utils
 
-data SExpr = SNumber Int | SSymbol String | SList [SExpr] deriving Show
+data SExpr = SNumber Int | SSymbol String | SList [SExpr] deriving (Eq, Show)
 
 getSymbol :: SExpr -> Maybe String
 getSymbol (SSymbol symbol) = Just symbol
