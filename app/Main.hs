@@ -1,7 +1,7 @@
 module Main (main) where
 
 import SExpression
-import Parser
+import Parser (parse)
 import System.Exit
 import System.Environment
 
