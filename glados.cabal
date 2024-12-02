@@ -65,6 +65,7 @@ test-suite glados-test
   main-is: Spec.hs
   other-modules:
       Paths_glados
+      TestParser
   autogen-modules:
       Paths_glados
   hs-source-dirs:
