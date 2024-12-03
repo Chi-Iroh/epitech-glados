@@ -23,3 +23,21 @@ main = do
                 Just filename -> pure filename
     file <- readFile filename
     print ((convert $ parse file) >>= (toSafe . evaluateAST))
+
+-- main :: IO [()]
+-- main = mapM putStrLn ["               *               "
+--     , "              * *              "
+--     , "             *   *             "
+--     , "            * * * *            "
+--     , "           *       *           "
+--     , "          * *     * *          "
+--     , "         *   *   *   *         "
+--     , "        * * * * * * * *        "
+--     , "       *               *       "
+--     , "      * *             * *      "
+--     , "     *   *           *   *     "
+--     , "    * * * *         * * * *    "
+--     , "   *       *       *       *   "
+--     , "  * *     * *     * *     * *  "
+--     , " *   *   *   *   *   *   *   * "
+--     , "* * * * * * * * * * * * * * * *"]
