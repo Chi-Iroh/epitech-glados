@@ -5,31 +5,29 @@ module SExpression
     getList,
     printTree,
     mainSExpr,
-    fromSymbol,
-    checkError
+    fromSymbol
     ) where
 
-import System.Exit
 import Utils
 
-data SExpr = SNumber Int | SSymbol String | SList [SExpr] deriving Show
+data SExpr = SNumber Int | SSymbol String | SList [SExpr] deriving (Eq, Show)
 
-getSymbol :: SExpr -> Maybe String
-getSymbol (SSymbol symbol) = Just symbol
-getSymbol _ = Nothing
+getSymbol :: SExpr -> Safe String
+getSymbol (SSymbol symbol) = Value symbol
+getSymbol _ = Error "SExpr is not a SSymbol."
 
-getInteger :: SExpr -> Maybe Int
-getInteger (SNumber n) = Just n
-getInteger _ = Nothing
+getInteger :: SExpr -> Safe Int
+getInteger (SNumber n) = Value n
+getInteger _ = Error "SExpr is not a SNumber."
 
-getList :: SExpr -> Maybe [SExpr]
-getList (SList exprs) = Just exprs
-getList _ = Nothing
+getList :: SExpr -> Safe [SExpr]
+getList (SList exprs) = Value exprs
+getList _ = Error "SExpr is not a SList."
 
-printTree :: SExpr -> Maybe String
-printTree (SNumber n) = Just $ concat ["a Number ", show n]
-printTree (SSymbol symbol) = Just $ concat ["a Symbol ", symbol]
-printTree (SList exprs) = concatMBStrings (Just "a List with ") (joinMBStrings " followed by " (map printTree exprs))
+printTree :: SExpr -> Safe String
+printTree (SNumber n) = Value $ concat ["a Number ", show n]
+printTree (SSymbol symbol) = Value $ concat ["a Symbol ", symbol]
+printTree (SList exprs) = concatSStrings (Value "a List with ") (joinSStrings " followed by " (map printTree exprs))
 
 mainSExpr :: IO ()
 mainSExpr = print $ printTree $ SList [SSymbol "define", SSymbol "y", SList [SSymbol "*", SSymbol "x", SNumber 5]]
@@ -37,8 +35,3 @@ mainSExpr = print $ printTree $ SList [SSymbol "define", SSymbol "y", SList [SSy
 fromSymbol :: SExpr -> String
 fromSymbol (SSymbol s) = s
 fromSymbol _ = ""
-
---either
-checkError :: Safe SExpr -> IO ()
-checkError (Value e) = print e
-checkError (Error err) = print err >> exitWith(ExitFailure 84)

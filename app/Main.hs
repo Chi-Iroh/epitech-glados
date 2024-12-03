@@ -1,9 +1,10 @@
 module Main (main) where
 
-import SExpression
+import Converter
 import Parser
 import System.Exit
 import System.Environment
+import Utils
 
 getFileName :: [String] -> Maybe String
 getFileName [a] = Just a
@@ -16,4 +17,4 @@ main = do
                 Nothing -> exitWith(ExitFailure 84)
                 Just filename -> pure filename
     file <- readFile filename
-    checkError $ parse file
+    printSafeList $ convert $ parse file
