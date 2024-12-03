@@ -47,6 +47,7 @@ fromSafe (Error err) = Error err
 
 concatSafe :: Safe SExpr -> Safe [SExpr] -> Safe [SExpr]
 concatSafe (Value e) (Value es) = Value (e:es)
+concatSafe (Error err1) (Error err2) = Error ("2 Errors encountered at the same time: " ++ err1 ++ " ; " ++ err2)
 concatSafe (Error err) _ = Error err
 concatSafe _ (Error err) = Error err
 
