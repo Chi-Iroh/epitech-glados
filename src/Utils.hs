@@ -20,6 +20,10 @@ instance Applicative Safe where
     (Error err) <*> _ = Error err
     _ <*> (Error err) = Error err
 
+instance Monad Safe where
+    (>>=) (Error err) _ = Error err
+    (>>=) (Value a) f = f a
+
 printSafe :: Show a => Safe a -> IO ()
 printSafe (Error err) = putStrLn err
 printSafe (Value a) = print a
