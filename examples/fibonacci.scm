@@ -1,6 +1,7 @@
-(defun fibonacci (n)
-  (loop for i from 0 below n
-        collect (if (< i 2) i (+ (nth (- i 1) (fibonacci (- n 1)))
-                                 (nth (- i 2) (fibonacci (- n 1)))))))
+(define (fib n)
+  (if (<= n 1)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
 
-(fibonacci 8)
+(fib 10)
+

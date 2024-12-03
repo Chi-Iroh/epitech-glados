@@ -1,19 +1,25 @@
-(defun is-prime (n)
-  "Check if a number N is prime."
-  (cond
-    ((< n 2) NIL)
-    ((= n 2) T)
-    (t (loop for i from 2 to (isqrt n)
-             never (zerop (mod n i))))))
+(define (prime? n)
+  (if (< n 2)
+      #f
+      (let loop ((i 2))
+        (cond
+          ((> (* i i) n) #t) ; No divisors found
+          ((= (remainder n i) 0) #f) ; Found a divisor
+          (else (loop (+ i 1))))))) ; Check next potential divisor
 
-(defun generate-primes (n)
-  "Generate a list of the first N prime numbers."
-  (let ((primes '()) ; Initialize an empty list to store primes
-        (candidate 2)) ; Start checking from 2
-    (loop while (< (length primes) n)
-          do (when (is-prime candidate)
-               (push candidate primes))
-          (incf candidate))
-    (reverse primes))) ; Reverse to maintain order
+(define (first-n-primes n)
+  (define (find-primes count current primes)
+    (if (= count n)
+        (reverse primes)
+        (if (prime? current)
+            (find-primes (+ count 1) (+ current 1) (cons current primes))
+            (find-primes count (+ current 1) primes))))
+  (find-primes 0 2 '()))
 
-(generate-primes 10)
+(define (output-primes n)
+  (for-each
+   (lambda (p) (display p) (newline))
+   (first-n-primes n)))
+
+;; Output the first 10 primes
+(output-primes 10)
