@@ -25,11 +25,11 @@ source-repository head
 
 library
   exposed-modules:
-      Utils
-      SExpression
-      Parser
       AST
       Converter
+      Parser
+      SExpression
+      Utils
   other-modules:
       Paths_glados
   autogen-modules:
