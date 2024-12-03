@@ -73,8 +73,51 @@ testStringToASExpr = TestList [
 
 -------------------------------------------------------------------------------
 
+--parseParanthese
+
+-------------------------------------------------------------------------------
+
+testFromSafe1 :: Test
+testFromSafe1 = TestCase (assertEqual "fromSafe $ Value [(SSymbol 'x'), (SNumber 0)]" (Value $ SList [(SSymbol "x"), (SNumber 0)]) (fromSafe $ Value [(SSymbol "x"), (SNumber 0)]))
+
+testFromSafe2 :: Test
+testFromSafe2 = TestCase (assertEqual "fromSafe $ Value [(SSymbol 'x')]" (Value $ SList [(SSymbol "x")]) (fromSafe $ Value [(SSymbol "x")]))
+
+testFromSafe3 :: Test
+testFromSafe3 = TestCase (assertEqual "fromSafe $ Value []" (Value $ SList []) (fromSafe $ Value []))
+
+testFromSafe4 :: Test
+testFromSafe4 = TestCase (assertEqual "fromSafe $ Value []" (Error "pikachu I choose you") (fromSafe $ Error "pikachu I choose you"))
+
+testFromSafe :: Test
+testFromSafe = TestList [
+    TestLabel "fromSafe" testFromSafe1,
+    TestLabel "fromSafe" testFromSafe2,
+    TestLabel "fromSafe" testFromSafe3,
+    TestLabel "fromSafe" testFromSafe4
+    ]
+
+-------------------------------------------------------------------------------
+
+--concatSafe
+
+-------------------------------------------------------------------------------
+
+--verifyParanthese
+
+-------------------------------------------------------------------------------
+
+--aSExprToSExpr
+
+-------------------------------------------------------------------------------
+
+--parse
+
+-------------------------------------------------------------------------------
+
 testParser :: Test
 testParser = TestList [
     TestLabel "convertToASExpr" testConvertToASExpr,
-    TestLabel "stringToASExpr" testStringToASExpr
+    TestLabel "stringToASExpr" testStringToASExpr,
+    TestLabel "fromSafe" testFromSafe
     ]
