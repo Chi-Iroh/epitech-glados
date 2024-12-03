@@ -13,7 +13,7 @@ sexprSListHandling [SNumber a] = Just (ASTNumber a)
 sexprSListHandling [SSymbol "#t"] = Just (ASTBoolean True)
 sexprSListHandling [SSymbol "#f"] = Just (ASTBoolean True)
 sexprSListHandling [SSymbol a] = Just (ASTSymbol a)
-sexprSListHandling (SList (SSymbol "lambda":b:c):rest)
+sexprSListHandling (SList (SSymbol "lambda":b:c):rest)                                      -- lambda create and directly call
         | null c = Nothing
         | otherwise = case sexprToAST [b] of
             Just parameter -> case sexprToAST c of
@@ -27,8 +27,19 @@ sexprSListHandling (SList (SSymbol "lambda":b:c):rest)
                     Nothing -> Just (ASTCall (LambdaCall [] expression) [])                 -- if after lambdacall there is nothing
                 Nothing -> Nothing                                                          -- lambda must have expression
 
+sexprSListHandling (SSymbol "define":SList(a:b):c)
+        | null [c] = Nothing
+        | otherwise = case getSymbol a of
+            Just symbol -> case sexprToAST [SList (SSymbol "lambda" : SList b : c)] of
+                Just [result] -> Just (ASTDefine symbol result)
+                Nothing -> Nothing                                                          -- cannot define variable without value in scheme
+            Nothing -> case sexprToAST c of                                                 -- if no symbol
+                Just [result] -> Just (ASTDefine "" result)
+                Nothing -> Nothing                                                          -- cannot define variable without value in scheme
+
+
 sexprSListHandling (SSymbol "define":b:c)
-        | null [b] = Nothing                                                                -- define must have a name
+        | null [b] = Nothing                                                                -- define must have a name (except lambda definition)
         | null c = Nothing                                                                  -- defne must have a value
         | otherwise = case getSymbol b of
             Just symbol -> case sexprToAST c of
