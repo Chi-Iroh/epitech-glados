@@ -33,31 +33,43 @@ sexprToAST (List ((Symbol x) : xs)) = mapM sexprToAST xs >>= (\xs -> Just $ ASTC
 sexprToAST _ = Nothing
 
 builtins :: Symbols
-builtins = [("*", astArithmeticOp (*))
-            , ("+", astArithmeticOp (+))
-            , ("-", astArithmeticOp (-))
-            , ("div", astArithmeticOp div)
-            , ("mod", astArithmeticOp mod)
-            , (">", astComparisonOp (>))
-            , ("<", astComparisonOp (<))
-            , ("eq?", astComparisonOp (==))
-            , ("if", astIf)]
+builtins = [BackendSymbol ("*", astArithmeticOp (*))
+            , BackendSymbol ("+", astArithmeticOp (+))
+            , BackendSymbol ("-", astArithmeticOp (-))
+            , BackendSymbol ("div", astArithmeticOp div)
+            , BackendSymbol ("mod", astArithmeticOp mod)
+            , BackendSymbol (">", astComparisonOp (>))
+            , BackendSymbol (">=", astComparisonOp (>=))
+            , BackendSymbol ("<", astComparisonOp (<))
+            , BackendSymbol ("<=", astComparisonOp (<=))
+            , BackendSymbol ("eq?", astComparisonOp (==))
+            , BackendSymbol ("==", astComparisonOp (==))
+            , BackendSymbol ("if", astIf)]
 
 find :: (a -> Bool) -> [a] -> Maybe a
 find _ [] = Nothing
 find f (x : xs) = if (f x) then Just x else find f xs
 
 isBuiltin :: String -> Bool
-isBuiltin x = isJust $ find ((== x) . fst) builtins
+isBuiltin x = isJust $ find ((== x) . symbolName) builtins
 
-type Symbol = (String, ([AST] -> Maybe AST))
+data Symbol = BackendSymbol (String, (Symbols -> [AST] -> Maybe AST))
 type Symbols = [Symbol]
 
+instance Show Symbol where
+    show (BackendSymbol (s, _)) = ("symbol " ++ show s)
+
+symbolName :: Symbol -> String
+symbolName (BackendSymbol (s, _)) = s
+
+traceSymbols2 :: String -> Symbols -> Symbols
+traceSymbols2 msg f = debug2 msg (map symbolName f) f
+
 traceSymbols :: Symbols -> Symbols
-traceSymbols f = (debug "symbols " $ map fst f) >> f
+traceSymbols = traceSymbols2 "symbols: "
 
 traceSymbol :: Maybe Symbol -> Maybe Symbol
-traceSymbol f@(Just _) = f
+traceSymbol f@(Just (BackendSymbol (s, _))) = debug2 "symbol: " s f
 traceSymbol Nothing = Nothing
 
 updateOrAdd :: (a -> Bool) -> a -> [a] -> [a]
@@ -66,12 +78,12 @@ updateOrAdd f a (x : xs)
     | f x = a : xs
     | otherwise = x : updateOrAdd f a xs
 
-registerSymbol :: Symbols -> String -> ([AST] -> Maybe AST) -> Symbols
-registerSymbol symbols name f = updateOrAdd ((== name) . fst) (name, f) symbols
+registerSymbol :: Symbols -> String -> (Symbols -> [AST] -> Maybe AST) -> Symbols
+registerSymbol symbols name f = updateOrAdd ((== name) . symbolName) (BackendSymbol (name, f)) symbols
 
-symbolId :: AST -> [AST] -> Maybe AST
-symbolId value [] = Just value
-symbolId _ _ = Nothing
+symbolId :: AST -> Symbols -> [AST] -> Maybe AST
+symbolId value _ [] = Just value
+symbolId _ _ _ = Nothing
 
 fromSymbol :: AST -> Maybe String
 fromSymbol (ASTSymbol s) = Just s
@@ -85,33 +97,51 @@ makeLambdaSymbols symbols [] _ = Just symbols
 makeLambdaSymbols symbols _ [] = Just symbols
 makeLambdaSymbols symbols lambdaParams lambdaArgs = fmap (\params' -> updateSymbols symbols (zip params' lambdaArgs)) (mapM fromSymbol lambdaParams)
 
+liftJoin2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
+liftJoin2 f a b = a >>= (\a' -> b >>= (\b' -> f a' b'))
+
 evaluateAST1 :: Symbols -> AST -> (Maybe AST, Symbols)
 evaluateAST1 symbols n@(ASTNumber _) = (Just n, symbols)
 evaluateAST1 symbols b@(ASTBoolean _) = (Just b, symbols)
 evaluateAST1 symbols lambda@(ASTLambda _ _) = (Just lambda, symbols)
-evaluateAST1 symbols (ASTSymbol s) = (find ((== s) . fst) symbols >>= (\(_, f) -> f [] >>= (fst . evaluateAST1 symbols)), symbols)
-evaluateAST1 symbols (ASTCall (FunctionCall f) args) = ((find ((== f) . fst) symbols) >>= (\(s, f) -> evaluateAST' symbols args >>= f), symbols)
+evaluateAST1 symbols (ASTSymbol s) = (find ((== s) . symbolName) symbols >>= (\(BackendSymbol (_, f)) -> f symbols [] >>= (fst . evaluateAST1 symbols)), symbols)
+evaluateAST1 symbols (ASTCall (FunctionCall f) args) = (find ((== f) . symbolName) symbols >>= (\(BackendSymbol (s, f)) -> f symbols args), symbols)
 evaluateAST1 symbols (ASTCall (LambdaCall params body) args) = (args' >>= (makeLambdaSymbols symbols params) >>= (\symbols' -> fst $ evaluateAST1 symbols' body), symbols) -- discarding lambda symbols and returning old ones
     where args' = if null args then Just [] else (mapM (fst . evaluateAST1 symbols) args)
 evaluateAST1 symbols define@(ASTDefine s lambda@(ASTLambda params body)) = (Just define, registerSymbol symbols s function)
-    where function args = mapM (fst . evaluateAST1 symbols) args >>= (\args' -> fst $ evaluateAST1 symbols (ASTCall (LambdaCall params body) args'))
+    where function symbols' args = mapM (fst . evaluateAST1 symbols') args >>= (\args' -> fst $ evaluateAST1 symbols' (ASTCall (LambdaCall params body) args'))
 evaluateAST1 symbols define@(ASTDefine s ast) = (Just define, registerSymbol symbols s function)
-    where function args
+    where function symbols' args
             | null args = Just ast
             | length args >= 2 = Nothing
-            | otherwise = fst $ evaluateAST1 symbols $ head args
+            | otherwise = fst $ evaluateAST1 symbols' $ head args
 
-astArithmeticOp :: (Int -> Int -> Int) -> [AST] -> Maybe AST
-astArithmeticOp f [(ASTNumber a), (ASTNumber b)] = Just $ ASTNumber (f a b)
-astArithmeticOp _ _ = Nothing
+astArithmeticOp' :: (Int -> Int -> Int) -> [AST] -> Maybe AST
+astArithmeticOp' f [(ASTNumber a), (ASTNumber b)] = Just $ ASTNumber (f a b)
+astArithmeticOp' _ _ = Nothing
 
-astComparisonOp :: (Int -> Int -> Bool) -> [AST] -> Maybe AST
-astComparisonOp f [(ASTNumber a), (ASTNumber b)] = Just $ ASTBoolean (f a b)
-astComparisonOp _ _ = Nothing
+astArithmeticOp :: (Int -> Int -> Int) -> Symbols -> [AST] -> Maybe AST
+astArithmeticOp f symbols args = mapM (fst . evaluateAST1 symbols) args >>= astArithmeticOp' f
 
-astIf :: [AST] -> Maybe AST
-astIf [(ASTBoolean condition), a, b] = if condition then Just a else Just b
-astIf _ = Nothing
+toNumber :: AST -> Maybe Int
+toNumber (ASTBoolean b) = Just (fromEnum b)
+toNumber (ASTNumber n) = Just n
+toNumber _ = Nothing
+
+astComparisonOp' :: (Int -> Int -> Bool) -> [AST] -> Maybe AST
+astComparisonOp' f args@[a, b] = mapM toNumber args >>= (\[a', b'] -> Just $ ASTBoolean (f a' b'))
+astComparisonOp' _ _ = Nothing
+
+astComparisonOp :: (Int -> Int -> Bool) -> Symbols -> [AST] -> Maybe AST
+astComparisonOp f symbols args = mapM (fst . evaluateAST1 symbols) args >>= astComparisonOp' f
+
+astIf' :: Symbols -> [AST] -> Maybe AST
+astIf' symbols [(ASTBoolean condition), a, b] = if condition then fst (evaluateAST1 symbols a) else fst (evaluateAST1 symbols b)
+astIf' _ _ = Nothing
+
+astIf :: Symbols -> [AST] -> Maybe AST
+astIf symbols [a, b, c] = (fst $ evaluateAST1 symbols a) >>= (\a' -> astIf' symbols [a', b, c])
+astIf _ _ = Nothing
 
 evaluateAST' :: Symbols -> [AST] -> Maybe [AST]
 evaluateAST' _ [] = Nothing
@@ -126,9 +156,11 @@ test :: [SExpr]
 -- test = [ List [Symbol "define", Symbol "x", List [Symbol "+", Number 6, Number 5]]
         -- , List [Symbol "eq?", Number 1, List [Symbol "mod", List [Symbol "div", List [Symbol "*", Number 5, List [Symbol "+", Number 7, List [Symbol "-", Number 10, Number 2]]], Number 5], Number 7]]
         -- , List [Symbol "if", List [Symbol ">", Symbol "x", Number 8], Symbol "#t", Symbol "#f"] ]
-test = [ List [Symbol "define", Symbol "a", Number 5], List [List [Lambda (List [Symbol "a", Symbol "b"]) (List [Symbol "+", Symbol "a", Symbol "b"])], List [Symbol "+", Symbol "a", Symbol "a"], Symbol "a"]]
+-- test = [ List [Symbol "define", Symbol "a", Number 5], List [List [Lambda (List [Symbol "a", Symbol "b"]) (List [Symbol "+", Symbol "a", Symbol "b"])], List [Symbol "+", Symbol "a", Symbol "a"], Symbol "a"]]
 -- test = [List [Symbol "define", Symbol "x", List [Lambda (List [Symbol "a", Symbol "b"]) (List [Symbol "+", Symbol "a", Symbol "b"])]], List [Symbol "x", Number 5, Number 10]]
 -- test = [List [List [Lambda (List []) (Number 15)]]]
+-- test = [List [List [Lambda (List [Symbol "a"]) (List [Symbol "if", List [Symbol "eq?", Symbol "a", Number 1], Symbol "#t", Symbol "#f"])], Number 1]]
+test = [ List [Symbol "define", Symbol "factorial", List [Lambda (List [Symbol "n"]) (List [Symbol "if", List [Symbol "<=", Symbol "n", Number 1], Number 1, List [Symbol "*", Symbol "n", List [Symbol "factorial", List [Symbol "-", Symbol "n", Number 1]]]])]], List [Symbol "factorial", Number 10]]
 
 join :: String -> [String] -> String
 join separator strings = foldr (\x y -> if null y then x else x ++ separator ++ y) "" strings
