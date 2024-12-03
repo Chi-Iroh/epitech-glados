@@ -8,7 +8,7 @@ module Utils
 
 import System.Exit
 
-data Safe a = Value a | Error String deriving (Eq, Ord, Read, Show)
+data Safe a = Value a | Error String deriving (Eq, Ord, Read)
 
 instance Functor Safe where
     fmap f (Value a) = Value (f a)
@@ -21,8 +21,13 @@ instance Applicative Safe where
     _ <*> (Error err) = Error err
 
 instance Monad Safe where
-    (>>=) (Error err) _ = Error err
-    (>>=) (Value a) f = f a
+    (Value a) >>= f = f a
+    (Error err) >>= _ = (Error err)
+    return = pure
+
+instance Show a => Show (Safe a) where
+    show (Error err) = show err
+    show (Value a) = show a
 
 printSafe :: Show a => Safe a -> IO ()
 printSafe (Error err) = putStrLn err

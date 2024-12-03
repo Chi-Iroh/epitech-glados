@@ -116,9 +116,6 @@ evaluateAST = evaluateAST' builtins
 -- test = [List [List [Lambda (List [Symbol "a"]) (List [Symbol "if", List [Symbol "eq?", Symbol "a", Number 1], Symbol "#t", Symbol "#f"])], Number 1]]
 -- test = [ List [Symbol "define", Symbol "factorial", List [Lambda (List [Symbol "n"]) (List [Symbol "if", List [Symbol "<=", Symbol "n", Number 1], Number 1, List [Symbol "*", Symbol "n", List [Symbol "factorial", List [Symbol "-", Symbol "n", Number 1]]]])]], List [Symbol "factorial", Number 10]]
 
--- join :: String -> [String] -> String
--- join separator strings = foldr (\x y -> if null y then x else x ++ separator ++ y) "" strings
-
 -- putMaybeStr :: Maybe String -> IO ()
 -- putMaybeStr str = putStr $ fromMaybe "Nothing" str
 
