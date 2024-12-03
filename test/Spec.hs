@@ -2,4 +2,4 @@ import Test.HUnit
 import TestParser
 
 main :: IO Counts
-main = runTestTT tests
+main = runTestTT testParser
