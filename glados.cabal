@@ -27,6 +27,8 @@ library
   exposed-modules:
       AST
       Converter
+      Debug
+      Evaluate
       Parser
       SExpression
       Utils

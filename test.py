@@ -17,16 +17,30 @@ if len(TESTS) == 0:
     print(f"No .scm test file in {EXAMPLES_DIR}")
     quit()
 
+def group_multiline_string(lines : list[str]) -> list[str]:
+    new : list[str] = []
+    is_in_str : bool = False
+
+    for line in lines:
+        if is_in_str:
+            new[-1] += line
+            if "'" in line:
+                is_in_str = False
+            continue
+        new.append(line)
+        is_in_str = line.count("'") % 2 == 1
+    return new
+
 def parse_expected(path : Path) -> dict[str, str]:
-    config = { key : value for key, value in map(lambda line: map(str.strip, line.strip().split(":", 1)), open(str(path), "r").readlines()) }
-    if "RETCODE" not in config:
-        config.update({ "RETCODE" : 0 })
-    else:
-        config["RETCODE"] = int(config["RETCODE"])
-    for output in ("STDOUT", "STDERR"):
-        if output in config:
-            config[output] = config[output].strip("'")
-    return config
+        config = { key : value for key, value in map(lambda line: map(str.strip, line.strip("\n").split(":", 1)), group_multiline_string(open(str(path), "r").readlines())) }
+        if "RETCODE" not in config:
+            config.update({ "RETCODE" : 0 })
+        else:
+            config["RETCODE"] = int(config["RETCODE"])
+        for output in ("STDOUT", "STDERR"):
+            if output in config:
+                config[output] = config[output].strip("'")
+        return config
 
 n_passed = 0
 
@@ -42,7 +56,7 @@ for i, (test, expected) in enumerate(TESTS):
         passed = False
     outputs = [("STDOUT", run.stdout), ("STDERR", run.stderr)]
     for output_name, output in outputs:
-        output = output.decode("utf-8").strip()
+        output = output.decode("utf-8").strip("\n")
         if output_name in config and output != config[output_name]:
             print(f"--> Got {output_name} '{output}' but expected '{config[output_name].strip("'")}'")
             passed = False
