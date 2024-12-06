@@ -33,20 +33,3 @@ main = do
     putResult (fmap showAll ((convert $ parse file) >>= (toSafe . evaluateAST)))
     -- (convert $ parse file)-- >>= (toSafe . evaluateAST)-- >>= (print . showAll)
 
--- main :: IO [()]
--- main = mapM putStrLn [ "                                #"
---     , "                               # #"
---     , "                              #   #"
---     , "                             # # # #"
---     , "                            #       #"
---     , "                           # #     # #"
---     , "                          #   #   #   #"
---     , "                         # # # # # # # #"
---     , "                        #               #"
---     , "                       # #             # #"
---     , "                      #   #           #   #"
---     , "                     # # # #         # # # #"
---     , "                    #       #       #       #"
---     , "                   # #     # #     # #     # #"
---     , "                  #   #   #   #   #   #   #   #"
---     , "                 # # # # # # # # # # # # # # # #"]
