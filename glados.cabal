@@ -66,6 +66,7 @@ test-suite glados-test
   other-modules:
       Paths_glados
       TestParser
+      Color
   autogen-modules:
       Paths_glados
   hs-source-dirs:
