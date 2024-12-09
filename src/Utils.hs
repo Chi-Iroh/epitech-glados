@@ -6,8 +6,6 @@ module Utils
     joinSStrings
     ) where
 
-import System.Exit
-
 data Safe a = Value a | Error String deriving (Eq, Ord, Read)
 
 instance Functor Safe where
