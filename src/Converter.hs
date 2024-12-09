@@ -12,7 +12,7 @@ sexprSListHandling :: [SExpr] -> Safe AST
 sexprSListHandling [] = Error "GLaDOS: ConverterError: Expected a list of at least one SExpr but got an empty list instead. [Converter.hs:12]\n"
 sexprSListHandling [SNumber a] = Value (ASTNumber a)
 sexprSListHandling [SSymbol "#t"] = Value (ASTBoolean True)
-sexprSListHandling [SSymbol "#f"] = Value (ASTBoolean True)
+sexprSListHandling [SSymbol "#f"] = Value (ASTBoolean False)
 sexprSListHandling [SSymbol a] = Value (ASTSymbol a)
 sexprSListHandling (SList (SSymbol "lambda":b:c):rests)
         | null c = Error "GLaDOS: SyntaxError: Not enough arguments to declare a lambda.\n"
