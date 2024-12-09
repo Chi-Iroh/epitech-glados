@@ -64,6 +64,8 @@ for i, (test, expected) in enumerate(TESTS):
         if output_name in config and output != config[output_name]:
             print(f"--> {RED}Got {output_name} '{output}' but expected '{config[output_name].strip("'")}'{BLANK}")
             passed = False
+    if not passed and "STDERR" not in config:
+        print(f"--> {RED}Also, got STDERR '{run.stderr.decode("utf-8")}'{BLANK} !")
     if passed:
         print(f"--> {GREEN}PASSED{BLANK}")
         n_passed += 1
