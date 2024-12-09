@@ -86,10 +86,10 @@ testParseParanthese4 :: Test
 testParseParanthese4 = TestCase (assertEqual "parseParanthese ')'" (Value ([], [])) (parseParanthese [SListEnd] [] 0))
 
 testParseParanthese5 :: Test
-testParseParanthese5 = TestCase (assertEqual "parseParanthese '('" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected") (parseParanthese [SListBegin] [] 0))
+testParseParanthese5 = TestCase (assertEqual "parseParanthese '('" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected\n") (parseParanthese [SListBegin] [] 0))
 
 testParseParanthese6 :: Test
-testParseParanthese6 = TestCase (assertEqual "parseParanthese ''" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected") (parseParanthese [] [] 0))
+testParseParanthese6 = TestCase (assertEqual "parseParanthese ''" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected\n") (parseParanthese [] [] 0))
 
 testParseParanthese :: Test
 testParseParanthese = TestList [
@@ -168,10 +168,10 @@ testASExprToSExpr4 :: Test
 testASExprToSExpr4 = TestCase $ assertEqual "aSExprToSExpr '()'" (Value [SList []]) (aSExprToSExpr [SListBegin, SListEnd] (Value []))
 
 testASExprToSExpr5 :: Test
-testASExprToSExpr5 = TestCase $ assertEqual "aSExprToSExpr '('" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected") (aSExprToSExpr [SListBegin] (Value []))
+testASExprToSExpr5 = TestCase $ assertEqual "aSExprToSExpr '('" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected\n") (aSExprToSExpr [SListBegin] (Value []))
 
 testASExprToSExpr6 :: Test
-testASExprToSExpr6 = TestCase $ assertEqual "aSExprToSExpr ')'" (Error "GLaDOS: SyntaxError: unexpected ')' while parsing") (aSExprToSExpr [SListEnd] (Value []))
+testASExprToSExpr6 = TestCase $ assertEqual "aSExprToSExpr ')'" (Error "GLaDOS: SyntaxError: unexpected ')' while parsing\n") (aSExprToSExpr [SListEnd] (Value []))
 
 testASExprToSExpr7 :: Test
 testASExprToSExpr7 = TestCase $ assertEqual "aSExprToSExpr ''" (Value []) (aSExprToSExpr [] (Value []))
@@ -202,10 +202,10 @@ testParse4 :: Test
 testParse4 = TestCase $ assertEqual "parse '()'" (Value [SList []]) (parse "()")
 
 testParse5 :: Test
-testParse5 = TestCase $ assertEqual "parse '('" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected") (parse "(")
+testParse5 = TestCase $ assertEqual "parse '('" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected\n") (parse "(")
 
 testParse6 :: Test
-testParse6 = TestCase $ assertEqual "parse ')'" (Error "GLaDOS: SyntaxError: unexpected ')' while parsing") (parse ")")
+testParse6 = TestCase $ assertEqual "parse ')'" (Error "GLaDOS: SyntaxError: unexpected ')' while parsing\n") (parse ")")
 
 testParse7 :: Test
 testParse7 = TestCase $ assertEqual "parse ''" (Value []) (parse "")
