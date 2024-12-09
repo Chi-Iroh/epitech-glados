@@ -4,6 +4,10 @@ from pathlib import Path
 import subprocess
 import sys
 
+RED : str = "\033[0;31m"
+YELLOW : str = "\033[1;33m"
+GREEN : str = "\033[0;32m"
+BLANK : str = "\033[0m"
 EXAMPLES_DIR : str = "examples"
 EXPECTED_DIR : str = "examples-expected"
 
@@ -52,16 +56,16 @@ for i, (test, expected) in enumerate(TESTS):
     passed = True
     run = subprocess.run([GLADOS, str(test)], stdout=subprocess.PIPE, stderr = subprocess.PIPE)
     if run.returncode != config["RETCODE"]:
-        print(f"--> Got return code {run.returncode} but expected {config['RETCODE']}", file = sys.stderr)
+        print(f"--> {RED}Got return code {run.returncode} but expected {config['RETCODE']}{BLANK}", file = sys.stderr)
         passed = False
     outputs = [("STDOUT", run.stdout), ("STDERR", run.stderr)]
     for output_name, output in outputs:
         output = output.decode("utf-8").strip("\n")
         if output_name in config and output != config[output_name]:
-            print(f"--> Got {output_name} '{output}' but expected '{config[output_name].strip("'")}'")
+            print(f"--> {RED}Got {output_name} '{output}' but expected '{config[output_name].strip("'")}'{BLANK}")
             passed = False
     if passed:
-        print("--> PASSED")
+        print(f"--> {GREEN}PASSED{BLANK}")
         n_passed += 1
 
 print(f"\nSummary: passed {n_passed}/{len(TESTS)} test{'s' if len(TESTS) > 1 else ''}")
