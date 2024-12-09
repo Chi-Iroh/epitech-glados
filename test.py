@@ -40,11 +40,19 @@ def parse_expected(path : Path) -> dict[str, str]:
         if "RETCODE" not in config:
             config.update({ "RETCODE" : 0 })
         else:
-            config["RETCODE"] = int(config["RETCODE"])
+            if config["RETCODE"].lower() == "nonzero":
+                config["RETCODE"] = "nonzero"
+            else:
+                config["RETCODE"] = int(config["RETCODE"])
         for output in ("STDOUT", "STDERR"):
             if output in config:
                 config[output] = config[output].strip("'")
         return config
+
+def check_return_code(expected : str | int, actual : int) -> bool:
+    if expected == "nonzero":
+        return actual != 0
+    return actual == expected
 
 n_passed = 0
 
@@ -55,8 +63,8 @@ for i, (test, expected) in enumerate(TESTS):
     print(f"Test {i+1}: {GLADOS} {test}")
     passed = True
     run = subprocess.run([GLADOS, str(test)], stdout=subprocess.PIPE, stderr = subprocess.PIPE)
-    if run.returncode != config["RETCODE"]:
-        print(f"--> {RED}Got return code {run.returncode} but expected {config['RETCODE']}{BLANK}", file = sys.stderr)
+    if not check_return_code(config["RETCODE"], run.returncode):
+        print(f"--> {RED}Got return code {run.returncode} but expected {config['RETCODE'] if config['RETCODE'] != 'nonzero' else "!= 0"}{BLANK}", file = sys.stderr)
         passed = False
     outputs = [("STDOUT", run.stdout), ("STDERR", run.stderr)]
     for output_name, output in outputs:

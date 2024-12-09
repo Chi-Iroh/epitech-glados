@@ -1,2 +1,2 @@
 STDERR: '*** ERROR : variable foo is not bound.'
-RETCODE: 84
+RETCODE: NonZero

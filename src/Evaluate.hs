@@ -71,7 +71,7 @@ toSafe err Nothing = Error err
 toSafe _ (Just a) = Value a
 
 findSymbol :: Symbols -> String -> Safe Symbol
-findSymbol symbols symbol = toSafe ("Symbol " ++ symbol ++ " not found ! Existing symbols: " ++ showSymbols symbols) (find ((== symbol) . symbolName) symbols)
+findSymbol symbols symbol = toSafe ("*** ERROR : variable " ++ symbol ++ " is not bound.") (find ((== symbol) . symbolName) symbols)
 
 evaluateAST1 :: Symbols -> AST -> (Safe AST, Symbols)
 evaluateAST1 symbols n@(ASTNumber _) = (Value n, symbols)

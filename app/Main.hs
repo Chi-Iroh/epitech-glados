@@ -4,10 +4,9 @@ import AST (MainAST, isProcedureType)
 import Converter
 import Evaluate (evaluateAST)
 import Parser
-import System.Exit
+import System.Exit (die, exitWith, ExitCode(ExitFailure))
 import System.Environment
 import Utils
-import System.IO (hPutStr, stderr)
 
 getFileName :: [String] -> Maybe String
 getFileName [a] = Just a
@@ -24,7 +23,7 @@ showAll args
 
 putResult :: Safe String -> IO ()
 putResult (Value res) = putStr res
-putResult (Error err) = hPutStr stderr ("Error: '" ++ err ++ "'")
+putResult (Error err) = die err
 
 main :: IO ()
 main = do
