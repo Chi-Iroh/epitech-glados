@@ -13,7 +13,7 @@ getFileName [a] = Just a
 getFileName _ = Nothing
 
 toSafe :: Maybe a -> Safe a
-toSafe Nothing = Error "Happy debugging ^^"
+toSafe Nothing = Error "Happy debugging ^^\n"
 toSafe (Just a) = Value a
 
 showAll :: Show a => [a] -> String
@@ -32,21 +32,3 @@ main = do
     file <- readFile filename
     putResult (fmap showAll ((convert $ parse file) >>= (toSafe . evaluateAST)))
     -- (convert $ parse file)-- >>= (toSafe . evaluateAST)-- >>= (print . showAll)
-
--- main :: IO [()]
--- main = mapM putStrLn [ "                                #"
---     , "                               # #"
---     , "                              #   #"
---     , "                             # # # #"
---     , "                            #       #"
---     , "                           # #     # #"
---     , "                          #   #   #   #"
---     , "                         # # # # # # # #"
---     , "                        #               #"
---     , "                       # #             # #"
---     , "                      #   #           #   #"
---     , "                     # # # #         # # # #"
---     , "                    #       #       #       #"
---     , "                   # #     # #     # #     # #"
---     , "                  #   #   #   #   #   #   #   #"
---     , "                 # # # # # # # # # # # # # # # #"]

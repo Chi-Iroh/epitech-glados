@@ -35,7 +35,7 @@ stringToASExpr (x:xs) result = stringToASExpr xs (result ++ (convertToASExpr x))
 -- list [] 0
 -- (le reste de la liste, la liste des paranthèses)
 parseParanthese :: [AlmostSExpr] -> [AlmostSExpr] -> Int -> Safe ([AlmostSExpr], [AlmostSExpr])
-parseParanthese [] _ _ = Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected"
+parseParanthese [] _ _ = Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected\n"
 parseParanthese (SListEnd:rList) pList 0 = Value (rList, reverse pList)
 parseParanthese (SListEnd:rList) pList i = parseParanthese rList (SListEnd:pList) (i - 1)
 parseParanthese (SListBegin:rList) pList i = parseParanthese rList (SListBegin:pList) (i + 1)
@@ -58,7 +58,7 @@ aSExprToSExpr :: [AlmostSExpr] -> Safe [SExpr] -> Safe [SExpr]
 aSExprToSExpr _ (Error err) = Error err
 aSExprToSExpr [] (Value list) = Value (reverse list)
 aSExprToSExpr ((ASExpr expr):xs) (Value list) = aSExprToSExpr xs (Value (expr:list))
-aSExprToSExpr (SListEnd:_) _ = Error "GLaDOS: SyntaxError: unexpected ')' while parsing"
+aSExprToSExpr (SListEnd:_) _ = Error "GLaDOS: SyntaxError: unexpected ')' while parsing\n"
 aSExprToSExpr (SListBegin:xs) list = verifyParanthese (parseParanthese xs [] 0) list
 
 parse :: String -> Safe [SExpr]
