@@ -12,10 +12,6 @@ getFileName :: [String] -> Maybe String
 getFileName [a] = Just a
 getFileName _ = Nothing
 
-toSafe :: Maybe a -> Safe a
-toSafe Nothing = Error "Happy debugging ^^\n"
-toSafe (Just a) = Value a
-
 showAll :: Show a => [a] -> String
 showAll = unlines . filter (not . null) . map show
 

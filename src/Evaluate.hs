@@ -1,7 +1,6 @@
 module Evaluate (evaluateAST, Symbol(..), Symbols) where
 
 import AST (AST(..), Call(..), MainAST(..))
-import Debug (debug2)
 import Data.List (singleton)
 import Utils (Safe(..))
 
@@ -18,15 +17,15 @@ symbolName (BackendSymbol (s, _)) = s
 showSymbols :: Symbols -> String
 showSymbols symbols = show (map symbolName symbols)
 
-traceSymbols2 :: String -> Symbols -> Symbols
-traceSymbols2 msg f = debug2 msg (map symbolName f) f
+-- traceSymbols2 :: String -> Symbols -> Symbols
+-- traceSymbols2 msg f = debug2 msg (map symbolName f) f
 
-traceSymbols :: Symbols -> Symbols
-traceSymbols = traceSymbols2 "symbols: "
+-- traceSymbols :: Symbols -> Symbols
+-- traceSymbols = traceSymbols2 "symbols: "
 
-traceSymbol :: Maybe Symbol -> Maybe Symbol
-traceSymbol f@(Just (BackendSymbol (s, _))) = debug2 "symbol: " s f
-traceSymbol Nothing = Nothing
+-- traceSymbol :: Maybe Symbol -> Maybe Symbol
+-- traceSymbol f@(Just (BackendSymbol (s, _))) = debug2 "symbol: " s f
+-- traceSymbol Nothing = Nothing
 
 builtins :: Symbols
 builtins = [    BackendSymbol ("*", astArithmeticOp "*" (*))
@@ -105,7 +104,7 @@ toNumber a = Error ("Cannot convert " ++ show a ++ " to an integer !")
 astComparisonOp' :: String -> (Int -> Int -> Bool) -> [AST] -> Safe AST
 astComparisonOp' name f args@[_, _] = mapM toNumber args >>= compare'
     where compare' [a', b'] = Value $ ASTBoolean (f a' b')
-          compare' args = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare booleans and integers, but got " ++ show args ++ " !")
+          compare' args' = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare booleans and integers, but got " ++ show args' ++ " !")
 astComparisonOp' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare 2 arguments, but got " ++ show (length args) ++ " !")
 
 astComparisonOp :: String -> (Int -> Int -> Bool) -> Symbols -> [AST] -> Safe AST
