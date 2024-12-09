@@ -18,5 +18,9 @@ lambdananas
 *.pdf
 *.log
 
+## Tests
+Got
+PASSED
+
 ## .gitignore
 !.gitignore

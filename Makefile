@@ -19,7 +19,7 @@ style:
 tests: unit_test func_test
 
 func_test:
-#	${shell python3 test.py}
+	${shell python3 test.py}
 
 unit_test:
 	${shell stack test}
