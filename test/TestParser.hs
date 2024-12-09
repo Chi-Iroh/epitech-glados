@@ -32,13 +32,13 @@ testConvertToASExpr7 :: Test
 testConvertToASExpr7 = myAssertEqual "convertToASExpr ''" [] (convertToASExpr "")
 
 testConvertToASExpr8 :: Test
-testConvertToASExpr8 = myAssertEqual "convertToASExpr '(+ (* (- 10 2) (mod 19 3)) (div 10 2))'" [SListBegin, (ASExpr $ SSymbol "+ (* (- 10 2) (mod 19 3)) (div 10 2)"), SListEnd] (convertToASExpr "(+ (* (- 10 2) (mod 19 3)) (div 10 2))")
+testConvertToASExpr8 = myAssertEqual "convertToASExpr '(+ (* (- 10 2) (mod 19 3)) (div 10 2))'" [SListBegin, (ASExpr $ SSymbol "+ (* (- 10 2) (mod 19 3)) (div 10 2"), SListEnd, SListEnd] (convertToASExpr "(+ (* (- 10 2) (mod 19 3)) (div 10 2))")
 
 testConvertToASExpr9 :: Test
 testConvertToASExpr9 = myAssertEqual "convertToASExpr '(if #f 4 #f)'" [SListBegin, (ASExpr $ SSymbol "if #f 4 #f"), SListEnd] (convertToASExpr "(if #f 4 #f)")
 
 testConvertToASExpr10 :: Test
-testConvertToASExpr10 = myAssertEqual "convertToASExpr '((lambda (a b) (+ a b)) 1 2)'" [SListBegin, (ASExpr $ SSymbol "(lambda (a b) (+ a b)) 1 2"), SListEnd] (convertToASExpr "((lambda (a b) (+ a b)) 1 2)")
+testConvertToASExpr10 = myAssertEqual "convertToASExpr '((lambda (a b) (+ a b)) 1 2)'" [SListBegin, SListBegin, (ASExpr $ SSymbol "lambda (a b) (+ a b)) 1 2"), SListEnd] (convertToASExpr "((lambda (a b) (+ a b)) 1 2)")
 
 testConvertToASExpr11 :: Test
 testConvertToASExpr11 = myAssertEqual "convertToASExpr '(define (< a b)\n    #t\n)'" [SListBegin, (ASExpr $ SSymbol "define (< a b)\n    #t\n"), SListEnd] (convertToASExpr "(define (< a b)\n    #t\n)")
@@ -81,6 +81,27 @@ testStringToASExpr6 = myAssertEqual "stringToASExpr ')'" [SListEnd] (stringToASE
 testStringToASExpr7 :: Test
 testStringToASExpr7 = myAssertEqual "stringToASExpr ''" [] (stringToASExpr (words "") [])
 
+testStringToASExpr8 :: Test
+testStringToASExpr8 = myAssertEqual "stringToASExpr '(+ (* (- 10 2) (mod 19 3)) (div 10 2))'" ([SListBegin, (ASExpr $ SSymbol "+"), SListBegin, (ASExpr $ SSymbol "*")] ++ a ++ b ++ [SListEnd] ++ c ++ [SListEnd]) (stringToASExpr (words "(+ (* (- 10 2) (mod 19 3)) (div 10 2))") [])
+    where
+        a = [SListBegin, (ASExpr $ SSymbol "-"), (ASExpr $ SNumber 10), (ASExpr $ SNumber 2), SListEnd]
+        b = [SListBegin, (ASExpr $ SSymbol "mod"), (ASExpr $ SNumber 19), (ASExpr $ SNumber 3), SListEnd]
+        c = [SListBegin, (ASExpr $ SSymbol "div"), (ASExpr $ SNumber 10), (ASExpr $ SNumber 2), SListEnd]
+
+testStringToASExpr9 :: Test
+testStringToASExpr9 = myAssertEqual "stringToASExpr '(if #f 4 #f)'" [SListBegin, (ASExpr $ SSymbol "if"), (ASExpr $ SSymbol "#f"), (ASExpr $ SNumber 4), (ASExpr $ SSymbol "#f"), SListEnd] (stringToASExpr (words "(if #f 4 #f)") [])
+
+testStringToASExpr10 :: Test
+testStringToASExpr10 = myAssertEqual "stringToASExpr '((lambda (a b) (+ a b)) 1 2)'" ([SListBegin, SListBegin, (ASExpr $ SSymbol "lambda")] ++ a ++ b ++ [SListEnd, (ASExpr $ SNumber 1), (ASExpr $ SNumber 2), SListEnd]) (stringToASExpr (words "((lambda (a b) (+ a b)) 1 2)") [])
+    where
+        a = [SListBegin, (ASExpr $ SSymbol "a"), (ASExpr $ SSymbol "b"), SListEnd]
+        b = [SListBegin, (ASExpr $ SSymbol "+"), (ASExpr $ SSymbol "a"), (ASExpr $ SSymbol "b"), SListEnd]
+
+testStringToASExpr11 :: Test
+testStringToASExpr11 = myAssertEqual "stringToASExpr '(define (< a b)\n    #t\n)'" ([SListBegin, (ASExpr $ SSymbol "define")] ++ a ++ [(ASExpr $ SSymbol "#t"), SListEnd]) (stringToASExpr (words "(define (< a b)\n    #t\n)") [])
+    where
+        a = [SListBegin, (ASExpr $ SSymbol "<"), (ASExpr $ SSymbol "a"), (ASExpr $ SSymbol "b"), SListEnd]
+
 testStringToASExpr :: Test
 testStringToASExpr = TestList [
     TestLabel "stringToASExpr" testStringToASExpr1,
@@ -89,7 +110,11 @@ testStringToASExpr = TestList [
     TestLabel "stringToASExpr" testStringToASExpr4,
     TestLabel "stringToASExpr" testStringToASExpr5,
     TestLabel "stringToASExpr" testStringToASExpr6,
-    TestLabel "stringToASExpr" testStringToASExpr7
+    TestLabel "stringToASExpr" testStringToASExpr7,
+    TestLabel "stringToASExpr" testStringToASExpr8,
+    TestLabel "stringToASExpr" testStringToASExpr9,
+    TestLabel "stringToASExpr" testStringToASExpr10,
+    TestLabel "stringToASExpr" testStringToASExpr11
     ]
 
 -------------------------------------------------------------------------------
@@ -112,6 +137,15 @@ testParseParanthese5 = myAssertEqual "parseParanthese '('" (Error "GLaDOS: Synta
 testParseParanthese6 :: Test
 testParseParanthese6 = myAssertEqual "parseParanthese ''" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected\n") (parseParanthese [] [] 0)
 
+testParseParanthese7 :: Test
+testParseParanthese7 = myAssertEqual "parseParanthese ') (define x 0)'" (Value ([SListBegin, (ASExpr $ SSymbol "define"), (ASExpr $ SSymbol "x"), (ASExpr $ SNumber 0), SListEnd], [])) (parseParanthese [SListEnd, SListBegin, (ASExpr $ SSymbol "define"), (ASExpr $ SSymbol "x"), (ASExpr $ SNumber 0), SListEnd] [] 0)
+
+testParseParanthese8 :: Test
+testParseParanthese8 = myAssertEqual "parseParanthese '())'" (Value ([], [SListBegin, SListEnd])) (parseParanthese [SListBegin, SListEnd, SListEnd] [] 0)
+
+testParseParanthese9 :: Test
+testParseParanthese9 = myAssertEqual "parseParanthese '()) ()'" (Value ([SListBegin, SListEnd], [SListBegin, SListEnd])) (parseParanthese [SListBegin, SListEnd, SListEnd, SListBegin, SListEnd] [] 0)
+
 testParseParanthese :: Test
 testParseParanthese = TestList [
     TestLabel "parseParanthese" testParseParanthese1,
@@ -119,7 +153,10 @@ testParseParanthese = TestList [
     TestLabel "parseParanthese" testParseParanthese3,
     TestLabel "parseParanthese" testParseParanthese4,
     TestLabel "parseParanthese" testParseParanthese5,
-    TestLabel "parseParanthese" testParseParanthese6
+    TestLabel "parseParanthese" testParseParanthese6,
+    TestLabel "parseParanthese" testParseParanthese7,
+    TestLabel "parseParanthese" testParseParanthese8,
+    TestLabel "parseParanthese" testParseParanthese9
     ]
 
 -------------------------------------------------------------------------------
