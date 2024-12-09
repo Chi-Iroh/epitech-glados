@@ -30,5 +30,5 @@ main = do
                 Nothing -> exitWith(ExitFailure 84)
                 Just filename -> pure filename
     file <- readFile filename
-    putResult (fmap showAll ((convert $ parse file) >>= (toSafe . evaluateAST)))
+    putResult (fmap showAll ((convert $ parse file) >>= evaluateAST))
     -- (convert $ parse file)-- >>= (toSafe . evaluateAST)-- >>= (print . showAll)

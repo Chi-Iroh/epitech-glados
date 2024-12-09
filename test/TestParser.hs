@@ -268,6 +268,27 @@ testParse6 = myAssertEqual "parse ')'" (Error "GLaDOS: SyntaxError: unexpected '
 testParse7 :: Test
 testParse7 = myAssertEqual "parse ''" (Value []) (parse "")
 
+testParse8 :: Test
+testParse8 = myAssertEqual "parse '(+ (* (- 10 2) (mod 19 3)) (div 10 2))'" (Value $ [SList [(SSymbol "+"), SList [(SSymbol "*"), a, b], c]]) (parse "(+ (* (- 10 2) (mod 19 3)) (div 10 2))")
+    where
+        a = SList [(SSymbol "-"), (SNumber 10), (SNumber 2)]
+        b = SList [(SSymbol "mod"), (SNumber 19), (SNumber 3)]
+        c = SList [(SSymbol "div"), (SNumber 10), (SNumber 2)]
+
+testParse9 :: Test
+testParse9 = myAssertEqual "parse '(if #f 4 #f)'" (Value $ [SList [(SSymbol "if"), (SSymbol "#f"), (SNumber 4), (SSymbol "#f")]]) (parse "(if #f 4 #f)")
+
+testParse10 :: Test
+testParse10 = myAssertEqual "parse '((lambda (a b) (+ a b)) 1 2)'" (Value $ [SList [SList [(SSymbol "lambda"), a, b], (SNumber 1), (SNumber 2)]]) (parse "((lambda (a b) (+ a b)) 1 2)")
+    where
+        a = SList [(SSymbol "a"), (SSymbol "b")]
+        b = SList [(SSymbol "+"), (SSymbol "a"), (SSymbol "b")]
+
+testParse11 :: Test
+testParse11 = myAssertEqual "parse '(define (< a b)\n    #t\n)'" (Value $ [SList [(SSymbol "define"), a, (SSymbol "#t")]]) (parse "(define (< a b)\n    #t\n)")
+    where
+        a = SList [(SSymbol "<"), (SSymbol "a"), (SSymbol "b")]
+
 testParse :: Test
 testParse = TestList [
     TestLabel "parse" testParse1,
@@ -276,7 +297,11 @@ testParse = TestList [
     TestLabel "parse" testParse4,
     TestLabel "parse" testParse5,
     TestLabel "parse" testParse6,
-    TestLabel "parse" testParse7
+    TestLabel "parse" testParse7,
+    TestLabel "parse" testParse8,
+    TestLabel "parse" testParse9,
+    TestLabel "parse" testParse10,
+    TestLabel "parse" testParse11
     ]
 
 -------------------------------------------------------------------------------
