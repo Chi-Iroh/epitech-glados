@@ -7,6 +7,14 @@ import Utils
 converterListError :: String -> Int -> Safe AST
 converterListError qualifier line = Error ("GLaDOS: ConverterError: Expected a one item list but got " ++ qualifier ++ " list instead. [Converter.hs:" ++ (show line) ++ "]\n")
 
+toParam :: SExpr -> Safe AST
+toParam (SSymbol s) = Value (ASTSymbol s)
+toParam arg = Error ((show arg) ++ " isn't a valid lambda parameter, a SSymbol was expected !")
+
+toLambdaParamsList :: SExpr -> Safe [AST]
+toLambdaParamsList (SList params) = mapM toParam params
+toLambdaParamsList params = Error (show params ++ " isn't a valid lambda parameters list, a SSymbol was expected !")
+
 -- convert a SList to an Maybe AST, supposed to handle some error (currently not implemented redefine)
 sexprSListHandling :: [SExpr] -> Safe AST
 sexprSListHandling [] = Error "GLaDOS: ConverterError: Expected a list of at least one SExpr but got an empty list instead. [Converter.hs:12]\n"
@@ -16,7 +24,7 @@ sexprSListHandling [SSymbol "#f"] = Value (ASTBoolean False)
 sexprSListHandling [SSymbol a] = Value (ASTSymbol a)
 sexprSListHandling (SList (SSymbol "lambda":b:c):rests)
         | null c = Error "GLaDOS: SyntaxError: Not enough arguments to declare a lambda.\n"
-        | otherwise = case sexprToAST [b] of
+        | otherwise = case toLambdaParamsList b of
             Value parameter -> case sexprToAST c of
                 Value [expression] -> case sexprToAST rests of
                     Value rest -> Value (ASTCall (LambdaCall parameter expression) rest)
