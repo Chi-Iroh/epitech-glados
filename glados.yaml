@@ -23,9 +23,28 @@ jobs:
           cabal-version: latest
 
       - name: Run coding style check
+        run: make style
+
+  run-tests:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    needs: coding-style-check
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Run test script
         run: |
-          chmod +x ./lambananas
-          ./lambdananas
+          chmod +x ./test.py
+          ./test.py
+        continue-on-error: true
+
 
   build:
     name: Compile Glados
@@ -44,3 +63,20 @@ jobs:
 
       - name: Run Glados
         run: make re
+
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    needs: run-tests
+    if: failure()
+
+    steps:
+      - name: Send GitHub notification
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL=$(jq -r '.pull_request.url' "$GITHUB_EVENT_PATH")
+          curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          $PR_URL/comments \
+          -d '{"body": "[UNIT TEST FAILED] - Please fix the issues before merging."}'
