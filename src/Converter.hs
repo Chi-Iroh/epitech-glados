@@ -42,7 +42,7 @@ sexprSListHandling (SList (SSymbol "lambda":b:c):rests)
 
 sexprSListHandling (SSymbol "lambda":b:c)
         | null c = Error "GLaDOS: SyntaxError: Not enough arguments to declare a lambda.\n"
-        | otherwise = case sexprToAST [b] of
+        | otherwise = case toLambdaParamsList b of
             Value parameter -> case sexprToAST c of
                 Value [expression] -> Value (ASTLambda parameter expression)
                 Value [] -> converterListError "an empty" 40
