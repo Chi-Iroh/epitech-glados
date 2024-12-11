@@ -22,6 +22,7 @@ func_test:
 	./test.py
 
 unit_test:
-	${shell stack test}
+	stack test --coverage
+	@ln -s $(shell stack path --local-install-root)/hpc/glados/glados-test/hpc_index.html coverage.html
 
 .PHONY: all re clean fclean style tests func_test unit_test

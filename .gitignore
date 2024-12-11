@@ -17,6 +17,7 @@ lambdananas
 **/*gdb*
 *.pdf
 *.log
+*.tix
 
 ## Tests
 Got
