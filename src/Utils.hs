@@ -17,10 +17,13 @@ instance Applicative Safe where
     (Value f) <*> (Value a) = Value (f a)
     (Error err) <*> _ = Error err
     _ <*> (Error err) = Error err
+    (Value _) *> b = b
+    (Error err) *> _ = Error err
 
 instance Monad Safe where
     (Value a) >>= f = f a
     (Error err) >>= _ = (Error err)
+    (>>) = (*>)
     return = pure
 
 instance Show a => Show (Safe a) where
