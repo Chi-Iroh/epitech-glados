@@ -63,8 +63,8 @@ test-suite glados-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Color
       TestParser
+      UtilsForTests
       Paths_glados
   autogen-modules:
       Paths_glados

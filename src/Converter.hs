@@ -1,4 +1,11 @@
-module Converter (convert) where
+module Converter (
+    converterListError,
+    toParam,
+    toLambdaParamsList,
+    sexprSListHandling,
+    sexprToAST,
+    convert
+    ) where
 
 import SExpression
 import AST

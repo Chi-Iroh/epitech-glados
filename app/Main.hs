@@ -1,7 +1,7 @@
 module Main (main) where
 
 import AST (MainAST, isProcedureType)
-import Converter
+import Converter (convert)
 import Evaluate (evaluateAST)
 import Parser
 import System.Exit (die, exitWith, ExitCode(ExitFailure))
@@ -33,4 +33,3 @@ main = do
                 Just filename -> pure filename
     file <- readFile filename
     putResult (fmap showAll ((convert $ parse file) >>= evaluateAST))
-    -- (convert $ parse file)-- >>= (toSafe . evaluateAST)-- >>= (print . showAll)
