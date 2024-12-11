@@ -1,0 +1,52 @@
+module Utils
+    ( Safe(Value, Error),
+    printSafe,
+    printSafeList,
+    concatSStrings,
+    joinSStrings
+    ) where
+
+data Safe a = Value a | Error String deriving (Eq, Ord, Read)
+
+instance Functor Safe where
+    fmap f (Value a) = Value (f a)
+    fmap _ (Error err) = Error err
+
+instance Applicative Safe where
+    pure = Value
+    (Value f) <*> (Value a) = Value (f a)
+    (Error err) <*> _ = Error err
+    _ <*> (Error err) = Error err
+    (Value _) *> b = b
+    (Error err) *> _ = Error err
+
+instance Monad Safe where
+    (Value a) >>= f = f a
+    (Error err) >>= _ = (Error err)
+    (>>) = (*>)
+    return = pure
+
+instance Show a => Show (Safe a) where
+    show (Error err) = show err
+    show (Value a) = show a
+
+printSafe :: Show a => Safe a -> IO ()
+printSafe (Error err) = putStrLn err
+printSafe (Value a) = print a
+
+printSafeList :: Show a => Safe [a] -> IO ()
+printSafeList (Error err) = putStrLn err
+printSafeList (Value []) = putStrLn ""
+printSafeList (Value [x]) = print x
+printSafeList (Value (x:xs)) = print x >> printSafe (Value xs)
+
+type SString = Safe String
+
+concatSStrings :: SString -> SString -> SString
+concatSStrings (Error err1) (Error err2) = Error ("2 Errors encountered at the same time: " ++ err1 ++ " ; " ++ err2)
+concatSStrings (Error _) other = other
+concatSStrings first (Error _) = first
+concatSStrings (Value first) (Value other) = Value $ concat [first, other]
+
+joinSStrings :: String -> [SString] -> SString
+joinSStrings sep = foldr (\a b -> concatSStrings a (concatSStrings (b *> Value sep) b)) (Error "Cannot join those strings.")

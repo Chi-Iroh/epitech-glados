@@ -18,5 +18,14 @@ lambdananas
 *.pdf
 *.log
 
+# Stack
+*.cabal
+*.tix
+
+## Tests
+Got
+PASSED
+coverage.html
+
 ## .gitignore
 !.gitignore
