@@ -29,15 +29,15 @@ sexprSListHandling (SList (SSymbol "lambda":b:c):rests)
                 Value [expression] -> case sexprToAST rests of
                     Value rest -> Value (ASTCall (LambdaCall parameter expression) rest)
                     Error _ -> Value (ASTCall (LambdaCall parameter expression) [])             -- if after lambdacall there is nothing
-                Value [] -> converterListError "an empty" 24
-                Value (_:_:_) -> converterListError "a bigger" 25
+                Value [] -> converterListError "an empty" 32
+                Value (_:_:_) -> converterListError "a bigger" 33
                 Error err -> Error err
             Error _ -> case sexprToAST c of
                 Value [expression] -> case sexprToAST rests of
                     Value rest -> Value (ASTCall (LambdaCall [] expression) rest)
                     Error _ -> Value (ASTCall (LambdaCall [] expression) [])                    -- if after lambdacall there is nothing
-                Value [] -> converterListError "an empty" 31
-                Value (_:_:_) -> converterListError "a bigger" 32
+                Value [] -> converterListError "an empty" 39
+                Value (_:_:_) -> converterListError "a bigger" 40
                 Error err -> Error err
 
 sexprSListHandling (SSymbol "lambda":b:c)
@@ -45,13 +45,13 @@ sexprSListHandling (SSymbol "lambda":b:c)
         | otherwise = case toLambdaParamsList b of
             Value parameter -> case sexprToAST c of
                 Value [expression] -> Value (ASTLambda parameter expression)
-                Value [] -> converterListError "an empty" 40
-                Value (_:_:_) -> converterListError "a bigger" 41
+                Value [] -> converterListError "an empty" 48
+                Value (_:_:_) -> converterListError "a bigger" 49
                 Error err -> Error err
             Error _ -> case sexprToAST c of
                 Value [expression] -> Value (ASTLambda [] expression)
-                Value [] -> converterListError "an empty" 45
-                Value (_:_:_) -> converterListError "a bigger" 46
+                Value [] -> converterListError "an empty" 52
+                Value (_:_:_) -> converterListError "a bigger" 54
                 Error err -> Error err
 
 sexprSListHandling (SSymbol "define":SList(a:b):c)
@@ -59,13 +59,13 @@ sexprSListHandling (SSymbol "define":SList(a:b):c)
         | otherwise = case getSymbol a of
             Value symbol -> case sexprToAST [SList (SSymbol "lambda" : SList b : c)] of
                 Value [result] -> Value (ASTDefine symbol result)
-                Value [] -> converterListError "an empty" 69
-                Value (_:_:_) -> converterListError "a bigger" 70
+                Value [] -> converterListError "an empty" 62
+                Value (_:_:_) -> converterListError "a bigger" 63
                 Error err -> Error err
             Error _ -> case sexprToAST c of                                                     -- if no symbol
                 Value [result] -> Value (ASTDefine "" result)
-                Value [] -> converterListError "an empty" 74
-                Value (_:_:_) -> converterListError "a bigger" 75
+                Value [] -> converterListError "an empty" 67
+                Value (_:_:_) -> converterListError "a bigger" 68
                 Error err -> Error err
 
 sexprSListHandling (SSymbol "define":b:c)
@@ -74,13 +74,13 @@ sexprSListHandling (SSymbol "define":b:c)
         | otherwise = case getSymbol b of
             Value symbol -> case sexprToAST c of
                 Value [result] -> Value (ASTDefine symbol result)
-                Value [] -> converterListError "an empty" 55
-                Value (_:_:_) -> converterListError "a bigger" 56
+                Value [] -> converterListError "an empty" 77
+                Value (_:_:_) -> converterListError "a bigger" 78
                 Error err -> Error err
             Error _ -> case sexprToAST c of                                                     -- if no symbol
                 Value [result] -> Value (ASTDefine "" result)
-                Value [] -> converterListError "an empty" 60
-                Value (_:_:_) -> converterListError "a bigger" 61
+                Value [] -> converterListError "an empty" 82
+                Value (_:_:_) -> converterListError "a bigger" 83
                 Error err -> Error err
 
 sexprSListHandling (SSymbol a:b) = case getSymbol (SSymbol a) of
