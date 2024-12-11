@@ -12,6 +12,7 @@ clean:
 
 fclean: clean
 	rm -f $(BIN)
+	rm -f $(BIN).cabal
 
 style:
 	./lambdananas .
@@ -23,6 +24,7 @@ func_test:
 
 unit_test:
 	stack test --coverage
+	@rm coverage.html
 	@ln -s $(shell stack path --local-install-root)/hpc/glados/glados-test/hpc_index.html coverage.html
 
 .PHONY: all re clean fclean style tests func_test unit_test
