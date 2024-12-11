@@ -25,7 +25,7 @@ func_test:
 unit_test:
 	stack test
 	@echo "Measuring coverage..."
-	@rm coverage.html
+	@rm -f coverage.html
 	@stack test --coverage > /dev/null 2>&1
 	@ln -s $(shell stack path --local-install-root)/hpc/glados/glados-test/hpc_index.html coverage.html
 	@echo "Done"
