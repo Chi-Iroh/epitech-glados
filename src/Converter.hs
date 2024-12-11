@@ -54,6 +54,20 @@ sexprSListHandling (SSymbol "lambda":b:c)
                 Value (_:_:_) -> converterListError "a bigger" 46
                 Error err -> Error err
 
+sexprSListHandling (SSymbol "define":SList(a:b):c)
+        | null [c] = Error "GLaDOS: SyntaxError: Define expression must assign something to the defined symbol.\n"
+        | otherwise = case getSymbol a of
+            Value symbol -> case sexprToAST [SList (SSymbol "lambda" : SList b : c)] of
+                Value [result] -> Value (ASTDefine symbol result)
+                Value [] -> converterListError "an empty" 69
+                Value (_:_:_) -> converterListError "a bigger" 70
+                Error err -> Error err
+            Error _ -> case sexprToAST c of                                                     -- if no symbol
+                Value [result] -> Value (ASTDefine "" result)
+                Value [] -> converterListError "an empty" 74
+                Value (_:_:_) -> converterListError "a bigger" 75
+                Error err -> Error err
+
 sexprSListHandling (SSymbol "define":b:c)
         | null [b] = Error "GLaDOS: SyntaxError: Define expression is missing the defined symbol.\n"
         | null c = Error "GLaDOS: SyntaxError: Define expression must assign something to the defined symbol.\n"
@@ -67,20 +81,6 @@ sexprSListHandling (SSymbol "define":b:c)
                 Value [result] -> Value (ASTDefine "" result)
                 Value [] -> converterListError "an empty" 60
                 Value (_:_:_) -> converterListError "a bigger" 61
-                Error err -> Error err
-
-sexprSListHandling (SSymbol "define":SList(a:b):c)
-        | null [c] = Error "GLaDOS: SyntaxError: Define expression must assign something to the defined symbol.\n"
-        | otherwise = case getSymbol a of
-            Value symbol -> case sexprToAST [SList (SSymbol "lambda" : SList b : c)] of
-                Value [result] -> Value (ASTDefine symbol result)
-                Value [] -> converterListError "an empty" 69
-                Value (_:_:_) -> converterListError "a bigger" 70
-                Error err -> Error err
-            Error _ -> case sexprToAST c of                                                     -- if no symbol
-                Value [result] -> Value (ASTDefine "" result)
-                Value [] -> converterListError "an empty" 74
-                Value (_:_:_) -> converterListError "a bigger" 75
                 Error err -> Error err
 
 sexprSListHandling (SSymbol a:b) = case getSymbol (SSymbol a) of
