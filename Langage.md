@@ -10,7 +10,7 @@ Voici la liste des types supportés par le langage :
     - `uint`: représente un nombre entier positif
     - `char`: représente un entier compris entre 0 et 255
 
-La base par défaut est la base décimale. Cependant une base différente peut être spécifiée avec un préfixe. Voici la liste des préfixes gérés :
+La base par défaut est la base décimale. Cependant une base différente (entre 2 et 36) peut être spécifiée avec un préfixe. Voici la liste des préfixes gérés :
 
 | Préfixe | Base |
 | -------- | ---- |
@@ -27,6 +27,8 @@ Chaque caractère ascii, noté entre `'`, est considéré comme un nombre entier
 - `{a, b}`: représente un tuple de deux valeurs (les deux valeurs peuvent avoir des types distincts). `a` et `b` sont des types template.
 - `[a]`: représente une liste de valeurs du même type (une liste s'initialise entre crochets `[]` et chaque élément de la liste doit être séparé d'une virgule `,`). `a` est un type template.
     - `string`: c'est un alias de `[char]`, représente une chaîne de caractères (une chaîne de caractère s'initialise entre guillemets `""`)
+- `procedure`: représente un symbole invocable (variable, fonction, etc.)
+    - `{(parameters_types...) => return_type}`: représente une fonction ou une lambda. `parameter_type` et `return_type` doivent être un type valide du PDP. Il peut il y avoir 0, 1 ou plusieurs `parameter_type`. Par exemple voilà une formulation valide : `{({a, integer} [a]) => a}`. *(Un type n'est pas une procédure. Un mot clé n'est pas une procédure non plus.)*
 - `type`: représente un type ou une combinaison de types.
 
 Le type d'une variable est strict. Pour transférer une valeur d'un type vers un autre il faut utiliser le builtin `cast`. *Pour plus d'informations à propos de `cast` consultez la liste des builtins.*
@@ -41,7 +43,7 @@ Plusieurs types mixtes possèdent un alias prédéfini :
 | ----- | -------------------- |
 | integer | `int\|unit\|char` |
 | number | `integer\|float` |
-| any | `number\|bool\|(a, b)\|[a]\|type` |
+| any | `number\|bool\|(a, b)\|[a]\|procedure\|type` |
 
 ## Syntaxe
 
@@ -51,11 +53,17 @@ La syntaxe du langage est basé sur les paranthèses à la manière du LISP. Il 
 
 ```lisp
 (define name value)
+```
+
+```lisp
 (
     define
     name
     value
 )
+```
+
+```lisp
 ( define    name    value )
 ```
 
@@ -64,8 +72,10 @@ La syntaxe du langage est basé sur les paranthèses à la manière du LISP. Il 
 
 ### Variable
 
+*`define` et `=` sont des mots clés.*
+
 ```lisp
-(define name value)
+(define name type value)
 ```
 
 Il y a deux variables prédéfinies : `argc` & `argv`. Ces variables correspondent aux paramètres données au programme.
@@ -75,6 +85,8 @@ Il y a deux variables prédéfinies : `argc` & `argv`. Ces variables corresponde
 `argv` est une `[string]` qui correspond à la liste des arguments donnés au programme. Lorsqu'il n'y a aucun arguments donnés au programme `argv` vaut `[]`.
 
 ### Définition de fonction
+
+*`function` est un mot clé.*
 
 ```lisp
 (function name (parameter::type ...) (body...) return_type)
@@ -101,6 +113,17 @@ Le type de chaque arguments donnés à une fonction doit être identique ou plus
 (f 1 0.1)
 ```
 
+Le PDP gère la **récursivité**. Par exemple :
+
+```lisp
+(function factorial (x::integer)
+    (if (eq? x 1)
+        1
+        (* x (factorial (- x 1)))
+    )
+)
+```
+
 Le PDP gère la **curryfication**. Par exemple :
 
 ```lisp
@@ -110,6 +133,8 @@ Le PDP gère la **curryfication**. Par exemple :
 
 ### Lambda
 
+*`lambda` est un mot clé.*
+
 ```lisp
 ((lambda (parameter::type ...) (body...) return_type) arguments...)
 ```
@@ -118,10 +143,15 @@ Une lambda peut être assignée à une variable. Le résultat sera semblable à 
 
 ```lisp
 (function f (a::int|float b::int|float) (+ a b) int|float)
+```
+
+```lisp
 (define f (lambda (a::int|float b::int|float) (+ a b) int|float))
 ```
 
 ### Condition
+
+*`if` est un mot clé.*
 
 ```lisp
 (if (condition) (vraie) (fausse))
@@ -129,12 +159,16 @@ Une lambda peut être assignée à une variable. Le résultat sera semblable à 
 
 La *condition* doit être une expression de type `bool`.
 
-### Builtins
+### Mots clés
+
+Un "mot clé" en PDP est une "fonction" qui est traitée (au moins en partie) au parsing et non à la compilation ou au runtime. Un mot clé peut ne pas renvoyer de valeur.
 
 | Opérateur | Prototype | Action |
 | --------- | --------- | ------ |
-| `=` | `define (var::string value::any) bool` | Assignation d'une valeur/expression à un symbole nommé `var`. Renvoie `#t` si l'action réussie, `#f` autrement. |
-|     | `import (lib::string) bool`            | Ajoute les définitions de la librairie `lib` au fichier courant. Renvoie `#t` si l'action réussie, `#f` autrement. |
+| `=` | `define (var::procedure t::type value::any)` | Assignation d'une valeur/expression de type `t` à un symbole nommé `var`. Si l'action échoue sans lancer une erreur `var` vaudra `NULL`. `var` peut être un symbole préalablement défini ou non. |
+|     | `import (lib::string)`            | Ajoute les définitions de la librairie `lib` au fichier courant. |
+
+### Builtins
 
 #### Opérateurs numériques
 
@@ -196,16 +230,16 @@ La *condition* doit être une expression de type `bool`.
 
 | Prototype | Action |
 | --------- | ------ |
-| `len (l::[a]) uint`                 | Renvoie la longueur de `l`.         |
-| `concat (la::[a] lb::[a]) [a]`      | Concatène deux listes `la` et `lb`. |
-| `find (la::[a] predica::string) a`  | Applique le `predica` à chaque élément de `l` et renvoie le premier élément où le `predica` renvoie `#t`.   |
-| `split (l::[a] i::uint) {[a], [a]}` | Divise la liste `l` en deux listes à partir du ième. Le ième élément sera le dernier de la liste de gauche. |
-| `first (l::[a]) a`                  | Renvoie le premier élément de `l`. Si `l` est vide renvoie `NULL`. |
-| `last (l::[a]) a`                   | Renvoie le dernier élément de `l`. Si `l` est vide renvoie `NULL`. |
-| `pushback (l::[a] item::a) [a]`     | Ajoute `item` à la fin de `l`.      |
-| `pushfront (l::[a] item::a) [a]`    | Ajoute `item` au début de `l`.      |
-| `get (l::[a] i::uint) a`            | Renvoie le ième élément de `l`.     |
-| `reverse (l::[a]) [a]`              | Inverse l'ordre de `l`.             |
+| `len (l::[a]) uint`                       | Renvoie la longueur de `l`.         |
+| `concat (la::[a] lb::[a]) [a]`            | Concatène deux listes `la` et `lb`. |
+| `find (l::[a] predica::{(a) => bool}) a`  | Applique le `predica` à chaque élément de `l` et renvoie le premier élément où le `predica` renvoie `#t`.   |
+| `split (l::[a] i::uint) {[a], [a]}`       | Divise la liste `l` en deux listes à partir du ième. Le ième élément sera le dernier de la liste de gauche. |
+| `first (l::[a]) a`                        | Renvoie le premier élément de `l`. Si `l` est vide renvoie `NULL`. |
+| `last (l::[a]) a`                         | Renvoie le dernier élément de `l`. Si `l` est vide renvoie `NULL`. |
+| `pushback (l::[a] item::a) [a]`           | Ajoute `item` à la fin de `l`.      |
+| `pushfront (l::[a] item::a) [a]`          | Ajoute `item` au début de `l`.      |
+| `get (l::[a] i::uint) a`                  | Renvoie le ième élément de `l`.     |
+| `reverse (l::[a]) [a]`                    | Inverse l'ordre de `l`.             |
 
 #### Librairie maths
 
