@@ -17,6 +17,7 @@ lambdananas
 **/*gdb*
 *.pdf
 *.log
+*to_do*
 
 # Stack
 *.cabal
