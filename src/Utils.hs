@@ -3,7 +3,8 @@ module Utils
     printSafe,
     printSafeList,
     concatSStrings,
-    joinSStrings
+    joinSStrings,
+    isValue
     ) where
 
 data Safe a = Value a | Error String deriving (Eq, Ord, Read)
@@ -39,6 +40,10 @@ printSafeList (Error err) = putStrLn err
 printSafeList (Value []) = putStrLn ""
 printSafeList (Value [x]) = print x
 printSafeList (Value (x:xs)) = print x >> printSafe (Value xs)
+
+isValue :: Safe a -> Bool
+isValue (Value _) = True
+isValue _ = False
 
 type SString = Safe String
 
