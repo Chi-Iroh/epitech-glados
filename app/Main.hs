@@ -2,6 +2,7 @@ module Main (main) where
 
     -- import Debug (debug, debug2)
 import AST (MainAST, isProcedureType)
+import BinaryIO (readBinary, writeBinary)
 import Converter (convert)
 import Evaluate (evaluateAST)
 import Import (parseImport)
@@ -34,10 +35,8 @@ main = do
     filename <- case getFileName args of
                 Nothing -> exitWith(ExitFailure 84)
                 Just filename -> pure filename
-    file <- readFile filename
-    fileimport <- parseImport (deleteComment file)
-    case fileimport of
-        Error err -> die err
-        -- Value content -> putStrLn (deleteComment content)
-        Value content -> putResult (fmap showAll ((convert $ parse (deleteComment content)) >>= evaluateAST))
-
+    content <- readBinary filename
+    writeBinary (filename ++ "1") content
+    print content
+    -- file <- readFile filename
+    -- putResult (fmap showAll ((convert $ parse file) >>= evaluateAST))
