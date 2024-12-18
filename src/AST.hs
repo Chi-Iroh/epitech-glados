@@ -3,7 +3,7 @@ module AST (Call(..), AST(..), MainAST(..), isProcedureType) where
 import Type
 import Utils
 
-type Parameter = (String, Type)
+type Parameter = (AST, Type)
 
 data Call = LambdaCall [Parameter] AST Type | FunctionCall String deriving (Eq, Show)
 

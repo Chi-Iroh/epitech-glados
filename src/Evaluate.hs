@@ -3,6 +3,7 @@ module Evaluate (evaluateAST, Symbol(..), Symbols) where
 import AST (AST(..), Call(..), MainAST(..))
 import Data.List (singleton)
 import Utils (Safe(..))
+import Type
 
 find :: (a -> Bool) -> [a] -> Maybe a
 find _ [] = Nothing
@@ -55,7 +56,7 @@ symbolId _ value _ [] = Value value
 symbolId name _ _ args = Error ("Value " ++ name ++ " must be called without any argument, but you provided " ++ show args ++ " !")
 
 fromSymbol :: AST -> Safe String
-fromSymbol (ASTSymbol s) = Value s
+fromSymbol (ASTProcedure s) = Value s
 fromSymbol arg = Error ("Lambda arguments list must only contain symbols, but got " ++ show arg ++ " !")
 
 updateSymbols :: Symbols -> [(String, AST)] -> Symbols
@@ -74,36 +75,36 @@ findSymbol :: Symbols -> String -> Safe Symbol
 findSymbol symbols symbol = toSafe ("*** ERROR : variable " ++ symbol ++ " is not bound.") (find ((== symbol) . symbolName) symbols)
 
 evaluateAST1 :: Symbols -> AST -> (Safe AST, Symbols)
-evaluateAST1 symbols n@(ASTNumber _) = (Value n, symbols)
-evaluateAST1 symbols b@(ASTBoolean _) = (Value b, symbols)
-evaluateAST1 symbols lambda@(ASTLambda _ _) = (Value lambda, symbols)
-evaluateAST1 symbols (ASTSymbol s) = (findSymbol symbols s >>= (\(BackendSymbol (_, f)) -> f symbols [] >>= (fst . evaluateAST1 symbols)), symbols)
+evaluateAST1 symbols n@(ASTInt _) = (Value n, symbols)
+evaluateAST1 symbols b@(ASTBool _) = (Value b, symbols)
+evaluateAST1 symbols lambda@(ASTLambda _ _ _) = (Value lambda, symbols)
+evaluateAST1 symbols (ASTProcedure s) = (findSymbol symbols s >>= (\(BackendSymbol (_, f)) -> f symbols [] >>= (fst . evaluateAST1 symbols)), symbols)
 evaluateAST1 symbols (ASTCall (FunctionCall f) args) = (findSymbol symbols f >>= (\(BackendSymbol (_, f')) -> f' symbols args), symbols)
-evaluateAST1 symbols (ASTCall (LambdaCall params body) args) = (args' >>= (makeLambdaSymbols symbols params) >>= (\symbols' -> fst $ evaluateAST1 symbols' body), symbols) -- discarding lambda symbols and returning old ones
+evaluateAST1 symbols (ASTCall (LambdaCall params body _) args) = (args' >>= (makeLambdaSymbols symbols (map fst params)) >>= (\symbols' -> fst $ evaluateAST1 symbols' body), symbols) -- discarding lambda symbols and returning old ones
     where args' = if null args then Value [] else (mapM (fst . evaluateAST1 symbols) args)
-evaluateAST1 symbols define@(ASTDefine s (ASTLambda params body)) = (Value define, registerSymbol symbols s function)
-    where function symbols' args = mapM (fst . evaluateAST1 symbols') args >>= (\args' -> fst $ evaluateAST1 symbols' (ASTCall (LambdaCall params body) args'))
-evaluateAST1 symbols define@(ASTDefine s ast) = (Value define, registerSymbol symbols s function)
+evaluateAST1 symbols define@(ASTDefine s _ (ASTLambda params body _)) = (Value define, registerSymbol symbols s function)
+    where function symbols' args = mapM (fst . evaluateAST1 symbols') args >>= (\args' -> fst $ evaluateAST1 symbols' (ASTCall (LambdaCall params body T_Undefined) args'))
+evaluateAST1 symbols define@(ASTDefine s _ ast) = (Value define, registerSymbol symbols s function)
     where function symbols' args
             | null args = Value ast
             | length args >= 2 = Error ("Too many arguments when calling symbol ! Got " ++ show (length args) ++ " but expected 0 or 1 !")
             | otherwise = fst $ evaluateAST1 symbols' $ head args
 
 astArithmeticOp' :: String -> (Int -> Int -> Int) -> [AST] -> Safe AST
-astArithmeticOp' _ f [(ASTNumber a), (ASTNumber b)] = Value $ ASTNumber (f a b)
+astArithmeticOp' _ f [(ASTInt a), (ASTInt b)] = Value $ ASTInt (f a b)
 astArithmeticOp' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ " ! Expected 2 integers but got " ++ show args ++ " !")
 
 astArithmeticOp :: String -> (Int -> Int -> Int) -> Symbols -> [AST] -> Safe AST
 astArithmeticOp name f symbols args = mapM (fst . evaluateAST1 symbols) args >>= astArithmeticOp' name f
 
 toNumber :: AST -> Safe Int
-toNumber (ASTBoolean b) = Value (fromEnum b)
-toNumber (ASTNumber n) = Value n
+toNumber (ASTBool b) = Value (fromEnum b)
+toNumber (ASTInt n) = Value n
 toNumber a = Error ("Cannot convert " ++ show a ++ " to an integer !")
 
 astComparisonOp' :: String -> (Int -> Int -> Bool) -> [AST] -> Safe AST
 astComparisonOp' name f args@[_, _] = mapM toNumber args >>= compare'
-    where compare' [a', b'] = Value $ ASTBoolean (f a' b')
+    where compare' [a', b'] = Value $ ASTBool (f a' b')
           compare' args' = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare booleans and integers, but got " ++ show args' ++ " !")
 astComparisonOp' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare 2 arguments, but got " ++ show (length args) ++ " !")
 
@@ -111,7 +112,7 @@ astComparisonOp :: String -> (Int -> Int -> Bool) -> Symbols -> [AST] -> Safe AS
 astComparisonOp name f symbols args = mapM (fst . evaluateAST1 symbols) args >>= astComparisonOp' name f
 
 astIf' :: Symbols -> [AST] -> Safe AST
-astIf' symbols [(ASTBoolean condition), a, b] = if condition then eval a else eval b
+astIf' symbols [(ASTBool condition), a, b] = if condition then eval a else eval b
     where eval s = fst (evaluateAST1 symbols s)
 astIf' _ args = Error ("if must be called as 'if <condition as boolean> <a> <b>', but got args " ++ show args)
 
