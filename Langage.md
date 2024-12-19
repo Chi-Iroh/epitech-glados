@@ -267,3 +267,31 @@ Un "mot clé" en PDP est une "fonction" qui est traitée (au moins en partie) au
 | `round (a::float) float`           | Arrondie `a` au plus proche. |
 | `trunc (a::float) float`           | Arrondie `a` à l'entier.     |
 | `floor (a::float) float`           | Arrondie `a` à l'inférieur.  |
+
+## Commentaires dans le code
+
+Il est possible d’ajouter des commentaires dans le code grâce à la syntaxe suivante : `--`.
+
+Un commentaire débute avec `--` et se termine soit :
+- à la fin de la ligne,
+- soit lorsque la syntaxe `--` apparaît à nouveau dans la même ligne.
+
+## Exemple
+
+```
+-- Ceci est un commentaire, il ne sera pas exécuté --
+
+Ceci n'est pas un commentaire
+
+-- Ceci est un commentaire mais ceci est du code : -- (+ 4 5)
+```
+
+### Explications :
+
+1. Le premier commentaire est ignoré par l’interpréteur.
+2. La deuxième ligne est du code invalide.
+3. La troisième ligne contient :
+   - un commentaires, qui commence et se termine avec `--`.
+   - Une expression fonctionnelle `( + 4 5 )`, qui est interprétée comme du code.
+
+Utilisez cette fonctionnalité pour clarifier votre code sans affecter son exécution.

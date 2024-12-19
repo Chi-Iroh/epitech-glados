@@ -1,10 +1,11 @@
 module Main (main) where
 
+    -- import Debug (debug, debug2)
 import AST (MainAST, isProcedureType)
 import Converter (convert)
 import Evaluate (evaluateAST)
 import Import (parseImport)
-import Debug (debug, debug2)
+import Comment (deleteComment)
 import Parser
 import System.Exit (die, exitWith, ExitCode(ExitFailure))
 import System.Environment
@@ -34,8 +35,8 @@ main = do
                 Nothing -> exitWith(ExitFailure 84)
                 Just filename -> pure filename
     file <- readFile filename
-    fileimport <- parseImport file
+    fileimport <- parseImport (deleteComment file)
     case fileimport of
         Error err -> die err
-        Value content -> putResult (fmap showAll ((convert $ parse content) >>= evaluateAST))
+        Value content -> putResult (fmap showAll ((convert $ parse (deleteComment content)) >>= evaluateAST))
 
