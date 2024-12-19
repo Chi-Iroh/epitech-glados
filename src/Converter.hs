@@ -10,12 +10,13 @@ module Converter (
 import SExpression
 import AST
 import Utils
+import Type
 
 converterListError :: String -> Int -> Safe AST
 converterListError qualifier line = Error ("GLaDOS: ConverterError: Expected a one item list but got " ++ qualifier ++ " list instead. [Converter.hs:" ++ (show line) ++ "]\n")
 
 toParam :: SExpr -> Safe AST
-toParam (SSymbol s) = Value (ASTSymbol s)
+toParam (SSymbol s) = Value (ASTProcedure s)
 toParam arg = Error ((show arg) ++ " isn't a valid lambda parameter, a SSymbol was expected !")
 
 toLambdaParamsList :: SExpr -> Safe [AST]
@@ -25,24 +26,24 @@ toLambdaParamsList params = Error (show params ++ " isn't a valid lambda paramet
 -- convert a SList to an Maybe AST, supposed to handle some error (currently not implemented redefine)
 sexprSListHandling :: [SExpr] -> Safe AST
 sexprSListHandling [] = Error "GLaDOS: ConverterError: Expected a list of at least one SExpr but got an empty list instead. [Converter.hs:12]\n"
-sexprSListHandling [SNumber a] = Value (ASTNumber a)
-sexprSListHandling [SSymbol "#t"] = Value (ASTBoolean True)
-sexprSListHandling [SSymbol "#f"] = Value (ASTBoolean False)
-sexprSListHandling [SSymbol a] = Value (ASTSymbol a)
+sexprSListHandling [SNumber a] = Value (ASTInt a)
+sexprSListHandling [SSymbol "#t"] = Value (ASTBool True)
+sexprSListHandling [SSymbol "#f"] = Value (ASTBool False)
+sexprSListHandling [SSymbol a] = Value (ASTProcedure a)
 sexprSListHandling (SList (SSymbol "lambda":b:c):rests)
         | null c = Error "GLaDOS: SyntaxError: Not enough arguments to declare a lambda.\n"
         | otherwise = case toLambdaParamsList b of
             Value parameter -> case sexprToAST c of
                 Value [expression] -> case sexprToAST rests of
-                    Value rest -> Value (ASTCall (LambdaCall parameter expression) rest)
-                    Error _ -> Value (ASTCall (LambdaCall parameter expression) [])             -- if after lambdacall there is nothing
+                    Value rest -> Value (ASTCall (LambdaCall (map (\x -> (x, T_Undefined)) parameter) expression T_Undefined) rest)
+                    Error _ -> Value (ASTCall (LambdaCall (map (\x -> (x, T_Undefined)) parameter) expression T_Undefined) []) -- if after lambdacall there is nothing
                 Value [] -> converterListError "an empty" 32
                 Value (_:_:_) -> converterListError "a bigger" 33
                 Error err -> Error err
             Error _ -> case sexprToAST c of
                 Value [expression] -> case sexprToAST rests of
-                    Value rest -> Value (ASTCall (LambdaCall [] expression) rest)
-                    Error _ -> Value (ASTCall (LambdaCall [] expression) [])                    -- if after lambdacall there is nothing
+                    Value rest -> Value (ASTCall (LambdaCall [] expression T_Undefined) rest)
+                    Error _ -> Value (ASTCall (LambdaCall [] expression T_Undefined) [])                                       -- if after lambdacall there is nothing
                 Value [] -> converterListError "an empty" 39
                 Value (_:_:_) -> converterListError "a bigger" 40
                 Error err -> Error err
@@ -51,12 +52,12 @@ sexprSListHandling (SSymbol "lambda":b:c)
         | null c = Error "GLaDOS: SyntaxError: Not enough arguments to declare a lambda.\n"
         | otherwise = case toLambdaParamsList b of
             Value parameter -> case sexprToAST c of
-                Value [expression] -> Value (ASTLambda parameter expression)
+                Value [expression] -> Value (ASTLambda (map (\x -> (x, T_Undefined)) parameter) expression T_Undefined)
                 Value [] -> converterListError "an empty" 48
                 Value (_:_:_) -> converterListError "a bigger" 49
                 Error err -> Error err
             Error _ -> case sexprToAST c of
-                Value [expression] -> Value (ASTLambda [] expression)
+                Value [expression] -> Value (ASTLambda [] expression T_Undefined)
                 Value [] -> converterListError "an empty" 52
                 Value (_:_:_) -> converterListError "a bigger" 54
                 Error err -> Error err
@@ -65,12 +66,12 @@ sexprSListHandling (SSymbol "define":SList(a:b):c)
         | null [c] = Error "GLaDOS: SyntaxError: Define expression must assign something to the defined symbol.\n"
         | otherwise = case getSymbol a of
             Value symbol -> case sexprToAST [SList (SSymbol "lambda" : SList b : c)] of
-                Value [result] -> Value (ASTDefine symbol result)
+                Value [result] -> Value (ASTDefine symbol T_Undefined result)
                 Value [] -> converterListError "an empty" 62
                 Value (_:_:_) -> converterListError "a bigger" 63
                 Error err -> Error err
             Error _ -> case sexprToAST c of                                                     -- if no symbol
-                Value [result] -> Value (ASTDefine "" result)
+                Value [result] -> Value (ASTDefine "" T_Undefined result)
                 Value [] -> converterListError "an empty" 67
                 Value (_:_:_) -> converterListError "a bigger" 68
                 Error err -> Error err
@@ -80,12 +81,12 @@ sexprSListHandling (SSymbol "define":b:c)
         | null c = Error "GLaDOS: SyntaxError: Define expression must assign something to the defined symbol.\n"
         | otherwise = case getSymbol b of
             Value symbol -> case sexprToAST c of
-                Value [result] -> Value (ASTDefine symbol result)
+                Value [result] -> Value (ASTDefine symbol T_Undefined result)
                 Value [] -> converterListError "an empty" 77
                 Value (_:_:_) -> converterListError "a bigger" 78
                 Error err -> Error err
             Error _ -> case sexprToAST c of                                                     -- if no symbol
-                Value [result] -> Value (ASTDefine "" result)
+                Value [result] -> Value (ASTDefine "" T_Undefined result)
                 Value [] -> converterListError "an empty" 82
                 Value (_:_:_) -> converterListError "a bigger" 83
                 Error err -> Error err
