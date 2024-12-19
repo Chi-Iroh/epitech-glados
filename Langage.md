@@ -166,7 +166,7 @@ Un "mot clé" en PDP est une "fonction" qui est traitée (au moins en partie) au
 | Opérateur | Prototype | Action |
 | --------- | --------- | ------ |
 | `=` | `define (var::procedure t::type value::any)` | Assignation d'une valeur/expression de type `t` à un symbole nommé `var`. Si l'action échoue sans lancer une erreur `var` vaudra `NULL`. `var` peut être un symbole préalablement défini ou non. |
-|     | `import (lib::string)`            | Ajoute les définitions de la librairie `lib` au fichier courant. |
+|     | `import (lib::string)`            | Ajoute les définitions de la librairie `lib` au fichier courant. ATTENTION, import doit être seul sur sa ligne sinon une erreur est retourné |
 
 ### Builtins
 

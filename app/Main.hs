@@ -3,6 +3,8 @@ module Main (main) where
 import AST (MainAST, isProcedureType)
 import Converter (convert)
 import Evaluate (evaluateAST)
+import Import (parseImport)
+import Debug (debug, debug2)
 import Parser
 import System.Exit (die, exitWith, ExitCode(ExitFailure))
 import System.Environment
@@ -32,4 +34,8 @@ main = do
                 Nothing -> exitWith(ExitFailure 84)
                 Just filename -> pure filename
     file <- readFile filename
-    putResult (fmap showAll ((convert $ parse file) >>= evaluateAST))
+    fileimport <- parseImport file
+    case fileimport of
+        Error err -> die err
+        Value content -> putResult (fmap showAll ((convert $ parse content) >>= evaluateAST))
+
