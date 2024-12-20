@@ -3,32 +3,46 @@ module Import (parseImport) where
 import Utils (Safe(..))
 import Control.Exception (try, IOException)
 import Data.List (isPrefixOf)
+import System.Directory (doesFileExist)
+import qualified Data.Text as T
 
--- Take a list of words as input (from a line) and open file if correct
+-- Read and validate a file safely
+processFile :: FilePath -> IO (Safe String)
+processFile filepath = do
+    exists <- doesFileExist filepath
+    if not exists
+        then return $ Error ("GLaDOS: ImportError: File \"" ++ filepath ++ "\" does not exist.")
+        else do
+            result <- try (readFile filepath) :: IO (Either IOException String)
+            return $ case result of
+                Left _      -> Error ("GLaDOS: ImportError: Error reading file \"" ++ filepath ++ "\".")
+                Right content -> Value content
+
+-- Handle import lines recursively
 processLine :: [String] -> IO (Safe String)
-processLine [_, filepath] = do
-    result <- try (readFile filepath) :: IO (Either IOException String)
-    return $ case result of
-        Left _      -> Error ("GLaDOS: ImportError: error importing file \"" ++ filepath ++ "\". Make sure file exist.")
-        Right content -> Value content
-processLine _ = return $ Error "GLaDOS: ImportError: Invalid import line format."
+processLine ["import", filepath] = processFile filepath
+processLine _ = return $ Error "GLaDOS: ImportError: Invalid import line format. Expected 'import <filepath>'."
 
--- Process lines and handle imports
+-- Process lines and replace imports
 catchImport :: [String] -> IO (Safe String)
 catchImport [] = return $ Value ""
 catchImport (line:rest)
     | "import" `isPrefixOf` line =
         case words line of
-            [_import, filepath] -> do
+            ["import", filepath] -> do
                 importResult <- processLine (words line)
-                case importResult of
+                case importResult of                                    -- handle import
                     Error err -> return $ Error err
                     Value importContent -> do
-                        restResult <- catchImport rest
-                        case restResult of
+                        processedImport <- parseImport importContent
+                        case processedImport of                         -- process import of import (import inside import)
                             Error err -> return $ Error err
-                            Value restContent -> return $ Value (importContent ++ "\n" ++ restContent)
-            _ -> return $ Error "GLaDOS: ImportError: Import line must contain only one file path."
+                            Value parsedImport -> do
+                                restResult <- catchImport rest
+                                case restResult of
+                                    Error err -> return $ Error err
+                                    Value restContent -> return $ Value (parsedImport ++ "\n" ++ restContent)
+            _ -> return $ Error "GLaDOS: ImportError: Import line must contain exactly one file path."
     | otherwise = do
         restResult <- catchImport rest
         case restResult of
