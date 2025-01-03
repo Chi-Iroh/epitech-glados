@@ -112,7 +112,7 @@ jf (<ins>j</ins>ump <ins>f</ins>alse) jumps if BF is false, otherwise does nothi
 ## Function control flow
 
 These 2 instructions allow calling and returning from a procedure.  
-To track the call stack, the VM has a hidden internal stack of addresses simply called CT (acronym of call stack) in this section.  
+To track the call stack, the VM has a hidden internal stack of addresses simply called CS (acronym of call stack) in this section.  
 
 ### call
 ```x86asm
@@ -132,8 +132,8 @@ func:
     ret int 4
 ```
 
-This instruction pushes a value of a certain type onto the stack (exactly the same as `push type value`), then pops the top address of CT and jumps to it.  
-If CT is empty, the VM will throw a runtime error.  
+This instruction pushes a value of a certain type onto the stack (exactly the same as `push type value`), then pops the top address of CS and jumps to it.  
+If CS is empty, the VM will throw a runtime error.  
 
 ## Register manipulator
 
