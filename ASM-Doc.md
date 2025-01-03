@@ -44,6 +44,7 @@ Even if BF is used by conditional branching instructions, its raw value is not e
 | Conditional control flow | test, jt, jf      |
 | Function control flow    | call, ret         |
 | Register manipulator     | mov               |
+| VM output                | out               |
 
 ## Stack manipulators
 
@@ -145,3 +146,18 @@ mov register, type value
 
 This instruction puts a value in a register, it can be either another register of the given type or an immediate value of the given type.  
 If the source register isn't of the given type, the VM will throw a runtime error.  
+
+## VM output
+
+### out
+```x86asm
+out type immediate
+out register
+```
+
+This instruction sends a value to the VM, which will output it.  
+```scheme
+4
+```
+Other instructions are useless to compile the above code.  
+`out int 4` will send `4` as an `int` to the VM.  
