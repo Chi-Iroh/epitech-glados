@@ -93,7 +93,7 @@ test register
 If the register doesn't contain a boolean value, the VM will cause a runtime error.  
 This instruction sets the internal flag BF to true if the register contains true, false otherwise.  
 
-### jt / jl
+### jt / jf
 
 ```x86asm
 test r0
