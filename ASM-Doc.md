@@ -127,13 +127,15 @@ This instructions calls a function, it means it saves the current address in an 
 ### ret
 ```x86asm
 ret type value
+ret register
 
 ; example
 func:
     ret int 4
+    ret r0
 ```
 
-This instruction pushes a value of a certain type onto the stack (exactly the same as `push type value`), then pops the top address of CS and jumps to it.  
+This instruction pushes a value / register of a certain type onto the stack (exactly the same as `push type value` or `push reg`), then pops the top address of CS and jumps to it.  
 If CS is empty, the VM will throw a runtime error.  
 
 ## Register manipulator
