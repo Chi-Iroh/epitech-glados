@@ -6,6 +6,7 @@ import Data.ByteString.Internal (c2w)
 import Data.Word (Word8)
 import Bits (splitWord32, setBit)
 import IntLimits (checkInt, checkUInt)
+import Bits (castFloatToWord32)
 import Type (Type(..))
 
 serializeBool :: Bool -> [Word8]
@@ -29,6 +30,10 @@ serializeInt :: Int -> [Word8]
 serializeInt int
     | not (checkInt int) = error "Out of range int !"
     | otherwise = serializeInt' int
+
+serializeFloat :: FLoat -> [Word8]
+serializeFloat float
+    | float = splitWord32 (splitFloatToWord32 float)
 
 serializeType :: Type -> [Word8]
 serializeType = const [0x00]
