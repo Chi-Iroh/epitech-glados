@@ -1,5 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
-module IntLimits where
+module Limits where
 
 uintMax :: Int
 uintMax = 4_294_967_295
