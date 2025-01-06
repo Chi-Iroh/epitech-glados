@@ -4,9 +4,9 @@ module Serialize where
 import Data.Bits (complement)
 import Data.ByteString.Internal (c2w)
 import Data.Word (Word8)
+import GHC.Float (castFloatToWord32)
 import Bits (splitWord32, setBit)
-import IntLimits (checkInt, checkUInt)
-import Bits (castFloatToWord32)
+import Limits (checkInt, checkUInt)
 import Type (Type(..))
 
 serializeBool :: Bool -> [Word8]
@@ -31,9 +31,8 @@ serializeInt int
     | not (checkInt int) = error "Out of range int !"
     | otherwise = serializeInt' int
 
-serializeFloat :: FLoat -> [Word8]
-serializeFloat float
-    | float = splitWord32 (splitFloatToWord32 float)
+serializeFloat :: Float -> [Word8]
+serializeFloat float = splitWord32 (castFloatToWord32 float)
 
 serializeType :: Type -> [Word8]
 serializeType = const [0x00]
