@@ -4,6 +4,7 @@ import AST (AST(..), Call(..), MainAST(..))
 import Data.List (singleton)
 import Utils (Safe(..))
 import Type
+import MathLib (factorial)
 
 find :: (a -> Bool) -> [a] -> Maybe a
 find _ [] = Nothing
@@ -34,13 +35,18 @@ builtins = [    BackendSymbol ("*", astArithmeticOp "*" (*))
             ,   BackendSymbol ("-", astArithmeticOp "-" (-))
             ,   BackendSymbol ("div", astArithmeticOp "div" div)
             ,   BackendSymbol ("mod", astArithmeticOp "mod" mod)
+            ,   BackendSymbol ("**", astArithmeticOp "**" (**))
+            ,   BackendSymbol ("v-", astRoot)
+            ,   BackendSymbol ("!", astFactorial)
             ,   BackendSymbol (">", astComparisonOp ">" (>))
             ,   BackendSymbol (">=", astComparisonOp ">=" (>=))
             ,   BackendSymbol ("<", astComparisonOp "<" (<))
             ,   BackendSymbol ("<=", astComparisonOp "<=" (<=))
             ,   BackendSymbol ("eq?", astComparisonOp "eq?" (==))
             ,   BackendSymbol ("==", astComparisonOp "==" (==))
-            ,   BackendSymbol ("if", astIf)]
+            ,   BackendSymbol ("if", astIf)
+            ,   BackendSymbol ("pi", 3.14159265)
+            ,   BackendSymbol ("e", 2.71828182)]
 
 updateOrAdd :: (a -> Bool) -> a -> [a] -> [a]
 updateOrAdd _ a [] = [a]
@@ -76,6 +82,9 @@ findSymbol symbols symbol = toSafe ("*** ERROR : variable " ++ symbol ++ " is no
 
 evaluateAST1 :: Symbols -> AST -> (Safe AST, Symbols)
 evaluateAST1 symbols n@(ASTInt _) = (Value n, symbols)
+evaluateAST1 symbols u@(ASTUInt _) = (Value u, symbols)
+evaluateAST1 symbols c@(ASTChar _) = (Value c, symbols)
+evaluateAST1 symbols f@(ASTFloat _) = (Value f, symbols)
 evaluateAST1 symbols b@(ASTBool _) = (Value b, symbols)
 evaluateAST1 symbols lambda@(ASTLambda _ _ _) = (Value lambda, symbols)
 evaluateAST1 symbols (ASTProcedure s) = (findSymbol symbols s >>= (\(BackendSymbol (_, f)) -> f symbols [] >>= (fst . evaluateAST1 symbols)), symbols)
@@ -90,12 +99,39 @@ evaluateAST1 symbols define@(ASTDefine s _ ast) = (Value define, registerSymbol 
             | length args >= 2 = Error ("Too many arguments when calling symbol ! Got " ++ show (length args) ++ " but expected 0 or 1 !")
             | otherwise = fst $ evaluateAST1 symbols' $ head args
 
-astArithmeticOp' :: String -> (Int -> Int -> Int) -> [AST] -> Safe AST
-astArithmeticOp' _ f [(ASTInt a), (ASTInt b)] = Value $ ASTInt (f a b)
-astArithmeticOp' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ " ! Expected 2 integers but got " ++ show args ++ " !")
+astArithmeticOp' :: String -> (Float -> Float -> Float) -> [AST] -> Safe AST
+astArithmeticOp' _ f [(ASTFloat a), (_ b)] = Value $ ASTFloat (f a b)
+astArithmeticOp' _ f [(_ a), (ASTFloat b)] = Value $ ASTFloat (f a b)
+astArithmeticOp' _ f [(_ a), (ASTInt b)] = Value $ ASTInt (f a b)
+astArithmeticOp' _ f [(ASTInt a), (_ b)] = Value $ ASTInt (f a b)
+astArithmeticOp' _ f [(ASTUInt a), (_ b)] = Value $ ASTUInt (f a b)
+astArithmeticOp' _ f [(_ a), (ASTUInt b)] = Value $ ASTUInt (f a b)
+astArithmeticOp' _ f [(ASTChar a), (ASTChar b)] = Value $ ASTChar (f a b)
+astArithmeticOp' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ " ! Expected 2 numbers but got " ++ show args ++ " !")
 
-astArithmeticOp :: String -> (Int -> Int -> Int) -> Symbols -> [AST] -> Safe AST
+astArithmeticOp :: String -> (Float -> Float -> Float) -> Symbols -> [AST] -> Safe AST
 astArithmeticOp name f symbols args = mapM (fst . evaluateAST1 symbols) args >>= astArithmeticOp' name f
+
+astRoot' :: Symbols -> AST -> Safe AST
+astRoot' _ (ASTFloat a) = Value $ ASTFloat (sqrt a)
+astRoot' _ (ASTInt a) = Value $ ASTFloat (sqrt a)
+astRoot' _ (ASTUInt a) = Value $ ASTFloat (sqrt a)
+astRoot' _ (ASTChar a) = Value $ ASTFloat (sqrt a)
+astRoot' _ args = Error ("Bad arguments when attempting to call 'v-'! expected a number but got " ++ show args ++ " !")
+
+astRoot :: Symbols -> AST -> Safe AST
+astRoot symbols arg = astRoot' $ fst . evaluateAST1 symbols args
+
+astFactorial' :: Symbols -> AST -> Safe AST
+astFactorial' _ (ASTInt a)
+                        | a >= 0 = Value $ ASTUInt (factorial a)
+                        | otherwise = Error ("Bad arguments when attempting to call '!'! expected a positive integer but got " ++ show a ++ " !")
+astFactorial' _ (ASTUInt a) = Value $ ASTUInt (factorial a)
+astFactorial' _ (ASTChar a) = Value $ ASTUInt (factorial a)
+astFactorial' _ args = Error ("Bad arguments when attempting to call '!'! expected an integer but got " ++ show args ++ " !")
+
+astFactorial :: Symbols -> AST -> Safe AST
+astFactorial symbols arg = astRoot' $ fst . evaluateAST1 symbols args
 
 toNumber :: AST -> Safe Int
 toNumber (ASTBool b) = Value (fromEnum b)
