@@ -24,7 +24,7 @@ serializeInt' :: Int -> [Word8]
 serializeInt' int
     | int >= 0 = splitWord32 (toEnum int)
     | int == (-1) = replicate 4 0xFF
-    | otherwise = setBit 0 True ((serializeInt' . complement . abs) (int - 1))
+    | otherwise = setBit 0 True (map complement $ serializeInt' ((abs int) - 1))
 
 serializeInt :: Int -> [Word8]
 serializeInt int
