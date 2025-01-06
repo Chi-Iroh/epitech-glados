@@ -36,8 +36,24 @@ builtins = [    BackendSymbol ("*", astArithmeticOp "*" (*))
             ,   BackendSymbol ("div", astArithmeticOp "div" div)
             ,   BackendSymbol ("mod", astArithmeticOp "mod" mod)
             ,   BackendSymbol ("**", astArithmeticOp "**" (**))
-            ,   BackendSymbol ("v-", astRoot)
-            ,   BackendSymbol ("!", astFactorial)
+            ,   BackendSymbol ("v-", astArithmeticSingleOp "v-" sqrt)
+            ,   BackendSymbol ("!!", astFactorial)
+            ,   BackendSymbol ("exp", astArithmeticSingleOp "exp" exp)
+            ,   BackendSymbol ("ln", astArithmeticSingleOp "ln" log)
+            ,   BackendSymbol ("cos", astArithmeticSingleOp "cos" cos)
+            ,   BackendSymbol ("acos", astArithmeticSingleOp "acos" acos)
+            ,   BackendSymbol ("cosh", astArithmeticSingleOp "cosh" cosh)
+            ,   BackendSymbol ("sin", astArithmeticSingleOp "sin" sin)
+            ,   BackendSymbol ("asin", astArithmeticSingleOp "asin" asin)
+            ,   BackendSymbol ("sinh", astArithmeticSingleOp "sinh" sinh)
+            ,   BackendSymbol ("tan", astArithmeticSingleOp "tan" tan)
+            ,   BackendSymbol ("atan", astArithmeticSingleOp "atan" atan)
+            ,   BackendSymbol ("ceil", astRounding "ceil" ceiling)
+            ,   BackendSymbol ("round", astRounding "round" round)
+            ,   BackendSymbol ("trunc", astRounding "trunc" truncate)
+            ,   BackendSymbol ("floor", astRounding "floor" floor)
+            ,   BackendSymbol ("min", astArithmeticOp "min" min)
+            ,   BackendSymbol ("max", astArithmeticOp "max" max)
             ,   BackendSymbol (">", astComparisonOp ">" (>))
             ,   BackendSymbol (">=", astComparisonOp ">=" (>=))
             ,   BackendSymbol ("<", astComparisonOp "<" (<))
@@ -112,13 +128,6 @@ astArithmeticOp' name _ args = Error ("Bad arguments when attempting to call " +
 astArithmeticOp :: String -> (Float -> Float -> Float) -> Symbols -> [AST] -> Safe AST
 astArithmeticOp name f symbols args = mapM (fst . evaluateAST1 symbols) args >>= astArithmeticOp' name f
 
-astRoot' :: Symbols -> AST -> Safe AST
-astRoot' _ (ASTFloat a) = Value $ ASTFloat (sqrt a)
-astRoot' _ (ASTInt a) = Value $ ASTFloat (sqrt a)
-astRoot' _ (ASTUInt a) = Value $ ASTFloat (sqrt a)
-astRoot' _ (ASTChar a) = Value $ ASTFloat (sqrt a)
-astRoot' _ args = Error ("Bad arguments when attempting to call 'v-'! expected a number but got " ++ show args ++ " !")
-
 astRoot :: Symbols -> AST -> Safe AST
 astRoot symbols arg = astRoot' $ fst . evaluateAST1 symbols args
 
@@ -132,6 +141,23 @@ astFactorial' _ args = Error ("Bad arguments when attempting to call '!'! expect
 
 astFactorial :: Symbols -> AST -> Safe AST
 astFactorial symbols arg = astRoot' $ fst . evaluateAST1 symbols args
+
+astArithmeticSingleOp' :: String -> (Float -> Float) -> AST -> Safe AST
+astArithmeticSingleOp' _ f (ASTFloat a) = Value $ ASTFloat (f a)
+astArithmeticSingleOp' _ f (ASTInt a) = Value $ ASTFloat (f a)
+astArithmeticSingleOp' _ f (ASTUInt a) = Value $ ASTFloat (f a)
+astArithmeticSingleOp' _ f (ASTChar a) = Value $ ASTFloat (f a)
+astArithmeticSingleOp' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ "! expected a number but got " ++ show args ++ " !")
+
+astArithmeticSingleOp :: String -> (Float -> Float) -> Symbols -> AST -> Safe AST
+astArithmeticSingleOp name f symbols arg = astArithmeticSingleOp' name f (fst . evaluateAST1 symbols args)
+
+astRounding' :: String -> (Float -> Float) -> AST -> Safe AST
+astRounding' _ f (ASTFloat a) = Value $ ASTFloat (f a)
+astRounding' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ "! expected a float but got " ++ show args ++ " !")
+
+astRounding :: String -> (Float -> Float) -> Symbols -> AST -> Safe AST
+astRounding name f symbols arg = astArithmeticSingleOp' name f (fst . evaluateAST1 symbols args)
 
 toNumber :: AST -> Safe Int
 toNumber (ASTBool b) = Value (fromEnum b)

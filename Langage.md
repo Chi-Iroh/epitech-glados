@@ -181,7 +181,7 @@ Un "mot clé" en PDP est une "fonction" qui est traitée (au moins en partie) au
 | `%`   | `mod (a::number b::number) number` | Performe $a\:mod\:b$. Si $b=0$ renvoie `NULL`. |
 | `**`  | `pow (a::number b::number) number` | Performe $a^b$.        |
 | `v-`  | `sqrt (a::number) float`           | Performe $\sqrt{a}$. Si $a<0$ renvoie `NULL`.  |
-| `!`   | `factorial (a::integer) uint`      | Performe $a!$. Si $a<0$ renvoie `NULL`.        |
+| `!!`   | `factorial (a::integer) uint`      | Performe $a!$. Si $a<0$ renvoie `NULL`.        |
 | `+=`  | `add= (a::string b::number) bool`  | Applique la fonction `add` à `a` et `b` pour stocker le résultat dans `a`. Renvoie `#t` si l'action réussie, `#f` autrement. |
 | `-=`  | `sub= (a::string b::number) bool`  | Applique la fonction `sub` à `a` et `b` pour stocker le résultat dans `a`. Renvoie `#t` si l'action réussie, `#f` autrement. |
 | `*=`  | `mul= (a::string b::number) bool`  | Applique la fonction `mul` à `a` et `b` pour stocker le résultat dans `a`. Renvoie `#t` si l'action réussie, `#f` autrement. |
@@ -250,8 +250,8 @@ Un "mot clé" en PDP est une "fonction" qui est traitée (au moins en partie) au
 
 | Prototype | Action |
 | --------- | ------ |
-| `exp (a::number) number`           | Performe $e^a$.              |
-| `ln (a::number) number`            | Performe $ln(a)$.            |
+| `exp (a::number) float`           | Performe $e^a$.              |
+| `ln (a::number) float`            | Performe $ln(a)$.            |
 | `max (a::number b::number) number` | Renvoie le plus grand parmi `a` et `b`. |
 | `min (a::number b::number) number` | Renvoie le plus petit parmi `a` et `b`. |
 | `cos (a::number) float`            | Performe $cos(a)$.           |
