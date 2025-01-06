@@ -1,10 +1,10 @@
-module Evaluate (evaluateAST, Symbol(..), Symbols) where
+module Evaluate (evaluateAST1, Symbol(..), Symbols) where
 
 import AST (AST(..), Call(..), MainAST(..))
 import Data.List (singleton)
 import Utils (Safe(..))
 import Type
-import MathLib (factorial)
+import MathLib (mathBuiltins)
 
 find :: (a -> Bool) -> [a] -> Maybe a
 find _ [] = Nothing
@@ -30,39 +30,7 @@ showSymbols symbols = show (map symbolName symbols)
 -- traceSymbol Nothing = Nothing
 
 builtins :: Symbols
-builtins = [    BackendSymbol ("*", astArithmeticOp "*" (*))
-            ,   BackendSymbol ("+", astArithmeticOp "+" (+))
-            ,   BackendSymbol ("-", astArithmeticOp "-" (-))
-            ,   BackendSymbol ("div", astArithmeticOp "div" div)
-            ,   BackendSymbol ("mod", astArithmeticOp "mod" mod)
-            ,   BackendSymbol ("**", astArithmeticOp "**" (**))
-            ,   BackendSymbol ("v-", astArithmeticSingleOp "v-" sqrt)
-            ,   BackendSymbol ("!!", astFactorial)
-            ,   BackendSymbol ("exp", astArithmeticSingleOp "exp" exp)
-            ,   BackendSymbol ("ln", astArithmeticSingleOp "ln" log)
-            ,   BackendSymbol ("cos", astArithmeticSingleOp "cos" cos)
-            ,   BackendSymbol ("acos", astArithmeticSingleOp "acos" acos)
-            ,   BackendSymbol ("cosh", astArithmeticSingleOp "cosh" cosh)
-            ,   BackendSymbol ("sin", astArithmeticSingleOp "sin" sin)
-            ,   BackendSymbol ("asin", astArithmeticSingleOp "asin" asin)
-            ,   BackendSymbol ("sinh", astArithmeticSingleOp "sinh" sinh)
-            ,   BackendSymbol ("tan", astArithmeticSingleOp "tan" tan)
-            ,   BackendSymbol ("atan", astArithmeticSingleOp "atan" atan)
-            ,   BackendSymbol ("ceil", astRounding "ceil" ceiling)
-            ,   BackendSymbol ("round", astRounding "round" round)
-            ,   BackendSymbol ("trunc", astRounding "trunc" truncate)
-            ,   BackendSymbol ("floor", astRounding "floor" floor)
-            ,   BackendSymbol ("min", astArithmeticOp "min" min)
-            ,   BackendSymbol ("max", astArithmeticOp "max" max)
-            ,   BackendSymbol (">", astComparisonOp ">" (>))
-            ,   BackendSymbol (">=", astComparisonOp ">=" (>=))
-            ,   BackendSymbol ("<", astComparisonOp "<" (<))
-            ,   BackendSymbol ("<=", astComparisonOp "<=" (<=))
-            ,   BackendSymbol ("eq?", astComparisonOp "eq?" (==))
-            ,   BackendSymbol ("==", astComparisonOp "==" (==))
-            ,   BackendSymbol ("if", astIf)
-            ,   BackendSymbol ("pi", 3.14159265)
-            ,   BackendSymbol ("e", 2.71828182)]
+builtins = mathBuiltins ++ booleanBuiltins
 
 updateOrAdd :: (a -> Bool) -> a -> [a] -> [a]
 updateOrAdd _ a [] = [a]
@@ -115,72 +83,10 @@ evaluateAST1 symbols define@(ASTDefine s _ ast) = (Value define, registerSymbol 
             | length args >= 2 = Error ("Too many arguments when calling symbol ! Got " ++ show (length args) ++ " but expected 0 or 1 !")
             | otherwise = fst $ evaluateAST1 symbols' $ head args
 
-astArithmeticOp' :: String -> (Float -> Float -> Float) -> [AST] -> Safe AST
-astArithmeticOp' _ f [(ASTFloat a), (_ b)] = Value $ ASTFloat (f a b)
-astArithmeticOp' _ f [(_ a), (ASTFloat b)] = Value $ ASTFloat (f a b)
-astArithmeticOp' _ f [(_ a), (ASTInt b)] = Value $ ASTInt (f a b)
-astArithmeticOp' _ f [(ASTInt a), (_ b)] = Value $ ASTInt (f a b)
-astArithmeticOp' _ f [(ASTUInt a), (_ b)] = Value $ ASTUInt (f a b)
-astArithmeticOp' _ f [(_ a), (ASTUInt b)] = Value $ ASTUInt (f a b)
-astArithmeticOp' _ f [(ASTChar a), (ASTChar b)] = Value $ ASTChar (f a b)
-astArithmeticOp' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ " ! Expected 2 numbers but got " ++ show args ++ " !")
-
-astArithmeticOp :: String -> (Float -> Float -> Float) -> Symbols -> [AST] -> Safe AST
-astArithmeticOp name f symbols args = mapM (fst . evaluateAST1 symbols) args >>= astArithmeticOp' name f
-
-astRoot :: Symbols -> AST -> Safe AST
-astRoot symbols arg = astRoot' $ fst . evaluateAST1 symbols args
-
-astFactorial' :: Symbols -> AST -> Safe AST
-astFactorial' _ (ASTInt a)
-                        | a >= 0 = Value $ ASTUInt (factorial a)
-                        | otherwise = Error ("Bad arguments when attempting to call '!'! expected a positive integer but got " ++ show a ++ " !")
-astFactorial' _ (ASTUInt a) = Value $ ASTUInt (factorial a)
-astFactorial' _ (ASTChar a) = Value $ ASTUInt (factorial a)
-astFactorial' _ args = Error ("Bad arguments when attempting to call '!'! expected an integer but got " ++ show args ++ " !")
-
-astFactorial :: Symbols -> AST -> Safe AST
-astFactorial symbols arg = astRoot' $ fst . evaluateAST1 symbols args
-
-astArithmeticSingleOp' :: String -> (Float -> Float) -> AST -> Safe AST
-astArithmeticSingleOp' _ f (ASTFloat a) = Value $ ASTFloat (f a)
-astArithmeticSingleOp' _ f (ASTInt a) = Value $ ASTFloat (f a)
-astArithmeticSingleOp' _ f (ASTUInt a) = Value $ ASTFloat (f a)
-astArithmeticSingleOp' _ f (ASTChar a) = Value $ ASTFloat (f a)
-astArithmeticSingleOp' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ "! expected a number but got " ++ show args ++ " !")
-
-astArithmeticSingleOp :: String -> (Float -> Float) -> Symbols -> AST -> Safe AST
-astArithmeticSingleOp name f symbols arg = astArithmeticSingleOp' name f (fst . evaluateAST1 symbols args)
-
-astRounding' :: String -> (Float -> Float) -> AST -> Safe AST
-astRounding' _ f (ASTFloat a) = Value $ ASTFloat (f a)
-astRounding' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ "! expected a float but got " ++ show args ++ " !")
-
-astRounding :: String -> (Float -> Float) -> Symbols -> AST -> Safe AST
-astRounding name f symbols arg = astArithmeticSingleOp' name f (fst . evaluateAST1 symbols args)
-
 toNumber :: AST -> Safe Int
 toNumber (ASTBool b) = Value (fromEnum b)
 toNumber (ASTInt n) = Value n
 toNumber a = Error ("Cannot convert " ++ show a ++ " to an integer !")
-
-astComparisonOp' :: String -> (Int -> Int -> Bool) -> [AST] -> Safe AST
-astComparisonOp' name f args@[_, _] = mapM toNumber args >>= compare'
-    where compare' [a', b'] = Value $ ASTBool (f a' b')
-          compare' args' = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare booleans and integers, but got " ++ show args' ++ " !")
-astComparisonOp' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare 2 arguments, but got " ++ show (length args) ++ " !")
-
-astComparisonOp :: String -> (Int -> Int -> Bool) -> Symbols -> [AST] -> Safe AST
-astComparisonOp name f symbols args = mapM (fst . evaluateAST1 symbols) args >>= astComparisonOp' name f
-
-astIf' :: Symbols -> [AST] -> Safe AST
-astIf' symbols [(ASTBool condition), a, b] = if condition then eval a else eval b
-    where eval s = fst (evaluateAST1 symbols s)
-astIf' _ args = Error ("if must be called as 'if <condition as boolean> <a> <b>', but got args " ++ show args)
-
-astIf :: Symbols -> [AST] -> Safe AST
-astIf symbols [a, b, c] = (fst $ evaluateAST1 symbols a) >>= (\a' -> astIf' symbols [a', b, c])
-astIf _ args = Error ("if must be called with 3 arguments, but got " ++ show (length args))
 
 evaluateAST' :: Symbols -> [AST] -> Safe [MainAST]
 evaluateAST' _ [] = Error "Nothing to evaluate !"
