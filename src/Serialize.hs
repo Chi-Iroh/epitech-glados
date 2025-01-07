@@ -1,10 +1,12 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NumericUnderscores #-}
 module Serialize where
 
-import Data.Bits (complement, setBit, shiftR, (.&.))
-import Bits (splitWord32)
+import Data.Bits (complement, shiftR, (.&.))
+import Bits (splitWord32, setBit)
 import Data.ByteString.Internal (c2w)
 import Data.Word (Word8)
+import GHC.Float (castFloatToWord32)
 import Limits (checkInt, checkUInt, checkFloat)
 import Type (Type(..))
 
@@ -12,8 +14,6 @@ import Data.Char(ord)
 
 newtype Combination = C_Combination [Type]
 newtype Null = C_Null (Maybe Int)
-newtype Tuple = T_Tuple (Type, Type)
-newtype TypeList = T_TypeList [Type]
 newtype EmptyList = T_EmptyList [Null]
 
 class Serializable a where
@@ -37,7 +37,7 @@ instance Serializable Char where
 instance Serializable Null where
     serialize _ = serializeTypeNull
 
-instance Serializable Tuple where
+instance (Serializable a, Serializable b) => Serializable (a, b) where
     serialize t = serializeTuple t
 
 serializeBool :: Bool -> [Word8]
@@ -63,22 +63,22 @@ serializeInt int
     | otherwise = serializeInt' int
 
 serializeFloat' :: Float -> [Word8]
-serializeFloat' float = splitWord32 (splitFloatToWord32 float)
+serializeFloat' float = splitWord32 (castFloatToWord32 float)
 
 serializeFloat :: Float -> [Word8]
 serializeFloat float
     | not (checkFloat float) = error "Out of range float !"
     | otherwise = serializeFloat' float
 
-serializeTuple :: (Type, Type) -> [Word8]
+serializeTuple :: (Serializable a, Serializable b) => (a, b) -> [Word8]
 serializeTuple (x, y) = serialize x ++ serialize y
 
-serializeList :: [Type] -> [Word8]
+serializeList :: (Serializable a) => [a] -> [Word8]
 serializeList (x:xs) = serialize x ++ serializeList xs
 serializeList [x] = serialize x
 
-serializeCombination :: [Type] -> [Word8]
-serializeCombination list = serializeList list
+-- serializeCombination :: [Type] -> [Word8]
+-- serializeCombination list = serializeList list
 
 
 instance SerializableType Bool where
@@ -96,17 +96,20 @@ instance SerializableType Char where
 instance SerializableType Null where
     serializeType _ = serializeTypeNull
 
-instance SerializableType Tuple where
+instance SerializableType (Type, Type) where
     serializeType t = serializeTypeTuple t
 
-instance SerializableType TypeList where
-    serializeType l = serializeTypeList l
+instance SerializableType [Type] where
+    serializeType l@(x : _)
+        | null l = serializeTypeEmptyList
+        -- | filter (/= x) l /= [] -- error if all types aren't the same
+        | otherwise = serializeTypeList x
 
 instance SerializableType EmptyList where
     serializeType e = serializeTypeEmptyList
 
 instance SerializableType Combination where
-    serializeType c = serializeTypeCombination c
+    serializeType (C_Combination c) = serializeTypeCombination c
 
 serializeTypeBool :: [Word8]
 serializeTypeBool = [0x01]
@@ -125,6 +128,11 @@ serializeTypeChar = [0x05]
 
 serializeTypeTuple :: (Type, Type) -> [Word8]
 serializeTypeTuple (x, y) = [0x06] ++ serializeType x ++ serializeType y
+    -- where serializeType' _type = case _type of
+    --     | T_Bool -> serializeBoolType False
+    --     | T_Int -> serializeIntType 0
+    --     | T_UInt -> serializeIntType 0
+    --     | T_UInt -> serializeUIntType 0
 
 serializeTypeList :: Type -> [Word8]
 serializeTypeList t = [0x07] ++ serializeType t
