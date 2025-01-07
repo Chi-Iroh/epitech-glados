@@ -13,7 +13,7 @@ data AssemblyInstruction =  PushRegister RegisterID             |
                             Test RegisterID                     |
                             JumpIfTrue Address                  |
                             JumpIfFalse Address                 |
-                            Call Address                        |
+                            Call String                         |
                             RetRegister RegisterID              |
                             RetValue Any                        |
                             MovRegister RegisterID RegisterID   |
@@ -31,7 +31,7 @@ assemble (Pop reg) = [0x10, reg]
 assemble (Test reg) = [0x20, reg]
 assemble (JumpIfTrue addr) = [0x30] ++ addrToBytes addr
 assemble (JumpIfFalse addr) = [0x40] ++ addrToBytes addr
-assemble (Call addr) = [0x50] ++ addrToBytes addr
+assemble (Call name) = [0x50] ++ serialize name
 assemble (RetValue (Any (_type, val))) = [0x60] ++ serializeType _type ++ serialize val
 assemble (RetRegister reg) = [0x61, reg]
 assemble (MovValue dest (Any (_type, val))) = [0x70, dest] ++ serializeType _type ++ serialize val

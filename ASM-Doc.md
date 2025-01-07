@@ -117,12 +117,15 @@ To track the call stack, the VM has a hidden internal stack of addresses simply 
 
 ### call
 ```x86asm
-call function_label
-
-function_label:
+call function_name
 ```
 
 This instructions calls a function, it means it saves the current address in an internal and hidden stack, and then jumps to the function address.  
+
+#### Function name lookup
+
+The function name is searched through all the functions defined in the same PDP file (and by extension its eventual imported files), and if not found searches in the builtins (standard and math library).  
+If still not found, the VM will throw a runtime error.  
 
 ### ret
 ```x86asm
