@@ -1,4 +1,4 @@
-module AST (Call(..), AST(..), MainAST(..), isProcedureType) where
+module AST (Call(..), AST(..), MainAST(..), isProcedureType, getType) where
 
 import Type
 import Utils
