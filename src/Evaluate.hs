@@ -1,10 +1,9 @@
-module Evaluate (evaluateAST1, Symbol(..), Symbols) where
+module Evaluate (evaluateAST1, toNumber, Symbol(BackendSymbol), Symbols) where
 
 import AST (AST(..), Call(..), MainAST(..))
 import Data.List (singleton)
 import Utils (Safe(..))
 import Type
-import MathLib (mathBuiltins)
 
 find :: (a -> Bool) -> [a] -> Maybe a
 find _ [] = Nothing
@@ -29,8 +28,6 @@ showSymbols symbols = show (map symbolName symbols)
 -- traceSymbol f@(Just (BackendSymbol (s, _))) = debug2 "symbol: " s f
 -- traceSymbol Nothing = Nothing
 
-builtins :: Symbols
-builtins = mathBuiltins ++ booleanBuiltins
 
 updateOrAdd :: (a -> Bool) -> a -> [a] -> [a]
 updateOrAdd _ a [] = [a]
@@ -82,21 +79,22 @@ evaluateAST1 symbols define@(ASTDefine s _ ast) = (Value define, registerSymbol 
             | null args = Value ast
             | length args >= 2 = Error ("Too many arguments when calling symbol ! Got " ++ show (length args) ++ " but expected 0 or 1 !")
             | otherwise = fst $ evaluateAST1 symbols' $ head args
+evaluateAST1 symbols _ = (Error "Wrong type passed through builtins", symbols)
 
 toNumber :: AST -> Safe Int
 toNumber (ASTBool b) = Value (fromEnum b)
 toNumber (ASTInt n) = Value n
 toNumber a = Error ("Cannot convert " ++ show a ++ " to an integer !")
 
-evaluateAST' :: Symbols -> [AST] -> Safe [MainAST]
-evaluateAST' _ [] = Error "Nothing to evaluate !"
-evaluateAST' f [x] = fmap (singleton . MainAST) (fst $ evaluateAST1 f x)
-evaluateAST' f (x : xs) = liftA2 (:) (fmap MainAST evaluated) rest
-    where (evaluated, symbols) = evaluateAST1 f x
-          rest = evaluateAST' symbols xs
+-- evaluateAST' :: Symbols -> [AST] -> Safe [MainAST]
+-- evaluateAST' _ [] = Error "Nothing to evaluate !"
+-- evaluateAST' f [x] = fmap (singleton . MainAST) (fst $ evaluateAST1 f x)
+-- evaluateAST' f (x : xs) = liftA2 (:) (fmap MainAST evaluated) rest
+--     where (evaluated, symbols) = evaluateAST1 f x
+--           rest = evaluateAST' symbols xs
 
-evaluateAST :: [AST] -> Safe [MainAST]
-evaluateAST = evaluateAST' builtins
+-- evaluateAST :: [AST] -> Safe [MainAST]
+-- evaluateAST = evaluateAST' builtins
 
 -- test :: [SExpr]
 -- test = [ List [Symbol "define", Symbol "x", List [Symbol "+", Number 6, Number 5]]

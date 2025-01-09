@@ -178,7 +178,7 @@ Un "mot clé" en PDP est une "fonction" qui est traitée (au moins en partie) au
 | `-`   | `sub (a::number b::number) number` | Performe $a - b$.      |
 | `*`   | `mul (a::number b::number) number` | Performe $a \times b$. |
 | `/`   | `div (a::number b::number) number` | Performe $a / b$. Si $b=0$ renvoie `NULL`.     |
-| `%`   | `mod (a::number b::number) number` | Performe $a\:mod\:b$. Si $b=0$ renvoie `NULL`. |
+| `%`   | `mod (a::integer b::integer) integer` | Performe $a\:mod\:b$. Si $b=0$ renvoie `NULL`. |
 | `**`  | `pow (a::number b::number) number` | Performe $a^b$.        |
 | `v-`  | `sqrt (a::number) float`           | Performe $\sqrt{a}$. Si $a<0$ renvoie `NULL`.  |
 | `!!`   | `factorial (a::integer) uint`      | Performe $a!$. Si $a<0$ renvoie `NULL`.        |

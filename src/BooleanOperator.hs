@@ -1,5 +1,5 @@
 module BooleanOperator(booleanBuiltins) where
-import Evaluate(evaluateAST1, Symbol, Symbols)
+import Evaluate(evaluateAST1, toNumber, Symbol(BackendSymbol), Symbols)
 import AST (AST(..), Call(..), MainAST(..))
 import Data.List (singleton)
 import Utils (Safe(..))
