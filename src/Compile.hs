@@ -6,7 +6,9 @@ import AssemblyInstructions (AssemblyInstruction(..))
 import AST (AST(..), Call(..), MainAST(..), getType)
 import Data.List (singleton, nub)
 import Data.Maybe (isNothing)
+import Data.Word (Word8)
 import Utils (Safe(..))
+import SymbolTable (SymbolTable)
 import Type
 import VM (Any(..))
 
@@ -91,6 +93,15 @@ data CompilationStatus = CompilationStatus {
     _symbols :: [(String, [AssemblyInstruction])],
     _nLambdas :: Int
 }
+
+compileSymbols :: Int -> [(String, [AssemblyInstruction])] -> (SymbolTable, [Word8])
+compileSymbols _ [] = ([], [])
+compileSymbols offset ((symbol, instructions) : others) = ((symbol, offset) : otherTable, instructions : otherBytes)
+    where (otherTable, otherBytes) = compileSymbols (offset + length instructions) others
+
+compileAll :: CompilationStatus -> [Word8]
+compileAll (CompilationStatus instructions symbols _) = instructions ++ symbolInstructions
+    where (symbolTable, symbolInstructions) = compileSymbols (length instructions) symbols
 
 statusFromInstructions :: [AssemblyInstruction] -> CompilationStatus
 statusFromInstructions instructions = CompilationStatus {
