@@ -1,6 +1,6 @@
-module BinaryOperators(binaryBuiltins) where
-import Evaluate(evaluateAST1, toNumber, Symbol(BackendSymbol), Symbols)
-import AST (AST(..), Call(..), MainAST(..))
+module BinaryOperator(binaryBuiltins) where
+import Evaluate(evaluateAST1, Symbol(BackendSymbol), Symbols)
+import AST (AST(..))
 import Utils (Safe(..))
 import Data.Bits
 import Data.Char(ord, chr)

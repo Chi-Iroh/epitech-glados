@@ -1,6 +1,6 @@
 module MathLib (mathBuiltins) where
 import Evaluate(evaluateAST1, Symbol(BackendSymbol), Symbols)
-import AST (AST(..), Call(..), MainAST(..))
+import AST (AST(..))
 import Utils (Safe(..))
 import Data.Char(ord, chr)
 
