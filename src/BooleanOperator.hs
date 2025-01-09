@@ -28,10 +28,10 @@ booleanBuiltins = [ BackendSymbol ("==", astComparisonOp "==" (==))
             ,   BackendSymbol ("!", astNot)
             ,   BackendSymbol ("&&", astBoolOperations "&&" (&&))
             ,   BackendSymbol ("||", astBoolOperations "||" (||))
-            ,   BackendSymbol ("!&", astBoolOperations "!=" nand)
-            ,   BackendSymbol ("!|", astBoolOperations "!=" nor)
-            ,   BackendSymbol (":|", astBoolOperations "!=" xor)
-            ,   BackendSymbol ("!:", astBoolOperations "!=" xnor)
+            ,   BackendSymbol ("!&", astBoolOperations "!&" nand)
+            ,   BackendSymbol ("!|", astBoolOperations "!|" nor)
+            ,   BackendSymbol (":|", astBoolOperations ":|" xor)
+            ,   BackendSymbol ("!:", astBoolOperations "!:" xnor)
             ,   BackendSymbol ("if", astIf)]
 
 astComparisonOp' :: String -> (Int -> Int -> Bool) -> [AST] -> Safe AST
