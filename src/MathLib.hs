@@ -1,11 +1,8 @@
 module MathLib (mathBuiltins) where
 import Evaluate(evaluateAST1, Symbol(BackendSymbol), Symbols)
 import AST (AST(..), Call(..), MainAST(..))
-import Data.List (singleton)
 import Utils (Safe(..))
-import Type
 import Data.Char(ord, chr)
-import GHC.Float (ceilingFloat)
 
 factorial :: Int -> Int
 factorial n = product [1..n] 
@@ -72,7 +69,7 @@ astFactorial' _ [ASTInt a]
                         | otherwise = Error ("Bad arguments when attempting to call '!'! expected a positive integer but got " ++ show a ++ " !")
 astFactorial' _ [ASTUInt a] = Value $ ASTUInt (factorial a)
 astFactorial' _ [ASTChar a] = Value $ ASTUInt (factorial (ord a))
-astFactorial' _ args = Error ("Bad arguments when attempting to call '!'! expected an integer but got " ++ show args ++ " !")
+astFactorial' _ args = Error ("Bad arguments when attempting to call '!!'! expected an integer but got " ++ show args ++ " !")
 
 astFactorial :: Symbols -> [AST] -> Safe AST
 astFactorial symbols arg = mapM (fst . evaluateAST1 symbols) arg >>= astFactorial' symbols
