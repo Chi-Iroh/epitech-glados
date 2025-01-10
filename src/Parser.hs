@@ -70,14 +70,38 @@ aSExprToSExpr (SListBegin:xs) list = verifyParanthese (parseParanthese xs [] 0) 
 -- aSExprToSExpr (STupleEnd:_) _ = Error "GLaDOS: SyntaxError: unexpected '}' while parsing\n"
 -- a
 
--- recursive function for check if array, tuple, etc.. are not interlocked
+-- recursive function for check if array, tuple, etc.. are not interlocked    
 verifyASExpr :: Maybe Char -> Int -> [AlmostSExpr] -> Safe (Int, [AlmostSExpr])
 verifyASExpr char index list
     | index > length list - 1 = Value (index, list)
     | otherwise =
+        -- trace ("char: " ++ show char) $
+        -- trace ("index: " ++ show index) $
+        -- trace ("list: " ++ show list) $
+        -- trace ("\n") $
         if charNothing
             then
-                verifyASExpr Nothing (index + 1) list
+                let currentElement = list !! index
+                in case currentElement of
+                    SListBegin ->
+                        let result = verifyASExpr (Just '(') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr Nothing (returnIndex + 1) list
+                            Error err -> Error err
+                    STupleBegin ->
+                        let result = verifyASExpr (Just '{') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr Nothing (returnIndex + 1) list
+                            Error err -> Error err
+                    SArrayBegin ->
+                        let result = verifyASExpr (Just '[') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr Nothing (returnIndex + 1) list
+                            Error err -> Error err
+                    SListEnd -> Error "SyntaxError: Unexpecting closing paranthese found"
+                    STupleEnd -> Error "SyntaxError: Unexpecting closing curly bracket found"
+                    SArrayEnd -> Error "SyntaxError: Unexpecting closing bracket found"
+                    _ ->  verifyASExpr Nothing (index + 1) list
         else if charParanthese
             then
                 let currentElement = list !! index
@@ -97,58 +121,58 @@ verifyASExpr char index list
                         in case result of
                             Value (returnIndex, _) -> verifyASExpr (Just '(') (returnIndex + 1) list
                             Error err -> Error err
-                    SListEnd -> verifyASExpr Nothing (index + 1) list
+                    SListEnd -> Value (index, list)
                     STupleEnd -> Error "SyntaxError: Interlocked Tuple in ()"
                     SArrayEnd -> Error "SyntaxError: Interlocked Array in ()"
-                    _ -> Error "SyntaxError: Unknown error in ()"
-            else if charCurlyBrack
-                then
-                    let currentElement = list !! index
-                    in case currentElement of
-                        SListBegin ->
-                            let result = verifyASExpr (Just '(') (index + 1) list
-                            in case result of
-                                Value (returnIndex, _) -> verifyASExpr (Just '{') (returnIndex + 1) list
-                                Error err -> Error err
-                        STupleBegin ->
-                            let result = verifyASExpr (Just '{') (index + 1) list
-                            in case result of
-                                Value (returnIndex, _) -> verifyASExpr (Just '{') (returnIndex + 1) list
-                                Error err -> Error err
-                        SArrayBegin ->
-                            let result = verifyASExpr (Just '[') (index + 1) list
-                            in case result of
-                                Value (returnIndex, _) -> verifyASExpr (Just '{') (returnIndex + 1) list
-                                Error err -> Error err
-                        SListEnd -> Error "SyntaxError: Interlocked () in Tuple"
-                        STupleEnd -> verifyASExpr Nothing (index + 1) list
-                        SArrayEnd -> Error "SyntaxError: Interlocked Array in Tuple"
-                        _ -> Error "SyntaxError: Unknown error in Tuple"
-                else if charBrack
-                    then
-                    let currentElement = list !! index
-                        in case currentElement of
-                            SListBegin ->
-                                let result = verifyASExpr (Just '(') (index + 1) list
-                                in case result of
-                                    Value (returnIndex, _) -> verifyASExpr (Just '[') (returnIndex + 1) list
-                                    Error err -> Error err
-                            STupleBegin ->
-                                let result = verifyASExpr (Just '{') (index + 1) list
-                                in case result of
-                                    Value (returnIndex, _) -> verifyASExpr (Just '[') (returnIndex + 1) list
-                                    Error err -> Error err
-                            SArrayBegin ->
-                                let result = verifyASExpr (Just '[') (index + 1) list
-                                in case result of
-                                    Value (returnIndex, _) -> verifyASExpr (Just '[') (returnIndex + 1) list
-                                    Error err -> Error err
-                            SListEnd -> Error "SyntaxError: Interlocked () in Array"
-                            STupleEnd -> Error "SyntaxError: Interlocked Tuple in Array"
-                            SArrayEnd -> verifyASExpr Nothing (index + 1) list
-                            _ -> Error "SyntaxError: Unknown error in Array"
-                else
-                    error "You unlock an achivement because this is impossible. Unexpected character passes as argument"
+                    _ -> verifyASExpr (Just '(')  (index + 1) list
+        else if charCurlyBrack
+            then
+                let currentElement = list !! index
+                in case currentElement of
+                    SListBegin ->
+                        let result = verifyASExpr (Just '(') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '{') (returnIndex + 1) list
+                            Error err -> Error err
+                    STupleBegin ->
+                        let result = verifyASExpr (Just '{') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '{') (returnIndex + 1) list
+                            Error err -> Error err
+                    SArrayBegin ->
+                        let result = verifyASExpr (Just '[') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '{') (returnIndex + 1) list
+                            Error err -> Error err
+                    SListEnd -> Error "SyntaxError: Interlocked () in Tuple"
+                    STupleEnd -> Value (index, list)
+                    SArrayEnd -> Error "SyntaxError: Interlocked Array in Tuple"
+                    _ -> verifyASExpr (Just '{')  (index + 1) list
+        else if charBrack
+            then
+            let currentElement = list !! index
+                in case currentElement of
+                    SListBegin ->
+                        let result = verifyASExpr (Just '(') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '[') (returnIndex + 1) list
+                            Error err -> Error err
+                    STupleBegin ->
+                        let result = verifyASExpr (Just '{') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '[') (returnIndex + 1) list
+                            Error err -> Error err
+                    SArrayBegin ->
+                        let result = verifyASExpr (Just '[') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '[') (returnIndex + 1) list
+                            Error err -> Error err
+                    SListEnd -> Error "SyntaxError: Interlocked () in Array"
+                    STupleEnd -> Error "SyntaxError: Interlocked Tuple in Array"
+                    SArrayEnd -> Value (index, list)
+                    _ -> verifyASExpr (Just '[')  (index + 1) list
+        else
+            error "You unlock an achivement because this is impossible. Unexpected character passes as argument"
     where
         charNothing = isNothing char
         charParanthese = char == Just '('
