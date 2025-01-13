@@ -14,6 +14,7 @@ import Text.Read
 import Data.Maybe
 import Debug.Trace (trace)
 import Data.List (isPrefixOf)
+import Data.Char (isSpace)
 
 import SExpression
 
@@ -127,7 +128,7 @@ checkValidTuple list
 
 verifyTuple :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
 verifyTuple (Value (rList, pList)) list =
-    trace ("rlist: " ++ show rList ++ "\npList " ++ show pList ++ "list" ++ show list) $
+    -- trace ("rlist: " ++ show rList ++ "\npList " ++ show pList ++ "list" ++ show list) $
     let tuple = checkValidTuple pList
     in case tuple of
         Value validTuple -> 
@@ -261,8 +262,16 @@ verifyASExpr char index list
         charCurlyBrack = char == Just '{'
         charBrack = char == Just '['
 
+customWords :: String -> [String]
+customWords [] = []
+customWords (x:xs)
+    | x == ','  = [","] ++ customWords xs
+    | isSpace x = customWords xs
+    | otherwise = let (word, rest) = break (\c -> isSpace c || c == ',') (x:xs)
+                in word : customWords rest
+
 parse :: String -> Safe [SExpr]
-parse str = let result = verifyASExpr Nothing 0 (stringToASExpr (words str) [])
+parse str = let result = verifyASExpr Nothing 0 (stringToASExpr (customWords str) [])
             in case result of
                 Value (_, list) ->
                     -- trace ("list: " ++ show list) $
