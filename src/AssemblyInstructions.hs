@@ -1,4 +1,5 @@
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE InstanceSigs #-}
 module AssemblyInstructions where
 
 import Data.Typeable (typeOf, Typeable)
@@ -6,7 +7,9 @@ import Debug.Trace (traceShow)
 import Data.Word (Word8)
 import Debug.Trace (traceShowId)
 import Unsafe.Coerce (unsafeCoerce)
+
 import AST (AST(..), getType)
+import Hex (showHex32)
 import Serialize
 import Type (Type(..))
 import Utils (Safe(..))
@@ -26,7 +29,23 @@ data AssemblyInstruction =  PushRegister RegisterID             |
                             MovRegister RegisterID RegisterID   |
                             MovValue RegisterID Any             |
                             OutRegister RegisterID              |
-                            OutValue Any                        deriving Show
+                            OutValue Any
+
+instance Show AssemblyInstruction where
+    show :: AssemblyInstruction -> String
+    show (PushRegister reg) = "push r" ++ show reg
+    show (PushValue (Any (_type, a))) = "push " ++ show _type ++ " " ++ show a
+    show (Pop reg) = "pop r" ++ show reg
+    show (Test reg) = "test r" ++ show reg
+    show (JumpIfTrue addr) = "jt " ++ showHex32 addr
+    show (JumpIfFalse addr) = "jf " ++ showHex32 addr
+    show (Call symbol) = "call " ++ symbol
+    show (RetRegister reg) = "ret r" ++ show reg
+    show (RetValue (Any (_type, a))) = "ret " ++ show _type ++ " " ++ show a
+    show (MovRegister dest src) = "mov r" ++ show dest ++ ", " ++ show src
+    show (MovValue dest (Any (_type, a))) = "mov r" ++ show dest ++ ", " ++ show _type ++ " " ++ show a
+    show (OutRegister reg) = "out r" ++ show reg
+    show (OutValue (Any (_type, a))) = "out " ++ show _type ++ " " ++ show a
 
 traceVal :: (Typeable a, Show a) => String -> a -> a
 traceVal msg a = traceShow (msg ++ " = " ++ show a ++ " :: " ++ show (typeOf a)) a
@@ -46,7 +65,7 @@ toAny (ASTTuple (a, b)) = liftA2 (\types' values' -> Any (T_Tuple types', values
           values = liftA2 (,) (toAny a) (toAny b)
 toAny list@(ASTList xs) = liftA2 (\type' values' -> Any (type', map fromAny values')) (getType list) values
     where values = traceVal "values" (mapM toAny xs)
-toAny _ = Error "Invalid argument !"
+toAny a = Error ("toAny: Invalid argument : '" ++ show a ++ "'")
 
 toAssemblyValueInstruction :: (Any -> AssemblyInstruction) -> AST -> Safe AssemblyInstruction
 toAssemblyValueInstruction instruction ast = fmap instruction (toAny ast)

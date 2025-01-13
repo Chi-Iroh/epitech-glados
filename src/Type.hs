@@ -1,3 +1,5 @@
+{-# LANGUAGE InstanceSigs #-}
+
 module Type (
     Type(..),
     verifyTypeTuple,
@@ -5,9 +7,43 @@ module Type (
     combinateTypes
     ) where
 
+import Data.List (intercalate)
 import Utils
 
-data Type = T_Int | T_UInt | T_Char | T_Float | T_Bool | T_Tuple (Type, Type) | T_List Type | T_EmptyList | T_String | T_Procedure | T_Function [Type] Type | T_Combination [Type] | T_NULL | T_Undefined deriving (Eq, Show)
+data Type = T_Int                   |
+            T_UInt                  |
+            T_Char                  |
+            T_Float                 |
+            T_Bool                  |
+            T_Tuple (Type, Type)    |
+            T_List Type             |
+            T_EmptyList             |
+            T_String                |
+            T_Procedure             |
+            T_Function [Type] Type  |
+            T_Combination [Type]    |
+            T_NULL                  |
+            T_Undefined             deriving Eq
+
+instance Show Type where
+    show :: Type -> String
+    show T_Int = "int"
+    show T_UInt = "uint"
+    show T_Char = "char"
+    show T_Float = "float"
+    show T_Bool = "bool"
+    show (T_Tuple (left, right)) = "{" ++ show left ++ ", " ++ show right ++ "}"
+    show (T_List a) = "[" ++ show a ++ "]"
+    show T_EmptyList = "[]"
+    show T_String = show (T_List T_Char)
+    show T_Procedure = "<procedure>"
+    show (T_Function params ret) = "{" ++ params' ++ show ret ++ "}"
+        where params' = if null params then "" else (intercalate " " $ map (\param -> "(" ++ show param ++ ")") params) ++ " => "
+    show (T_Combination types)
+        | null types = "<empty combination type>"
+        | otherwise = intercalate "|" (map show types)
+    show T_NULL = "NULL"
+    show T_Undefined = "<undefined>"
 
 verifyTypeTuple :: (Safe Type, Safe Type) -> Safe Type
 verifyTypeTuple ((Error err1), (Error err2)) = Error ("2 Errors encountered at the same time: " ++ err1 ++ " ; " ++ err2)
