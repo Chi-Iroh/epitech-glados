@@ -1,12 +1,18 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE InstanceSigs #-}
 module VM where
 
 import Data.Word (Word8, Word32)
+import Text.Printf (printf)
 import Bits (splitWord32)
 import Type (Type(..))
 
-data Any = forall a. Any (Type, a)
+data Any = forall a. Show a => Any (Type, a)
 type Address = Word32
+
+instance Show Any where
+    show :: Any -> String
+    show (Any (type', val)) = printf "Any (%s, %s)" (show type') (show val)
 
 data VM = VM {
     _registers :: [Any],    -- 16 registers

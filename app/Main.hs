@@ -1,14 +1,17 @@
 module Main (main) where
 
+import Debug.Trace
+
     -- import Debug (debug, debug2)
 import AST (MainAST, isProcedureType)
 import BinaryIO (readBinary, writeBinary)
 import Converter (convert)
 import Compile (compileAST)
+import Data.Functor ((<&>))
 import Import (parseImport)
 import Comment (deleteComment)
 import Parser
-import System.Exit (die, exitWith, ExitCode(ExitFailure))
+import System.Exit (die, exitWith, ExitCode(ExitFailure, ExitSuccess))
 import System.Environment
 import Utils
 
@@ -29,6 +32,10 @@ putResult :: Safe String -> IO ()
 putResult (Value res) = putStr res
 putResult (Error err) = die err
 
+safeToIO :: Safe a -> IO a
+safeToIO (Error err) = die err
+safeToIO (Value a) = pure a
+
 main :: IO ()
 main = do
     args <- getArgs
@@ -40,4 +47,4 @@ main = do
     case fileimport of
         Error err -> die err
         -- Value content -> putStrLn (deleteComment content)
-        Value content -> fmap showAll ((convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary "output.bin"
+        Value content -> safeToIO ((traceShowId $ convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary "output.bin"

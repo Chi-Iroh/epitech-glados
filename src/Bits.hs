@@ -10,7 +10,7 @@ splitWord32 w32 =   map fromIntegral [w32 .>>. 24
                     , (w32 .&. 0xFF_00) .>>. 8
                     , w32 .&. 0xFF]
 
-u32 :: Word8 -> Word32
+u32 :: Integral a => a -> Word32
 u32 = fromIntegral
 
 combineWord32 :: [Word8] -> Word32
