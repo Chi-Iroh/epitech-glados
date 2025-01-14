@@ -1,4 +1,4 @@
-module SymbolTable (writeSymbolTable, readSymbolTable, SymbolTable) where
+module SymbolTable (writeSymbolTable, readSymbolTable, symbolTableEnd, SymbolTable) where
 
 import Data.ByteString.Internal (w2c)
 import Data.Word (Word8)
