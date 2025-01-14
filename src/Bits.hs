@@ -15,7 +15,7 @@ u32 = fromIntegral
 
 combineWord32 :: [Word8] -> Word32
 combineWord32 [a, b, c, d] = (u32 a .<<. 24) .|. (u32 b .<<. 16) .|. (u32 c .<<. 8) .|. u32 d
-combineWord32 xs = error $ "Expected 4 bytes but got " ++ show (length xs) ++ " instead !"
+combineWord32 xs = error $ "Expected 4 bytes but got " ++ show (length xs) ++ " (val: " ++ show xs ++ ") instead !"
 
 nthBit :: Bool -> Int -> Word8
 nthBit bool = (((if bool then 0x01 else 0x00) :: Word8) .<<.)

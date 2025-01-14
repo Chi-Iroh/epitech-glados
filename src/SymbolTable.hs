@@ -1,6 +1,7 @@
 module SymbolTable (writeSymbolTable, readSymbolTable, symbolTableEnd, SymbolTable) where
 
 import Data.ByteString.Internal (w2c)
+import Data.List (isPrefixOf)
 import Data.Word (Word8)
 import Bits (splitWord32, combineWord32)
 import Serialize (serializeChar)
@@ -19,23 +20,18 @@ writeSymbolTable :: SymbolTable -> [Word8]
 writeSymbolTable = (++ symbolTableEnd) . concatMap writeSymbol
     where writeSymbol (sym, addr) = encodeString sym ++ splitWord32 addr
 
-startsWith :: Eq a => [a] -> [a] -> Bool
-startsWith [] _ = True
-startsWith _ [] = False
-startsWith (x : xs) (y : ys) = x == y && startsWith xs ys
-
 splitAtPattern :: Eq a => [a] -> [a] -> ([a], [a])
 splitAtPattern [] list = (list, [])
-splitAtPattern pattern@(_ : ps) list@(x : xs)
-    | startsWith pattern list = ([], drop (length pattern) list)
+splitAtPattern pattern list@(x : xs)
+    | isPrefixOf pattern list = ([], drop (length pattern) list)
     | otherwise = (x : before, after)
-    where (before, after) = splitAtPattern ps xs
+    where (before, after) = splitAtPattern pattern xs
 
 splitAtElem :: Eq a => a -> [a] -> ([a], [a])
 splitAtElem _ [] = ([], [])
 splitAtElem a (x : xs)
     | a == x = ([], xs)
-    | otherwise = (a : beforeA, afterA)
+    | otherwise = (x : beforeA, afterA)
     where (beforeA, afterA) = splitAtElem a xs
 
 readSymbol :: [Word8] -> (Symbol, [Word8])
@@ -50,5 +46,7 @@ readSymbolTable' bytes
     where (symbol, rest) = readSymbol bytes
 
 readSymbolTable :: [Word8] -> (SymbolTable, [Word8])
-readSymbolTable bytes = (readSymbolTable' table, rest)
+readSymbolTable bytes
+    | null table = ([], rest)
+    | otherwise = (readSymbolTable' table, rest)
     where (table, rest) = splitAtPattern symbolTableEnd bytes
