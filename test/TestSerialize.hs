@@ -1,8 +1,15 @@
-module TestConverter (testConverter) where
+{-# LANGUAGE NumericUnderscores #-}
 
-import Type
+module TestSerialize (testSerializableTypes) where
+
+import Data.ByteString.Internal (c2w)
+import GHC.Float (castFloatToWord32)
 import Test.HUnit
+
+import Bits (splitWord32)
+import Type
 import Serialize
+import UtilsForTests
 
 testSerializeBool1 :: Test
 testSerializeBool1 = myAssertEqual "True" [[0x01]] [serializeBool True]
@@ -42,7 +49,7 @@ testSerializeValues = TestList [
     TestLabel "Out of range float" testSerializeFloat2,
     TestLabel "Normal tuple (int, char)" testSerializeTuple,
     TestLabel "int list [1,1,1]" testSerializeList
-]
+    ]
 
 
 testSerializeTypeBool :: Test
@@ -86,4 +93,7 @@ testSerializeTypes = TestList [
     TestLabel "[]" testSerializeTypeEmptyList,
     TestLabel "[int, char, bool]" testSerializeTypeCombination,
     TestLabel "null" testSerializeTypeNull
-]
+    ]
+
+testSerialize :: Test
+testSerialize = TestList [ testSerializeValues, testSerializeTypes ]
