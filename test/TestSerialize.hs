@@ -1,6 +1,6 @@
 {-# LANGUAGE NumericUnderscores #-}
 
-module TestSerialize (testSerializableTypes) where
+module TestSerialize (testSerialize) where
 
 import Data.ByteString.Internal (c2w)
 import GHC.Float (castFloatToWord32)
@@ -18,7 +18,7 @@ testSerializeBool2 :: Test
 testSerializeBool2 = myAssertEqual "False" [[0x00]] [serializeBool False]
 
 testSerializeChar :: Test
-testSerializeChar = myAssertEqual "Char" [c2w 'a'] [serializeChar 'a']
+testSerializeChar = myAssertEqual "Char" [c2w 'a'] (serializeChar 'a')
 
 testSerializeInt1 :: Test
 testSerializeInt1 = myAssertEqual "Normal int (1)" [[0x01]] [serializeInt 1]
@@ -33,10 +33,10 @@ testSerializeFloat2 :: Test
 testSerializeFloat2 = myAssertEqual "Out of range float" [error "Out of range float !"] [serializeFloat 3.4028237e39]
 
 testSerializeTuple :: Test
-testSerializeTuple = myAssertEqual "Normal tuple (int, char)" [serializeInt 1 ++ serializeChar 'a'] [serializeTuple (1, 'a')]
+testSerializeTuple = myAssertEqual "Normal tuple (int, char)" (serializeInt (1 :: Int) ++ serializeChar 'a') (serializeTuple ((1 :: Int), ('a' :: Char)))
 
 testSerializeList :: Test
-testSerializeList = myAssertEqual "int list [1,1,1]" [[0x01], [0x01], [0x01]] [serializeList [1,1,1]]
+testSerializeList = myAssertEqual "int list [1,1,1]" ([0x01] ++ [0x01] ++ [0x01]) (serializeList [(1 :: Int),(1 :: Int),(1 :: Int)])
 
 testSerializeValues :: Test
 testSerializeValues = TestList [
@@ -59,7 +59,7 @@ testSerializeTypeInt :: Test
 testSerializeTypeInt = myAssertEqual "int" [[0x02]] [serializeTypeInt]
 
 testSerializeTypeUInt :: Test
-testSerializeTypeUInt = myAssertEqual "uint" [[0x03]] [serializeUInt]
+testSerializeTypeUInt = myAssertEqual "uint" [[0x03]] [serializeTypeUInt]
 
 testSerializeTypeFloat :: Test
 testSerializeTypeFloat = myAssertEqual "float" [[0x04]] [serializeTypeFloat]
@@ -71,7 +71,7 @@ testSerializeTypeTuple :: Test
 testSerializeTypeTuple = myAssertEqual "(int, char)" [[0x06] ++ [0x02] ++ [0x05]] [serializeTypeTuple (T_Int, T_Char)]
 
 testSerializeTypeList :: Test
-testSerializeTypeList = myAssertEqual "[char]" [[0x07] ++ [0x05]]
+testSerializeTypeList = myAssertEqual "[char]" [[0x07] ++ [0x05]] [serializeTypeList T_Char]
 
 testSerializeTypeEmptyList :: Test
 testSerializeTypeEmptyList = myAssertEqual "[]" [[0x07] ++ [0x02]] [serializeTypeEmptyList]
