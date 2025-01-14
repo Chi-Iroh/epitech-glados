@@ -1,31 +1,23 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NumericUnderscores #-}
 module Deserialize where
 
 import Data.Bits ((.<<.), (.|.))
+import Data.Functor ((<&>))
 import Bits (u32)
 import Data.ByteString.Internal (w2c)
 import Data.Word (Word8)
+import Serialize (Null)
 import Type (Type(..))
 import Utils (Safe(..))
+import VM (Any(..))
 
--- class Deserializable a where
---     deserialize :: [Word8] -> a
+toAnyAndBytes :: Type -> (a, [Word8]) -> (Any, [Word8])
+toAnyAndBytes t (val, bytes) = (Any (t, val), bytes)
 
--- class DeserializableType [Word8] where
---     deserializeType :: [Word8] -> a
-
--- instance Deserializable Bool where
---     deserialize b = deserializeBool b
-
--- instance Deserializable Char where
---     deserialize c = deserializeChar c
-
--- instance Deserializable Int where
---     deserialize i = deserializeInt i
-
--- instance DeserializableType Null where
---     deserialize _ = deserializeTypeNull
+deserialize :: Type -> [Word8] -> Safe (Any, [Word8])
+deserialize T_Bool bytes = deserializeBool bytes <&> toAnyAndBytes T_Bool
+deserialize T_Char bytes = deserializeChar bytes <&> toAnyAndBytes T_Char
+deserialize T_Int bytes = deserializeInt bytes <&> toAnyAndBytes T_Int
+deserialize T_NULL bytes = deserializeTypeNull bytes <&> toAnyAndBytes T_NULL
 
 deserializeBool :: [Word8] -> Safe (Bool, [Word8])
 deserializeBool (0x00 : xs) = Value (False, xs)
@@ -41,8 +33,8 @@ deserializeInt (b1 : b2 : b3 : b4 : bytes) = Value (fromIntegral int, bytes)
     where int = (u32 b1 .<<. 24) .|. (u32 b2 .<<. 16) .|. (u32 b3 .<<. 8)  .|. u32 b4
 deserializeInt bytes = Error ("Cannot deserialize an int, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes) !")
 
-
-
-
+deserializeTypeNull :: [Word8] -> Safe (Int, [Word8])
+deserializeTypeNull (0x09 : xs) = Value (0x00, xs) -- 0x00 is a dummy value
+deserializeTypeNull _ = Error "Cannot deserialize NULL type, no byte to read !"
 
 
