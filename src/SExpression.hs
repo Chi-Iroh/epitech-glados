@@ -1,5 +1,5 @@
 module SExpression
-    ( SExpr(SNumber, SSymbol, SList),
+    ( SExpr(SNumber, SSymbol, SList, STuple, SArray),
     getSymbol,
     getInteger,
     getList,
@@ -10,7 +10,7 @@ module SExpression
 
 import Utils
 
-data SExpr = SNumber Int | SSymbol String | SList [SExpr] deriving (Eq, Show)
+data SExpr = SNumber Int | SSymbol String | SList [SExpr] | STuple [SExpr] | SArray [SExpr] deriving (Eq, Show)
 
 getSymbol :: SExpr -> Safe String
 getSymbol (SSymbol symbol) = Value symbol
