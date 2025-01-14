@@ -118,4 +118,4 @@ sexprToAST (a : rest) =
 
 convert :: Safe [SExpr] -> Safe [AST]
 convert (Error err) = Error err
-convert (Value list) = sexprToAST list 
+convert (Value list) = sexprToAST list

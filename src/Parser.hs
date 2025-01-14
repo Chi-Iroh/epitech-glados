@@ -86,26 +86,50 @@ verifyParanthese :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe 
 verifyParanthese (Value (rList, pList)) list = aSExprToSExpr rList (concatSafe (fromSafe (aSExprToSExpr pList (Value []))) list)
 verifyParanthese (Error err) _ = Error err
 
--- return a list of AlmostSexpr trunc to the first SListEnd (and trunc it)
-toSListEnd :: [AlmostSExpr] -> [AlmostSExpr]
-toSListEnd [] = []
-toSListEnd (x:xs)
-    | x == SListEnd = xs
-    | otherwise = toSListEnd xs
+-- return a list of AlmostSexpr trunc to the correct SListEnd (and trunc it)
+toSListEnd :: [AlmostSExpr] -> Int  -> [AlmostSExpr]
+toSListEnd [] _ = []
+toSListEnd (x:xs) nbStructure
+    | nbStructure == 0 =
+        case x of
+            SListEnd -> xs
+            SListBegin -> toSListEnd xs (nbStructure + 1)
+            _ -> toSListEnd xs nbStructure
+    | otherwise =
+        case x of
+            SListEnd -> toSListEnd xs (nbStructure - 1)
+            SListBegin -> toSListEnd xs (nbStructure + 1)
+            _ -> toSListEnd xs nbStructure
 
 -- return a list of AlmostSexpr trunc to the first STupleEnd (and trunc it)
-toSTupleEnd :: [AlmostSExpr] -> [AlmostSExpr]
-toSTupleEnd [] = []
-toSTupleEnd (x:xs)
-    | x == STupleEnd = xs
-    | otherwise = toSTupleEnd xs
+toSTupleEnd :: [AlmostSExpr] -> Int  -> [AlmostSExpr]
+toSTupleEnd [] _ = []
+toSTupleEnd (x:xs) nbStructure
+    | nbStructure == 0 =
+        case x of
+            STupleEnd -> xs
+            STupleBegin -> toSTupleEnd xs (nbStructure + 1)
+            _ -> toSTupleEnd xs nbStructure
+    | otherwise =
+        case x of
+            STupleEnd -> toSTupleEnd xs (nbStructure - 1)
+            STupleBegin -> toSTupleEnd xs (nbStructure + 1)
+            _ -> toSTupleEnd xs nbStructure
 
 -- return a list of AlmostSexpr trunc to the first STupleEnd (and trunc it)
-toSArrayEnd :: [AlmostSExpr] -> [AlmostSExpr]
-toSArrayEnd [] = []
-toSArrayEnd (x:xs)
-    | x == SArrayEnd = xs
-    | otherwise = toSArrayEnd xs
+toSArrayEnd :: [AlmostSExpr] -> Int -> [AlmostSExpr]
+toSArrayEnd [] _ = []
+toSArrayEnd (x:xs) nbStructure
+    | nbStructure == 0 =
+        case x of
+            SArrayEnd -> xs
+            SArrayBegin -> toSArrayEnd xs (nbStructure + 1)
+            _ -> toSArrayEnd xs nbStructure
+    | otherwise =
+        case x of
+            SArrayEnd -> toSArrayEnd xs (nbStructure - 1)
+            SArrayBegin -> toSArrayEnd xs (nbStructure + 1)
+            _ -> toSArrayEnd xs nbStructure
 
 -- bollean for checkValidTuple
 isValidTuple :: Int -> [AlmostSExpr] -> Bool
@@ -114,9 +138,9 @@ isValidTuple nbElement (x:xs)
     | nbElement > 2 = False
     | otherwise =
         case x of
-            SListBegin -> isValidTuple nbElement (toSListEnd xs)
-            STupleBegin -> isValidTuple nbElement (toSTupleEnd xs)
-            SArrayBegin -> isValidTuple nbElement (toSArrayEnd xs)
+            SListBegin -> isValidTuple nbElement (toSListEnd xs 0)
+            STupleBegin -> isValidTuple nbElement (toSTupleEnd xs 0)
+            SArrayBegin -> isValidTuple nbElement (toSArrayEnd xs 0)
             ASExpr (SSymbol ",") -> isValidTuple (nbElement + 1) xs
             _ -> isValidTuple nbElement xs
 
