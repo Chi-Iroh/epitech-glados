@@ -12,6 +12,8 @@ import AST
 import Utils
 import Type
 
+import Debug.Trace (trace)
+
 converterListError :: String -> Int -> Safe AST
 converterListError qualifier line = Error ("GLaDOS: ConverterError: Expected a one item list but got " ++ qualifier ++ " list instead. [Converter.hs:" ++ (show line) ++ "]\n")
 
@@ -30,6 +32,23 @@ sexprSListHandling [SNumber a] = Value (ASTInt a)
 sexprSListHandling [SSymbol "#t"] = Value (ASTBool True)
 sexprSListHandling [SSymbol "#f"] = Value (ASTBool False)
 sexprSListHandling [SSymbol a] = Value (ASTProcedure a)
+sexprSListHandling [SArray elements] =
+    case mapM (sexprSListHandling . pure) elements of
+        Value astList -> Value (ASTArray astList)
+        Error err -> Error err
+sexprSListHandling (STuple(a:b):_) =
+    case (sexprSListHandling [a], sexprSListHandling b) of
+        (Value astA, Value astB) -> Value (ASTTuple (astA, astB))
+        (Error err, _) -> Error err
+        (_, Error err) -> Error err
+
+sexprSListHandling (SList elements : rest) =
+    case sexprSListHandling elements of
+        Value result -> case sexprSListHandling rest of
+            Value restResult -> Value (ASTCall (LambdaCall [] result T_Undefined) [restResult]) -- Example handling
+            Error err -> Error err
+        Error err -> Error err
+
 sexprSListHandling (SList (SSymbol "lambda":b:c):rests)
         | null c = Error "GLaDOS: SyntaxError: Not enough arguments to declare a lambda.\n"
         | otherwise = case toLambdaParamsList b of
@@ -102,15 +121,19 @@ sexprSListHandling (_:_) = Error "GLaDOS: ConverterError: Not handled case. [Con
 sexprToAST :: [SExpr] -> Safe [AST]
 sexprToAST [] = Value []
 sexprToAST (SList elements : rest) =
+    -- trace ("list 1: " ++ show elements ++ "\n" ++ show rest ++ "\n") $
     case sexprSListHandling elements of
         Value result ->
+            -- trace ("result:" ++ show result) $
             case sexprToAST rest of
                 Value restAST -> Value (result : restAST)
                 Error err -> Error err
         Error err -> Error err
 sexprToAST (a : rest) =
+    -- trace ("list 2: " ++ show a ++ "\n" ++ show rest ++ "\n") $
     case sexprSListHandling [a] of
         Value resultA ->
+            -- trace ("resultA:" ++ show resultA) $
             case sexprToAST rest of
                 Value resultRest -> Value (resultA : resultRest)
                 Error err -> Error err

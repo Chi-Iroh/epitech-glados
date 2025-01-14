@@ -24,12 +24,9 @@ showAll args
     | length args == 1 && isProcedureType (head args) = "#\\<procedure\\>"
     | otherwise = showAll' args
 
--- putResult :: Safe String -> IO ()
--- putResult (Value res) = putStr res
--- putResult (Error err) = die err
-
-putResult :: String -> IO ()
-putResult result = putStrLn result
+putResult :: Safe String -> IO ()
+putResult (Value res) = putStr res
+putResult (Error err) = die err
 
 main :: IO ()
 main = do
@@ -41,8 +38,9 @@ main = do
     fileimport <- parseImport (deleteComment file)
     case fileimport of
         Error err -> die err
-        Value content -> case parse (deleteComment content) of
-            Error err -> die err
-            Value sexprs -> putResult (show sexprs)
-        -- Value content -> putResult (fmap showAll ((convert $ parse (deleteComment content)) >>= evaluateAST))
+        -- Value content -> 
+            -- case parse (deleteComment content) of
+            --     Error err -> die err
+            --     -- Value sexprs -> putResult (show sexprs)
+        Value content -> putResult (fmap showAll ((convert $ parse (deleteComment content)) >>= evaluateAST))
 

@@ -294,10 +294,24 @@ customWords (x:xs)
     | otherwise = let (word, rest) = break (\c -> isSpace c || c == ',') (x:xs)
                 in word : customWords rest
 
+removeCommas :: Safe [SExpr] -> Safe [SExpr]
+removeCommas (Error err) = Error err
+removeCommas (Value list) = Value (map removeCommasFromExpr list)
+    where
+    removeCommasFromExpr :: SExpr -> SExpr
+    removeCommasFromExpr (SList exprs) = SList (map removeCommasFromExpr (filter (not . isComma) exprs))
+    removeCommasFromExpr (STuple exprs) = STuple (map removeCommasFromExpr (filter (not . isComma) exprs))
+    removeCommasFromExpr (SArray exprs) = SArray (map removeCommasFromExpr (filter (not . isComma) exprs))
+    removeCommasFromExpr expr = expr  -- Leave other expressions unchanged
+
+    isComma :: SExpr -> Bool
+    isComma (SSymbol ",") = True
+    isComma _ = False
+
 parse :: String -> Safe [SExpr]
 parse str = let result = verifyASExpr Nothing 0 (stringToASExpr (customWords str) [])
             in case result of
                 Value (_, list) ->
-                    -- trace ("list: " ++ show list) $
-                    aSExprToSExpr list (Value [])
+                    trace ("remove comma: " ++ show (removeCommas (aSExprToSExpr list (Value [])))) $
+                    removeCommas (aSExprToSExpr list (Value []))
                 Error err -> Error err
