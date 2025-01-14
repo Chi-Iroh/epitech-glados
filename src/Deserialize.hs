@@ -2,51 +2,44 @@
 {-# LANGUAGE NumericUnderscores #-}
 module Deserialize where
 
-import Data.Bits (complement, shiftR, (.&.))
-import Bits (splitWord32, setBit)
-import Data.ByteString.Internal (c2w)
+import Data.Bits ((.<<.), (.|.))
+import Bits (u32)
+import Data.ByteString.Internal (w2c)
 import Data.Word (Word8)
-import GHC.Float (castFloatToWord32)
-import Limits (checkInt, checkUInt, checkFloat)
 import Type (Type(..))
-import Data.Char(ord)
+import Utils (Safe(..))
 
+-- class Deserializable a where
+--     deserialize :: [Word8] -> a
 
-newtype Combination = C_Combination [Type]
-newtype Null = C_Null (Maybe Int)
-newtype EmptyList = T_EmptyList [Null]
+-- class DeserializableType [Word8] where
+--     deserializeType :: [Word8] -> a
 
-class Deserializable a where
-    deserialize :: [Word8] -> a
+-- instance Deserializable Bool where
+--     deserialize b = deserializeBool b
 
-class DeserializableType [Word8] where
-    deserializeType :: [Word8] -> a
+-- instance Deserializable Char where
+--     deserialize c = deserializeChar c
 
-instance Deserializable Bool where
-    deserialize b = deserializeBool b
+-- instance Deserializable Int where
+--     deserialize i = deserializeInt i
 
-instance Deserializeble Char where
-    deserialize c = deserializeChar c
+-- instance DeserializableType Null where
+--     deserialize _ = deserializeTypeNull
 
-instance Deserializable Int where
-    deserialize i = deserializeInt i
+deserializeBool :: [Word8] -> Safe (Bool, [Word8])
+deserializeBool (0x00 : xs) = Value (False, xs)
+deserializeBool (0x01 : xs) = Value (True, xs)
+deserializeBool (a : _) = Error ("Got unexpected byte " ++ show a ++ " while trying to deserialize a boolean !")
 
-instance DeserializableType Null where
-    deserialize _ = deserializeTypeNull
+deserializeChar :: [Word8] -> Safe (Char, [Word8])
+deserializeChar (x : xs) = Value (w2c x, xs)
+deserializeChar [] = Error "Cannot deserialize a char, no byte to read !"
 
-deserializeBool :: [Word8] -> Bool
-deserializeBool [0x00] = False
-deserializeBool [0x01] = True
-
-deserializeChar :: [Word8] -> Char
-deserializeChar [w] = chr (fromIntegral w)
-
-deserializeInt :: [Word8] -> Int
-deserializeInt [b1, b2, b3, b4] =
-    (fromIntegral w1 `shiftL` 24) .|.
-    (fromIntegral w2 `shiftL` 16) .|.
-    (fromIntegral w3 `shiftL` 8)  .|.
-    fromIntegral w4
+deserializeInt :: [Word8] -> Safe (Int, [Word8])
+deserializeInt (b1 : b2 : b3 : b4 : bytes) = Value (fromIntegral int, bytes)
+    where int = (u32 b1 .<<. 24) .|. (u32 b2 .<<. 16) .|. (u32 b3 .<<. 8)  .|. u32 b4
+deserializeInt bytes = Error ("Cannot deserialize an int, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes) !")
 
 
 

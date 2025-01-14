@@ -14,13 +14,9 @@ import Data.Char(ord)
 
 newtype Combination = C_Combination [Type]
 newtype Null = C_Null (Maybe Int)
-newtype EmptyList = T_EmptyList [Null]
 
 class Serializable a where
     serialize :: a -> [Word8]
-
-class SerializableType a where
-    serializeType :: a -> [Word8]
 
 instance Serializable Bool where
     serialize b = serializeBool b
@@ -81,35 +77,20 @@ serializeList [x] = serialize x
 -- serializeCombination list = serializeList list
 
 
-instance SerializableType Bool where
-    serializeType b = serializeTypeBool
-
-instance SerializableType Int where
-    serializeType n = serializeTypeInt
-
-instance SerializableType Float where
-    serializeType f = serializeTypeFloat
-
-instance SerializableType Char where
-    serializeType c = serializeTypeChar
-
-instance SerializableType Null where
-    serializeType _ = serializeTypeNull
-
-instance SerializableType (Type, Type) where
-    serializeType t = serializeTypeTuple t
-
-instance SerializableType [Type] where
-    serializeType l@(x : _)
-        | null l = serializeTypeEmptyList
-        -- | filter (/= x) l /= [] -- error if all types aren't the same
-        | otherwise = serializeTypeList x
-
-instance SerializableType EmptyList where
-    serializeType e = serializeTypeEmptyList
-
-instance SerializableType Combination where
-    serializeType (C_Combination c) = serializeTypeCombination c
+serializeType :: Type -> [Word8]
+serializeType T_Int = serializeTypeInt
+serializeType T_UInt = serializeTypeUInt
+serializeType T_Float = serializeTypeFloat
+serializeType T_Bool = serializeTypeBool
+serializeType T_EmptyList = serializeTypeEmptyList
+serializeType T_String = serializeType T_Char
+serializeType T_NULL = serializeTypeNull
+serializeType (T_Tuple types) = serializeTypeTuple types
+serializeType (T_List elemType) = serializeType elemType
+serializeType (T_Combination types) = serializeTypeCombination types
+serializeType (T_Function params ret) = error "Function type serialization not implemented !"
+serializeType T_Undefined = error "Tried to serialize undefined type !"
+serializeType T_Procedure = error "Tried to serialize a procedure type !"
 
 serializeTypeBool :: [Word8]
 serializeTypeBool = [0x01]
