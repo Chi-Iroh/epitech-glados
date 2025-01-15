@@ -5,7 +5,7 @@ import Data.List (isPrefixOf)
 import Data.Word (Word8)
 import Bits (splitWord32, combineWord32)
 import Serialize (serializeChar)
-import VM (Address)
+import VMData (Address)
 
 type Symbol = (String, Address)
 type SymbolTable = [Symbol]
@@ -22,6 +22,7 @@ writeSymbolTable = (++ symbolTableEnd) . concatMap writeSymbol
 
 splitAtPattern :: Eq a => [a] -> [a] -> ([a], [a])
 splitAtPattern [] list = (list, [])
+splitAtPattern _ [] = ([], [])
 splitAtPattern pattern list@(x : xs)
     | isPrefixOf pattern list = ([], drop (length pattern) list)
     | otherwise = (x : before, after)
