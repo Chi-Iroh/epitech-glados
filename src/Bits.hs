@@ -10,6 +10,9 @@ splitWord32 w32 =   map fromIntegral [w32 .>>. 24
                     , (w32 .&. 0xFF_00) .>>. 8
                     , w32 .&. 0xFF]
 
+u32 :: Integral a => a -> Word32
+u32 = fromIntegral
+
 nthBit :: Bool -> Int -> Word8
 nthBit bool = (((if bool then 0x01 else 0x00) :: Word8) .<<.)
 
