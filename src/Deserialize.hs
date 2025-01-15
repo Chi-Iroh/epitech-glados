@@ -5,6 +5,7 @@ import Data.Functor ((<&>))
 import Bits (u32)
 import Data.ByteString.Internal (w2c)
 import Data.Word (Word8)
+import GHC.Float (castWord32ToFloat)
 import Serialize (Null)
 import Type (Type(..))
 import Utils (Safe(..))
@@ -39,7 +40,7 @@ deserializeTypeNull (0x09 : xs) = Value (0x00, xs) -- 0x00 is a dummy value
 deserializeTypeNull _ = Error "Cannot deserialize NULL type, no byte to read !"
 
 deserializeFloat :: [Word8] -> Safe (Float, [Word8])
-deserializeFloat (b1 : b2 : b3 : b4 : bytes) = Value (wordToFloat float, bytes)
+deserializeFloat (b1 : b2 : b3 : b4 : bytes) = Value (castWord32ToFloat float, bytes)
     where float = (u32 b1 .<<. 24) .|. (u32 b2 .<<. 16) .|. (u32 b3 .<<. 8)  .|. u32 b4
 deserializeFloat bytes = Error ("Cannot deserialize a float, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes) !")
 
