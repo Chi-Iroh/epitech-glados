@@ -4,14 +4,13 @@ import Debug.Trace
 
     -- import Debug (debug, debug2)
 import AST (MainAST, isProcedureType)
-import BinaryIO (readBinary, writeBinary)
+import BinaryIO (writeBinary)
 import Converter (convert)
 import Compile (compileAST)
-import Data.Functor ((<&>))
 import Import (parseImport)
 import Comment (deleteComment)
 import Parser
-import System.Exit (die, exitWith, ExitCode(ExitFailure, ExitSuccess))
+import System.Exit (die, exitWith, ExitCode(ExitFailure))
 import System.Environment
 import Utils
 
