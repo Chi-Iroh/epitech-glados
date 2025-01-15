@@ -6,6 +6,7 @@ import Data.Functor ((<&>))
 import Data.List (singleton, nub)
 import Data.Maybe (isNothing)
 import Data.Word (Word8)
+import Debug.Trace
 
 import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, toAny)
 import AST (AST(..), Call(..), MainAST(..), getType)
@@ -138,8 +139,14 @@ compileValue _type value isNested = CompilationStatus {
     _nLambdas = 0
 }
 
+concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
+concatMapM f xs = mapM f xs <&> concat
+
 compileCall :: String -> [AST] -> Safe CompilationStatus
-compileCall symbol args = mapM (toAssemblyValueInstruction PushValue) (reverse args) <&> (statusFromInstructions . (++ [Call symbol]))
+compileCall symbol args = concatMapM compileArg (reverse args) <&> (statusFromInstructions . (++ [Call symbol]))
+    where compileArg arg = case arg of
+            ASTCall (FunctionCall symbol') args' -> compileCall symbol' args' <&> _instructions
+            _ -> singleton <$> toAssemblyValueInstruction PushValue arg
 
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
 compileAST1 status (ASTInt n) isNested = status +++ compileValue T_Int n isNested
@@ -147,12 +154,6 @@ compileAST1 status (ASTBool b) isNested = status +++ compileValue T_Bool b isNes
 compileAST1 status (ASTCall (FunctionCall f) args) _ = compileCall f args >>= (status +++)
 compileAST1 status (ASTProcedure s) _ = compileCall s [] >>= (status +++)
 compileAST1 status define@(ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
-
--- compileAST1 lambda@(ASTLambda _ _ _) _ = (Value lambda, symbols)
--- compileAST1 (ASTCall (LambdaCall params body _) args) _ = (args' >>= (makeLambdaSymbols symbols (map fst params)) >>= (\symbols' -> fst $ evaluateAST1 symbols' body), symbols) -- discarding lambda symbols and returning old ones
-    -- where args' = if null args then Value [] else (mapM (fst . evaluateAST1 symbols) args)
--- compileAST1 symbols define@(ASTDefine s _ (ASTLambda params body _)) = (Value define, registerSymbol symbols s function)
-    -- where function symbols' args = mapM (fst . evaluateAST1 symbols') args >>= (\args' -> fst $ evaluateAST1 symbols' (ASTCall (LambdaCall params body T_Undefined) args'))
 
 -- astArithmeticOp' :: String -> (Int -> Int -> Int) -> [AST] -> Safe AST
 -- astArithmeticOp' _ f [(ASTInt a), (ASTInt b)] = Value $ ASTInt (f a b)
