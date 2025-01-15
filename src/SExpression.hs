@@ -36,10 +36,3 @@ mainSExpr = print $ printTree $ SList [SSymbol "define", SSymbol "y", SList [SSy
 fromSymbol :: SExpr -> String
 fromSymbol (SSymbol s) = s
 fromSymbol _ = ""
-
--- devrait prendre une Sexpr ? un AST ?
---getTypeSExpr :: SExpr -> Safe Type
---getTypeSExpr (SNumber _) = Value T_Int
---getTypeSExpr (SNumber "#t") = Value T_Bool
---getTypeSExpr (SNumber "#f") = Value T_Bool
---getTypeSExpr ...

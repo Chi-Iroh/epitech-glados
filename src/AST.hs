@@ -8,6 +8,10 @@ module AST (
 
 import Type
 import Utils
+import qualified Data.Text as DText
+import qualified Data.Text.Internal.Search as DTextIS
+import qualified Data.List as DList
+import qualified Data.Tuple as DTuple
 
 type Parameter = (AST, Type)
 
@@ -52,3 +56,22 @@ instance Show MainAST where
     show (MainAST (ASTInt n)) = show n
     show (MainAST (ASTBool b)) = if b then "#t" else "#f"
     show _ = ""
+
+paramName :: String -> String
+paramName str = DTuple.fst $ splitAt (head $ DTextIS.indices (DText.pack "::") (DText.pack str)) str
+
+paramType :: String -> String
+paramType str = DTuple.snd $ splitAt ((+) 2 $ head $ DTextIS.indices (DText.pack "::") (DText.pack str)) str
+
+checkParam :: String -> Safe Type -> Safe Parameter
+checkParam _ (Error err) = Error err
+checkParam str (Value t)
+    | length str < 1 = Error "Glados: SyntaxError: No symbol found in a parameter definition."
+    | otherwise = Value (ASTProcedure $ str, t)
+
+getParameter :: String -> Safe Parameter
+getParameter str
+    | len == 2 = checkParam (paramName str) (paramType str)
+    | otherwise = Error ("Glados: SyntaxError: " ++ str ++ " isn't a valid parameter.")
+    where
+        len = length $ DTextIS.indices (DText.pack "::") (DText.pack str)
