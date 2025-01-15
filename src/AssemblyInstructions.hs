@@ -29,7 +29,8 @@ data AssemblyInstruction =  PushRegister RegisterID             |
                             MovRegister RegisterID RegisterID   |
                             MovValue RegisterID Any             |
                             OutRegister RegisterID              |
-                            OutValue Any
+                            OutValue Any                        |
+                            Construct Type Int
 
 instance Show AssemblyInstruction where
     show :: AssemblyInstruction -> String
@@ -46,6 +47,7 @@ instance Show AssemblyInstruction where
     show (MovValue dest (Any (_type, a))) = "mov r" ++ show dest ++ ", " ++ show _type ++ " " ++ show a
     show (OutRegister reg) = "out r" ++ show reg
     show (OutValue (Any (_type, a))) = "out " ++ show _type ++ " " ++ show a
+    show (Construct _type n) = "construct " ++ show _type ++ " " ++ show n
 
 traceVal :: (Typeable a, Show a) => String -> a -> a
 traceVal msg a = traceShow (msg ++ " = " ++ show a ++ " :: " ++ show (typeOf a)) a
@@ -96,6 +98,7 @@ assemble' (MovValue dest (Any (_type, val))) = [0x70, dest] ++ serializeType _ty
 assemble' (MovRegister dest src) = [0x71, dest, src]
 assemble' (OutValue (Any (_type, val))) = [0x80] ++ serializeType _type ++ dummySerialize val
 assemble' (OutRegister reg) = [0x81, reg]
+assemble' (Construct _type n) = [0x90] ++ serializeType _type ++ dummySerialize n
 
 assemble :: AssemblyInstruction -> [Word8]
 assemble = assemble' . traceShowId
