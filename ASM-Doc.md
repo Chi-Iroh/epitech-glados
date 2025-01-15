@@ -36,6 +36,25 @@ The VM has an internal flag BF (stands for boolean flag), used by conditional br
 This flag is either true or false, and is unset when the VM starts until the first time it is set.  
 Even if BF is used by conditional branching instructions, its raw value is not exposed to any other instructions and thus it cannot be read/set by unrelated instructions.  
 
+# Bytecode
+
+Each of the following instructions will be translated into bytecode, which will be interpreted by the VM.  
+It means that each assembly instruction has a readable name (say "push"), but will be converted into a binary value (say 0x8).  
+This binary value is called the opcode and will help the VM to identify which instruction it is reading.  
+Last, this binary value will be encoded on 4 bits.  
+If the VM reads an unused opcode, it will throw a runtime error.  
+
+## Addressing mode
+
+You'll see that some instructions can be called with different argument types (for instance, ret does).  
+To let the VM know which types of arguments it must be reading, we'll add another binary value of 4 bits called the addressing mode.  
+Imagine any instruction which may be called either with a register or an immediate value, an addressing mode of 0b0000 may be used to indicate a register, whereas an addressing mode of 0b0001 may be to designate an immediate value.  
+
+Any instruction with only one combination of arguments still has an addressing mode.  
+If the VM reads an unused addressing mode, it will throw a runtime error.  
+
+Thus, if the VM read the byte 0x41, it means that it must be execute the instruction corresponding to the opcode 0x04 and the addressing mode 0x01.  
+
 # Instructions
 
 | Instructions family      | Instructions list      |
@@ -53,14 +72,21 @@ As introduced above, the stack is used when dealing with functions.
 
 ### push
 
+Opcode : 0x0
 ```x86asm
-push type value
+push type value     ; addressing mode : 0x0
+push register       ; addressing mode : 0x1
 ```
-This instruction pushes a value on top of the stack.  
+This instruction pushes a value or register on top of the stack.  
+When pushing a register, the type is the register's type.  
+If the register is empty, the VM will throw a runtime error.  
 The type must be a valid PDP type, as described in the language specification.  
 
 Example :
 ```x86asm
+mov r0, int 4
+push r0 ; same as push int 4
+
 push int 4
 push [bool] [#t, #f]
 push {uint, [float]} {4, [8, 6]}
@@ -68,8 +94,9 @@ push {uint, [float]} {4, [8, 6]}
 
 ### pop
 
+Opcode : 0x1
 ```x86asm
-pop type register
+pop type register   ; addressing mode = 0x0
 ```
 This instruction pops the top value of the stack into the specified register.  
 If the stack is empty, the VM will throw a runtime error.  
@@ -84,8 +111,9 @@ pop {uint, [float]} r2
 
 ### construct
 
+Opcode : 0x2
 ```x86asm
-construct type n (int immediate)
+construct type n (int immediate)    ; addressing mode = 0x0
 ```
 This instruction constructs a value of the given type from the n first top values of the stack, then pushes it on top of the same stack.  
 Useful in cases like `(len [1, 2, (+ 1 4), 4, 5])` when lists or tuples are built from immediate values mixed with non-immediate values.  
@@ -96,8 +124,10 @@ If the stack has strictly less than n values, the VM will throw a runtime error.
 These 3 instructions allow conditional branching.  
 
 ### test
+
+Opcode : 0x3
 ```x86asm
-test register
+test register   ; addressing mode = 0x0
 ```
 
 If the register doesn't contain a boolean value, the VM will cause a runtime error.  
@@ -107,8 +137,8 @@ This instruction sets the internal flag BF to true if the register contains true
 
 ```x86asm
 test r0
-jt label_true
-jf label_false
+jt label_true   ; opcode = 0x4 // addressing mode = 0x0
+jf label_false  ; opcode = 0x5 // addressing mode = 0x0
 
 label_true:
 label_false:
@@ -125,8 +155,10 @@ These 2 instructions allow calling and returning from a procedure.
 To track the call stack, the VM has a hidden internal stack of addresses simply called CS (acronym of call stack) in this section.  
 
 ### call
+
+Opcode : 0x6
 ```x86asm
-call function_name
+call function_name  ; addressing mode = 0x0
 ```
 
 This instructions calls a function, it means it saves the current address in an internal and hidden stack, and then jumps to the function address.  
@@ -137,9 +169,11 @@ The function name is searched through all the functions defined in the same PDP 
 If still not found, the VM will throw a runtime error.  
 
 ### ret
+
+Opcode : 0x7
 ```x86asm
-ret type value
-ret register
+ret type value  ; addressing mode = 0x0
+ret register    ; addressing mode = 0x1
 
 ; example
 func:
@@ -153,9 +187,11 @@ If CS is empty, the VM will throw a runtime error.
 ## Register manipulator
 
 ### mov
+
+Opcode : 0x8
 ```x86asm
-mov register (destination), type register (source)
-mov register, type value
+mov register, type value                            ; addressing mode = 0x0
+mov register (destination), type register (source)  ; addressing mode = 0x1
 ```
 
 This instruction puts a value in a register, it can be either another register of the given type or an immediate value of the given type.  
@@ -164,9 +200,11 @@ If the source register isn't of the given type, the VM will throw a runtime erro
 ## VM output
 
 ### out
+
+Opcode : 0x9
 ```x86asm
-out type immediate
-out register
+out type immediate  ; addressing mode = 0x0
+out register        ; addressing mode = 0x1
 ```
 
 This instruction sends a value to the VM, which will output it.  
