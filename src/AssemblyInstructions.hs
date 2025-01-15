@@ -37,6 +37,7 @@ instance Show AssemblyInstruction where
     show (PushRegister reg) = "push r" ++ show reg
     show (PushValue (Any (_type, a))) = "push " ++ show _type ++ " " ++ show a
     show (Pop reg) = "pop r" ++ show reg
+    show (Construct _type n) = "construct " ++ show _type ++ " " ++ show n
     show (Test reg) = "test r" ++ show reg
     show (JumpIfTrue addr) = "jt " ++ showHex32 addr
     show (JumpIfFalse addr) = "jf " ++ showHex32 addr
@@ -47,7 +48,6 @@ instance Show AssemblyInstruction where
     show (MovValue dest (Any (_type, a))) = "mov r" ++ show dest ++ ", " ++ show _type ++ " " ++ show a
     show (OutRegister reg) = "out r" ++ show reg
     show (OutValue (Any (_type, a))) = "out " ++ show _type ++ " " ++ show a
-    show (Construct _type n) = "construct " ++ show _type ++ " " ++ show n
 
 traceVal :: (Typeable a, Show a) => String -> a -> a
 traceVal msg a = traceShow (msg ++ " = " ++ show a ++ " :: " ++ show (typeOf a)) a
@@ -88,17 +88,17 @@ assemble' :: AssemblyInstruction -> [Word8]
 assemble' (PushValue (Any (_type, val))) = [0x00] ++ serializeType _type ++ dummySerialize val -- 0x00 : 1st nibble = instruction ID, 2nd nibble = addressing mode
 assemble' (PushRegister reg) = [0x01, reg]
 assemble' (Pop reg) = [0x10, reg]
-assemble' (Test reg) = [0x20, reg]
-assemble' (JumpIfTrue addr) = [0x30] ++ addrToBytes addr
-assemble' (JumpIfFalse addr) = [0x40] ++ addrToBytes addr
-assemble' (Call name) = [0x50] ++ dummySerialize name
-assemble' (RetValue (Any (_type, val))) = [0x60] ++ serializeType _type ++ dummySerialize val
-assemble' (RetRegister reg) = [0x61, reg]
-assemble' (MovValue dest (Any (_type, val))) = [0x70, dest] ++ serializeType _type ++ dummySerialize val
-assemble' (MovRegister dest src) = [0x71, dest, src]
-assemble' (OutValue (Any (_type, val))) = [0x80] ++ serializeType _type ++ dummySerialize val
-assemble' (OutRegister reg) = [0x81, reg]
-assemble' (Construct _type n) = [0x90] ++ serializeType _type ++ dummySerialize n
+assemble' (Construct _type n) = [0x20] ++ serializeType _type ++ dummySerialize n
+assemble' (Test reg) = [0x30, reg]
+assemble' (JumpIfTrue addr) = [0x40] ++ addrToBytes addr
+assemble' (JumpIfFalse addr) = [0x50] ++ addrToBytes addr
+assemble' (Call name) = [0x60] ++ dummySerialize name
+assemble' (RetValue (Any (_type, val))) = [0x70] ++ serializeType _type ++ dummySerialize val
+assemble' (RetRegister reg) = [0x71, reg]
+assemble' (MovValue dest (Any (_type, val))) = [0x80, dest] ++ serializeType _type ++ dummySerialize val
+assemble' (MovRegister dest src) = [0x81, dest, src]
+assemble' (OutValue (Any (_type, val))) = [0x90] ++ serializeType _type ++ dummySerialize val
+assemble' (OutRegister reg) = [0x91, reg]
 
 assemble :: AssemblyInstruction -> [Word8]
 assemble = assemble' . traceShowId
