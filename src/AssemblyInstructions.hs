@@ -1,6 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE InstanceSigs #-}
-module AssemblyInstructions where
+module AssemblyInstructions (RegisterID, AssemblyInstruction(..), toAny, assemble, toAssemblyValueInstruction) where
 
 import Data.Typeable (typeOf, Typeable)
 import Debug.Trace (traceShow)

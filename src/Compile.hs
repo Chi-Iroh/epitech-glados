@@ -3,13 +3,11 @@
 module Compile (compileAST, Symbol(..), Symbols) where
 
 import Data.Functor ((<&>))
-import Data.List (singleton, nub, find)
-import Data.Maybe (isNothing)
+import Data.List (singleton, find)
 import Data.Word (Word8)
-import Debug.Trace
 
-import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, toAny)
-import AST (AST(..), Call(..), MainAST(..), getType)
+import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction)
+import AST (AST(..), Call(..))
 import Bits (u32)
 import Utils (Safe(..))
 import SymbolTable (SymbolTable, writeSymbolTable)
@@ -149,7 +147,8 @@ compileAST1 status (ASTInt n) isNested = status +++ compileValue T_Int n isNeste
 compileAST1 status (ASTBool b) isNested = status +++ compileValue T_Bool b isNested
 compileAST1 status (ASTCall (FunctionCall f) args) _ = compileCall f args >>= (status +++)
 compileAST1 status (ASTProcedure s) _ = compileCall s [] >>= (status +++)
-compileAST1 status define@(ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
+compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
+compileAST1 _ a _ = Error ("Compiling " ++ show a ++ " isn't not implemented for now !")
 
 -- astArithmeticOp' :: String -> (Int -> Int -> Int) -> [AST] -> Safe AST
 -- astArithmeticOp' _ f [(ASTInt a), (ASTInt b)] = Value $ ASTInt (f a b)
