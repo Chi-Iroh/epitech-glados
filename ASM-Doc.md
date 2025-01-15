@@ -38,13 +38,13 @@ Even if BF is used by conditional branching instructions, its raw value is not e
 
 # Instructions
 
-| Instructions family      | Instructions list |
-|--------------------------|-------------------|
-| Stack manipulators       | push, pop         |
-| Conditional control flow | test, jt, jf      |
-| Function control flow    | call, ret         |
-| Register manipulator     | mov               |
-| VM output                | out               |
+| Instructions family      | Instructions list      |
+|--------------------------|------------------------|
+| Stack manipulators       | push, pop, construct   |
+| Conditional control flow | test, jt, jf           |
+| Function control flow    | call, ret              |
+| Register manipulator     | mov                    |
+| VM output                | out                    |
 
 ## Stack manipulators
 
@@ -81,6 +81,15 @@ pop int r0
 pop [bool] r1
 pop {uint, [float]} r2
 ```
+
+### construct
+
+```x86asm
+construct type n (int immediate)
+```
+This instruction constructs a value of the given type from the n first top values of the stack, then pushes it on top of the same stack.  
+Useful in cases like `(len [1, 2, (+ 1 4), 4, 5])` when lists or tuples are built from immediate values mixed with non-immediate values.  
+If the stack has strictly less than n values, the VM will throw a runtime error.  
 
 ## Conditional control flow
 
