@@ -72,6 +72,7 @@ serializeTuple (x, y) = serialize x ++ serialize y
 serializeList :: (Serializable a) => [a] -> [Word8]
 serializeList (x:xs) = serialize x ++ serializeList xs
 serializeList [x] = serialize x
+serializeList [] = []
 
 -- serializeCombination :: [Type] -> [Word8]
 -- serializeCombination list = serializeList list
@@ -82,8 +83,9 @@ serializeType T_Int = serializeTypeInt
 serializeType T_UInt = serializeTypeUInt
 serializeType T_Float = serializeTypeFloat
 serializeType T_Bool = serializeTypeBool
+serializeType T_Char = serializeTypeChar
 serializeType T_EmptyList = serializeTypeEmptyList
-serializeType T_String = serializeType T_Char
+serializeType T_String = serializeTypeList T_Char
 serializeType T_NULL = serializeTypeNull
 serializeType (T_Tuple types) = serializeTypeTuple types
 serializeType (T_List elemType) = serializeType elemType
@@ -122,11 +124,13 @@ serializeTypeEmptyList :: [Word8]
 serializeTypeEmptyList = [0x07] ++ serializeTypeInt
 
 serializeTypeCombination' :: [Type] -> [Word8]
-serializeTypeCombination' (x:xs) = [0x08] ++ serializeType x ++ serializeTypeCombination' xs
+serializeTypeCombination' (x:xs) = serializeType x ++ serializeTypeCombination' xs
 serializeTypeCombination' [t] = serializeType t
+serializeTypeCombination' [] = []
 
 serializeTypeCombination :: [Type] -> [Word8]
 serializeTypeCombination list = [0x08] ++ serializeTypeCombination' list
+serializeTypeCombination [] = error "Empty Combination !"
 
 serializeTypeNull :: [Word8]
 serializeTypeNull = [0x09]
