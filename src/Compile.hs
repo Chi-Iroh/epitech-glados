@@ -3,7 +3,7 @@
 module Compile (compileAST, Symbol(..), Symbols) where
 
 import Data.Functor ((<&>))
-import Data.List (singleton, nub)
+import Data.List (singleton, nub, find)
 import Data.Maybe (isNothing)
 import Data.Word (Word8)
 import Debug.Trace
@@ -15,10 +15,6 @@ import Utils (Safe(..))
 import SymbolTable (SymbolTable, writeSymbolTable)
 import Type
 import VM (Any(..), Address)
-
-find :: (a -> Bool) -> [a] -> Maybe a
-find _ [] = Nothing
-find f (x : xs) = if (f x) then Just x else find f xs
 
 data Symbol = BackendSymbol (String, (Symbols -> [AST] -> Safe AST))
 type Symbols = [Symbol]
