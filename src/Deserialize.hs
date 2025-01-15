@@ -18,6 +18,7 @@ deserialize T_Bool bytes = deserializeBool bytes <&> toAnyAndBytes T_Bool
 deserialize T_Char bytes = deserializeChar bytes <&> toAnyAndBytes T_Char
 deserialize T_Int bytes = deserializeInt bytes <&> toAnyAndBytes T_Int
 deserialize T_NULL bytes = deserializeTypeNull bytes <&> toAnyAndBytes T_NULL
+deserialize T_Float bytes = deserializeFloat bytes <&> toAnyAndBytes T_Float
 
 deserializeBool :: [Word8] -> Safe (Bool, [Word8])
 deserializeBool (0x00 : xs) = Value (False, xs)
@@ -36,5 +37,10 @@ deserializeInt bytes = Error ("Cannot deserialize an int, less than 4 bytes to r
 deserializeTypeNull :: [Word8] -> Safe (Int, [Word8])
 deserializeTypeNull (0x09 : xs) = Value (0x00, xs) -- 0x00 is a dummy value
 deserializeTypeNull _ = Error "Cannot deserialize NULL type, no byte to read !"
+
+deserializeFloat :: [Word8] -> Safe (Float, [Word8])
+deserializeFloat (b1 : b2 : b3 : b4 : bytes) = Value (wordToFloat float, bytes)
+    where float = (u32 b1 .<<. 24) .|. (u32 b2 .<<. 16) .|. (u32 b3 .<<. 8)  .|. u32 b4
+deserializeFloat bytes = Error ("Cannot deserialize a float, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes) !")
 
 
