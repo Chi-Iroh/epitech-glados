@@ -4,16 +4,16 @@ import Debug.Trace
 
     -- import Debug (debug, debug2)
 import AST (MainAST, isProcedureType)
-import BinaryIO (readBinary, writeBinary)
+import BinaryIO (writeBinary)
 import Converter (convert)
 import Compile (compileAST)
-import Data.Functor ((<&>))
 import Import (parseImport)
 import Comment (deleteComment)
 import Parser
-import System.Exit (die, exitWith, ExitCode(ExitFailure, ExitSuccess))
+import System.Exit (die, exitWith, ExitCode(ExitFailure))
 import System.Environment
 import Utils
+import VM (mainVM)
 
 getFileName :: [String] -> Maybe String
 getFileName [a] = Just a
@@ -42,9 +42,10 @@ main = do
     filename <- case getFileName args of
                 Nothing -> exitWith(ExitFailure 84)
                 Just filename -> pure filename
-    file <- readFile filename
-    fileimport <- parseImport (deleteComment file)
-    case fileimport of
-        Error err -> die err
-        -- Value content -> putStrLn (deleteComment content)
-        Value content -> safeToIO ((traceShowId $ convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary "output.bin"
+    mainVM filename
+    -- file <- readFile filename
+    -- fileimport <- parseImport (deleteComment file)
+    -- case fileimport of
+        -- Error err -> die err
+        -- -- Value content -> putStrLn (deleteComment content)
+        -- Value content -> safeToIO ((traceShowId $ convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary "output.bin"

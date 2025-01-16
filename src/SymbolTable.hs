@@ -1,10 +1,13 @@
-module SymbolTable (writeSymbolTable, readSymbolTable, symbolTableEnd, SymbolTable) where
+module SymbolTable (writeSymbolTable, readSymbolTable, symbolTableEnd, SymbolTable, noSymbolTableErrorMessage) where
 
 import Data.ByteString.Internal (w2c)
 import Data.List (isPrefixOf)
+import Data.Maybe (isNothing, fromJust)
 import Data.Word (Word8)
+
 import Bits (splitWord32, combineWord32)
 import Serialize (serializeChar)
+import Utils (Safe(..))
 import VMData (Address)
 
 type Symbol = (String, Address)
@@ -20,13 +23,15 @@ writeSymbolTable :: SymbolTable -> [Word8]
 writeSymbolTable = (++ symbolTableEnd) . concatMap writeSymbol
     where writeSymbol (sym, addr) = encodeString sym ++ splitWord32 addr
 
-splitAtPattern :: Eq a => [a] -> [a] -> ([a], [a])
-splitAtPattern [] list = (list, [])
-splitAtPattern _ [] = ([], [])
+splitAtPattern :: Eq a => [a] -> [a] -> Maybe ([a], [a])
+splitAtPattern [] list = Just (list, [])
+splitAtPattern _ [] = Nothing
 splitAtPattern pattern list@(x : xs)
-    | isPrefixOf pattern list = ([], drop (length pattern) list)
-    | otherwise = (x : before, after)
-    where (before, after) = splitAtPattern pattern xs
+    | isPrefixOf pattern list = Just ([], drop (length pattern) list)
+    | isNothing splitBytes = Nothing
+    | otherwise = Just (x : before, after)
+    where splitBytes = splitAtPattern pattern xs
+          (before, after) = fromJust splitBytes
 
 splitAtElem :: Eq a => a -> [a] -> ([a], [a])
 splitAtElem _ [] = ([], [])
@@ -46,8 +51,13 @@ readSymbolTable' bytes
     | otherwise = symbol : readSymbolTable' rest
     where (symbol, rest) = readSymbol bytes
 
-readSymbolTable :: [Word8] -> (SymbolTable, [Word8])
+noSymbolTableErrorMessage :: String
+noSymbolTableErrorMessage = "Symbol table not found !"
+
+readSymbolTable :: [Word8] -> Safe (SymbolTable, [Word8])
 readSymbolTable bytes
-    | null table = ([], rest)
-    | otherwise = (readSymbolTable' table, rest)
-    where (table, rest) = splitAtPattern symbolTableEnd bytes
+    | isNothing splitBytes = Error noSymbolTableErrorMessage
+    | null table = Value ([], rest)
+    | otherwise = Value (readSymbolTable' table, rest)
+    where splitBytes = splitAtPattern symbolTableEnd bytes
+          (table, rest) = fromJust splitBytes

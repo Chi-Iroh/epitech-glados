@@ -1,6 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE InstanceSigs #-}
-module AssemblyInstructions where
+module AssemblyInstructions (RegisterID, AssemblyInstruction(..), toAny, assemble, toAssemblyValueInstruction) where
 
 import Data.Typeable (typeOf, Typeable)
 import Debug.Trace (traceShow)
@@ -13,7 +13,7 @@ import Hex (showHex32)
 import Serialize
 import Type (Type(..))
 import Utils (Safe(..))
-import VM (Any(..), Address, addrToBytes)
+import VMData (Any(..), Address, addrToBytes)
 
 type RegisterID = Word8
 
@@ -29,13 +29,15 @@ data AssemblyInstruction =  PushRegister RegisterID             |
                             MovRegister RegisterID RegisterID   |
                             MovValue RegisterID Any             |
                             OutRegister RegisterID              |
-                            OutValue Any
+                            OutValue Any                        |
+                            Construct Type Int
 
 instance Show AssemblyInstruction where
     show :: AssemblyInstruction -> String
     show (PushRegister reg) = "push r" ++ show reg
     show (PushValue (Any (_type, a))) = "push " ++ show _type ++ " " ++ show a
     show (Pop reg) = "pop r" ++ show reg
+    show (Construct _type n) = "construct " ++ show _type ++ " " ++ show n
     show (Test reg) = "test r" ++ show reg
     show (JumpIfTrue addr) = "jt " ++ showHex32 addr
     show (JumpIfFalse addr) = "jf " ++ showHex32 addr
@@ -79,23 +81,24 @@ toAssemblyValueInstruction instruction ast = fmap instruction (toAny ast)
 -- toAssemblyValueInstruction instruction (ASTList x) = instruction . Any . (, x) <$> getType x
 -- toAssemblyValueInstruction _ _ = Error "Invalid argument !"
 
-serialize :: a -> [Word8]
-serialize _ = []
+dummySerialize :: a -> [Word8]
+dummySerialize _ = []
 
 assemble' :: AssemblyInstruction -> [Word8]
-assemble' (PushValue (Any (_type, val))) = [0x00] ++ serializeType _type ++ serialize val -- 0x00 : 1st nibble = instruction ID, 2nd nibble = addressing mode
+assemble' (PushValue (Any (_type, val))) = [0x00] ++ serializeType _type ++ dummySerialize val -- 0x00 : 1st nibble = instruction ID, 2nd nibble = addressing mode
 assemble' (PushRegister reg) = [0x01, reg]
 assemble' (Pop reg) = [0x10, reg]
-assemble' (Test reg) = [0x20, reg]
-assemble' (JumpIfTrue addr) = [0x30] ++ addrToBytes addr
-assemble' (JumpIfFalse addr) = [0x40] ++ addrToBytes addr
-assemble' (Call name) = [0x50] ++ serialize name
-assemble' (RetValue (Any (_type, val))) = [0x60] ++ serializeType _type ++ serialize val
-assemble' (RetRegister reg) = [0x61, reg]
-assemble' (MovValue dest (Any (_type, val))) = [0x70, dest] ++ serializeType _type ++ serialize val
-assemble' (MovRegister dest src) = [0x71, dest, src]
-assemble' (OutValue (Any (_type, val))) = [0x80] ++ serializeType _type ++ serialize val
-assemble' (OutRegister reg) = [0x81, reg]
+assemble' (Construct _type n) = [0x20] ++ serializeType _type ++ dummySerialize n
+assemble' (Test reg) = [0x30, reg]
+assemble' (JumpIfTrue addr) = [0x40] ++ addrToBytes addr
+assemble' (JumpIfFalse addr) = [0x50] ++ addrToBytes addr
+assemble' (Call name) = [0x60] ++ dummySerialize name
+assemble' (RetValue (Any (_type, val))) = [0x70] ++ serializeType _type ++ dummySerialize val
+assemble' (RetRegister reg) = [0x71, reg]
+assemble' (MovValue dest (Any (_type, val))) = [0x80, dest] ++ serializeType _type ++ dummySerialize val
+assemble' (MovRegister dest src) = [0x81, dest, src]
+assemble' (OutValue (Any (_type, val))) = [0x90] ++ serializeType _type ++ dummySerialize val
+assemble' (OutRegister reg) = [0x91, reg]
 
 assemble :: AssemblyInstruction -> [Word8]
 assemble = assemble' . traceShowId

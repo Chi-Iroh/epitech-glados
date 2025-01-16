@@ -7,7 +7,6 @@ import Text.Printf (printf)
 import Bits (splitWord32)
 import Type (Type(..))
 import BinaryIO (readBinary)
-import System.Posix (fileAccess)
 
 data Any = forall a. Show a => Any (Type, a)
 type Address = Word32
