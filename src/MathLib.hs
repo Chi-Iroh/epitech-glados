@@ -9,13 +9,21 @@ factorial n = product [1..n]
 
 mathBuiltins :: Symbols
 mathBuiltins = [    BackendSymbol ("*", astArithmeticOp "*" (*))
+            ,       BackendSymbol ("mul", astArithmeticOp "mul" (*))
             ,   BackendSymbol ("+", astArithmeticOp "+" (+))
+            ,   BackendSymbol ("add", astArithmeticOp "add" (+))
             ,   BackendSymbol ("-", astArithmeticOp "-" (-))
+            ,   BackendSymbol ("sub", astArithmeticOp "sub" (-))
             ,   BackendSymbol ("div", astArithmeticOp "div" (/))
+            ,   BackendSymbol ("/", astArithmeticOp "div" (/))
             ,   BackendSymbol ("mod", astModulo)
+            ,   BackendSymbol ("%", astModulo)
             ,   BackendSymbol ("**", astArithmeticOp "**" (**))
+            ,   BackendSymbol ("pow", astArithmeticOp "pow" (**))
             ,   BackendSymbol ("v-", astArithmeticSingleOp "v-" sqrt)
+            ,   BackendSymbol ("sqrt", astArithmeticSingleOp "v-" sqrt)
             ,   BackendSymbol ("!!", astFactorial)
+            ,   BackendSymbol ("factorial", astFactorial)
             ,   BackendSymbol ("pi", \_ _ -> Value (ASTFloat 3.14159265))
             ,   BackendSymbol ("e", \_ _ -> Value (ASTFloat 2.71828182)) -- verifié liste parametre
             ,   BackendSymbol ("exp", astArithmeticSingleOp "exp" exp)

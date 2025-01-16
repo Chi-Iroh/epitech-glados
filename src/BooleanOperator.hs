@@ -20,18 +20,31 @@ xnor a b = not $ xor a b
 
 booleanBuiltins :: Symbols
 booleanBuiltins = [ BackendSymbol ("==", astComparisonOp "==" (==))
+            ,   BackendSymbol ("eq", astComparisonOp "eq" (==))
             ,   BackendSymbol ("!=", astComparisonOp "!=" (/=))
+            ,   BackendSymbol ("neq", astComparisonOp "neq" (/=))
             ,   BackendSymbol ("<", astComparisonOp "<" (<))
+            ,   BackendSymbol ("lw", astComparisonOp "lw" (<))
             ,   BackendSymbol (">", astComparisonOp ">" (>))
+            ,   BackendSymbol ("gt", astComparisonOp "gt" (>))
             ,   BackendSymbol ("<=", astComparisonOp "<=" (<=))
+            ,   BackendSymbol ("lweq", astComparisonOp "lweq" (<=))
             ,   BackendSymbol (">=", astComparisonOp ">=" (>=))
+            ,   BackendSymbol ("gteq", astComparisonOp "gteq" (>=))
             ,   BackendSymbol ("!", astNot)
+            ,   BackendSymbol ("not", astNot)
             ,   BackendSymbol ("&&", astBoolOperations "&&" (&&))
+            ,   BackendSymbol ("and", astBoolOperations "and" (&&))
             ,   BackendSymbol ("||", astBoolOperations "||" (||))
+            ,   BackendSymbol ("or", astBoolOperations "pr" (||))
             ,   BackendSymbol ("!&", astBoolOperations "!&" nand)
+            ,   BackendSymbol ("nand", astBoolOperations "nand" nand)
             ,   BackendSymbol ("!|", astBoolOperations "!|" nor)
+            ,   BackendSymbol ("nor", astBoolOperations "nor" nor)
             ,   BackendSymbol (":|", astBoolOperations ":|" xor)
+            ,   BackendSymbol ("xor", astBoolOperations "xor" xor)
             ,   BackendSymbol ("!:", astBoolOperations "!:" xnor)
+            ,   BackendSymbol ("xnor", astBoolOperations "xnor" xnor)
             ,   BackendSymbol ("if", astIf)]
 
 astComparisonOp' :: String -> (Int -> Int -> Bool) -> [AST] -> Safe AST

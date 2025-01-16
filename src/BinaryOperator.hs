@@ -7,11 +7,17 @@ import Data.Char(ord, chr)
 
 binaryBuiltins :: Symbols
 binaryBuiltins = [ BackendSymbol ("&", astBinaryOp "&" (.&.))
+            ,   BackendSymbol ("band", astBinaryOp "band" (.&.))
             ,   BackendSymbol ("|", astBinaryOp "|" (.|.))
+            ,   BackendSymbol ("bor", astBinaryOp "bor" (.|.))
             ,   BackendSymbol ("~", astBNot)
+            ,   BackendSymbol ("bnot", astBNot)
             ,   BackendSymbol ("^", astBinaryOp "^" xor)
+            ,   BackendSymbol ("bxor", astBinaryOp "bxor" xor)
             ,   BackendSymbol (">>", astBinaryOp ">>" (.>>.))
-            ,   BackendSymbol ("<<", astBinaryOp "<<" (.<<.))]
+            ,   BackendSymbol ("rshift", astBinaryOp ">>" (.>>.))
+            ,   BackendSymbol ("<<", astBinaryOp "<<" (.<<.))
+            ,   BackendSymbol ("lshift", astBinaryOp "<<" (.<<.))]
 
 
 astBinaryOp' :: String -> (Int -> Int -> Int) -> [AST] -> Safe AST
