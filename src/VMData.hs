@@ -23,6 +23,15 @@ data Vm = Vm {
     _pc :: Address          -- position of current opcode
 }
 
+defaultVM :: Vm
+defaultVM = Vm {
+    _registers = replicate 16 Nothing,
+    _callStack = [],
+    _bf = Nothing,
+    _valueStack = [],
+    _pc = 0
+}
+
 addrToBytes :: Address -> [Word8]
 addrToBytes = splitWord32
 

@@ -4,17 +4,15 @@ import Data.Word (Word8, Word32)
 import Text.Printf (printf)
 import System.Exit (die)
 
+import AssemblyInstructions (AssemblyInstruction(..))
 import BinaryIO (readBinary, writeBinary)
 import Bits (splitWord32)
 import ByteCode
+import Deserialize (deserialize, deserializeType)
 import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
 import Utils (Safe(..))
-import VMData (Address, addrToBytes, Vm(..), Any)
-import Text.XHtml (table)
-
-deserialize :: [Word8] -> Safe (Any, [Word8])
-deserialize (a:as) = Error "e" -- Value (2,as) -- en commentaire car le 2 compile pas
+import VMData (Address, addrToBytes, Vm(..), defaultVM, Any(..))
 
 fromSafe :: Safe a -> a
 fromSafe (Error err) = error err
@@ -35,29 +33,42 @@ popStack x stack (r:rs) = popStack (x - 1) stack rs
 popStack _ [] _ = Error "Stack empty"
 popStack _ _ [] = Error "Register out of bounds"
 
-parseByte :: Vm -> SymbolTable -> [Word8] -> [Word8]
-parseByte (Vm r c bf v pc) table (pushVal : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (pushReg : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (pop : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (construct : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (test : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (jt : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (jf : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (call : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (retVal : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (retReg : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (movVal : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (movReg : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (outVal : xs) = snd (fromSafe $ deserialize xs)
-parseByte (Vm r c bf v pc) table (outReg : xs) = snd (fromSafe $ deserialize xs)
-parseByte _  _ [] = []
+endOfFile :: String
+endOfFile = "End of file"
+
+mapFst :: (a -> c) -> (a, b) -> (c, b)
+mapFst f (a, b) = (f a, b)
+
+deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
+deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest >>= \(a, len', rest') -> Value (Any (_type, a), len + len'))
+
+parseInstruction :: [Word8] -> Safe (AssemblyInstruction, Int)
+parseInstruction (pushVal : xs) = mapFst PushValue <$> deserializeTypeAndValue xs
+
+-- parseInstruction (pushReg : reg : xs) = Safe (pushRegister reg)
+-- parseInstruction (pop : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (construct : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (test : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (jt : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (jf : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (call : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (retVal : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (retReg : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (movVal : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (movReg : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (outVal : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (outReg : xs) = snd (fromSafe $ deserialize xs)
+parseInstruction [] = Error endOfFile -- maybe special handling to return 0 instead of 1 when  end of file, because it's totally normal behavior
 
 mainVM :: FilePath -> IO ()
 mainVM path = do
     file <- readBinary path
     case readSymbolTable file of
         Error err -> die err
-        Value (table, rest) -> writeBinary "output.txt" $ parseByte (Vm (replicate 16 Nothing) [] Nothing [] 0) table rest
+        Value (table, rest) -> case parseInstruction rest of
+            Error err' -> die err'
+            Value v -> print v
+            -- writeBinary "output.txt"
 
 -- to do : 
 -- - sortie de parseByte = fst -> associated call && snd -> parseByte snd
