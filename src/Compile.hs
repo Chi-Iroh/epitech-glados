@@ -142,6 +142,11 @@ compileCall symbol args = concatMapM compileArg (reverse args) <&> (statusFromIn
             ASTCall (FunctionCall symbol') args' -> compileCall symbol' args' <&> _instructions
             _ -> singleton <$> toAssemblyValueInstruction PushValue arg
 
+compileElem :: AST -> Safe [AssemblyInstruction]
+compileElem a = case a of
+    (ASTCall (FunctionCall name) args) -> mapM (\a' -> toAny a' <&> PushValue) (reverse args) <&> (++ [Call name])
+    _ -> toAny a <&> singleton . PushValue
+
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
 compileAST1 status (ASTInt n) isNested = status +++ compileValue T_Int n isNested
 compileAST1 status (ASTBool b) isNested = status +++ compileValue T_Bool b isNested
@@ -150,10 +155,9 @@ compileAST1 status (ASTProcedure s) _ = compileCall s [] >>= (status +++)
 compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
 compileAST1 status (ASTList []) isNested = status +++ compileValue T_EmptyList ([] :: [Int]) isNested
 compileAST1 status astList@(ASTList list) isNested = getType astList >>= (\type' -> concatMapM compileElem list <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
-    where compileElem a = case a of
-            (ASTCall (FunctionCall name) args) -> mapM (\a' -> toAny a' <&> PushValue) (reverse args) <&> (++ [Call name])
-            _ -> toAny a <&> singleton . PushValue
-          outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
+    where outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
+compileAST1 status astTuple@(ASTTuple (a, b)) isNested = getType astTuple >>= (\type' -> liftA2 (\a' b' -> b' ++ a' ++ [Construct type' 2] ++ outputIfNotNested) (compileElem a) (compileElem b)) >>= ((status +++) . statusFromInstructions)
+    where outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
 compileAST1 _ a _ = Error ("Compiling " ++ show a ++ " isn't not implemented for now !")
 
 -- astArithmeticOp' :: String -> (Int -> Int -> Int) -> [AST] -> Safe AST
