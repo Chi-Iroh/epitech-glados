@@ -8,7 +8,7 @@ type Parameter = (AST, Type)
 data Call = LambdaCall [Parameter] AST Type | FunctionCall String deriving (Eq, Show)
 
 -- ASTBoolean devient ASTBool ; ASTSymbol devient ASTProcedure
-data AST = ASTInt Int | ASTUInt Int | ASTChar Char | ASTFloat Float | ASTBool Bool | ASTTuple (AST, AST) | ASTList [AST] | ASTString String | ASTProcedure String | ASTDefine String Type AST | ASTFunction String [Parameter] AST Type | ASTLambda [Parameter] AST Type | ASTCall Call [AST] | ASTIf AST AST AST | ASTNULL deriving (Eq, Show)
+data AST = ASTInt Int | ASTUInt Int | ASTChar Char | ASTFloat Float | ASTBool Bool | ASTTuple (AST, AST) | ASTArray [AST] | ASTList [AST] | ASTString String | ASTProcedure String | ASTDefine String Type AST | ASTFunction String [Parameter] AST Type | ASTLambda [Parameter] AST Type | ASTCall Call [AST] | ASTIf AST AST AST | ASTNULL deriving (Eq, Show)
 
 data MainAST = MainAST AST
 
@@ -35,6 +35,9 @@ getType (ASTLambda parameters _ r) = Value $ T_Function (map snd parameters) r
 getType (ASTCall (LambdaCall a b c) _) = getReturnType $ getType $ ASTLambda a b c
 getType (ASTCall (FunctionCall _) _) = Value T_Undefined
 getType (ASTIf _ a b) = combinateTypes ((getType a):(getType b):[])
+getType (ASTArray []) = Value T_EmptyList
+getType (ASTArray [x]) = verifyTypeList [getType x]
+getType (ASTArray list) = verifyTypeList $ map getType list
 getType ASTNULL = Value T_NULL
 
 isProcedureType :: MainAST -> Bool

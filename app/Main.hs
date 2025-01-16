@@ -45,5 +45,8 @@ main = do
     fileimport <- parseImport (deleteComment file)
     case fileimport of
         Error err -> die err
-        -- Value content -> putStrLn (deleteComment content)
+        -- Value content -> 
+            -- case parse (deleteComment content) of
+            --     Error err -> die err
+            --     -- Value sexprs -> putResult (show sexprs)
         Value content -> safeToIO ((traceShowId $ convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary "output.bin"
