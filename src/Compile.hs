@@ -6,8 +6,8 @@ import Data.Functor ((<&>))
 import Data.List (singleton, find)
 import Data.Word (Word8)
 
-import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction)
-import AST (AST(..), Call(..))
+import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, toAny)
+import AST (AST(..), Call(..), getType)
 import Bits (u32)
 import Utils (Safe(..))
 import SymbolTable (SymbolTable, writeSymbolTable)
@@ -148,6 +148,12 @@ compileAST1 status (ASTBool b) isNested = status +++ compileValue T_Bool b isNes
 compileAST1 status (ASTCall (FunctionCall f) args) _ = compileCall f args >>= (status +++)
 compileAST1 status (ASTProcedure s) _ = compileCall s [] >>= (status +++)
 compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
+compileAST1 status (ASTList []) isNested = status +++ compileValue T_EmptyList ([] :: [Int]) isNested
+compileAST1 status astList@(ASTList list) isNested = getType astList >>= (\type' -> concatMapM compileElem list <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
+    where compileElem a = case a of
+            (ASTCall (FunctionCall name) args) -> mapM (\a' -> toAny a' <&> PushValue) (reverse args) <&> (++ [Call name])
+            _ -> toAny a <&> singleton . PushValue
+          outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
 compileAST1 _ a _ = Error ("Compiling " ++ show a ++ " isn't not implemented for now !")
 
 -- astArithmeticOp' :: String -> (Int -> Int -> Int) -> [AST] -> Safe AST
