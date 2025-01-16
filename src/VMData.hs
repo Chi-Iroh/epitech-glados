@@ -15,8 +15,8 @@ instance Show Any where
     show :: Any -> String
     show (Any (type', val)) = printf "Any (%s, %s)" (show type') (show val)
 
-data VM = VM {
-    _registers :: [Any],    -- 16 registers
+data Vm = Vm {
+    _registers :: [Maybe Any],    -- 16 registers
     _callStack :: [Int],    -- call stack for function calls
     _bf :: Maybe Bool,      -- boolean flag for branching
     _valueStack :: [Any],   -- value stack (where args are pushed)
