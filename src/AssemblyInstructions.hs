@@ -81,23 +81,20 @@ toAssemblyValueInstruction instruction ast = fmap instruction (toAny ast)
 -- toAssemblyValueInstruction instruction (ASTList x) = instruction . Any . (, x) <$> getType x
 -- toAssemblyValueInstruction _ _ = Error "Invalid argument !"
 
-dummySerialize :: a -> [Word8]
-dummySerialize _ = []
-
 assemble' :: AssemblyInstruction -> [Word8]
-assemble' (PushValue (Any (_type, val))) = [0x00] ++ serializeType _type ++ dummySerialize val -- 0x00 : 1st nibble = instruction ID, 2nd nibble = addressing mode
+assemble' (PushValue (Any (_type, val))) = [0x00] ++ serializeType _type ++ serialize val -- 0x00 : 1st nibble = instruction ID, 2nd nibble = addressing mode
 assemble' (PushRegister reg) = [0x01, reg]
 assemble' (Pop reg) = [0x10, reg]
-assemble' (Construct _type n) = [0x20] ++ serializeType _type ++ dummySerialize n
+assemble' (Construct _type n) = [0x20] ++ serializeType _type ++ serialize n
 assemble' (Test reg) = [0x30, reg]
 assemble' (JumpIfTrue addr) = [0x40] ++ addrToBytes addr
 assemble' (JumpIfFalse addr) = [0x50] ++ addrToBytes addr
-assemble' (Call name) = [0x60] ++ dummySerialize name
-assemble' (RetValue (Any (_type, val))) = [0x70] ++ serializeType _type ++ dummySerialize val
+assemble' (Call name) = [0x60] ++ serialize name
+assemble' (RetValue (Any (_type, val))) = [0x70] ++ serializeType _type ++ serialize val
 assemble' (RetRegister reg) = [0x71, reg]
-assemble' (MovValue dest (Any (_type, val))) = [0x80, dest] ++ serializeType _type ++ dummySerialize val
+assemble' (MovValue dest (Any (_type, val))) = [0x80, dest] ++ serializeType _type ++ serialize val
 assemble' (MovRegister dest src) = [0x81, dest, src]
-assemble' (OutValue (Any (_type, val))) = [0x90] ++ serializeType _type ++ dummySerialize val
+assemble' (OutValue (Any (_type, val))) = [0x90] ++ serializeType _type ++ serialize val
 assemble' (OutRegister reg) = [0x91, reg]
 
 assemble :: AssemblyInstruction -> [Word8]

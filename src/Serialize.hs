@@ -36,6 +36,9 @@ instance Serializable Null where
 instance (Serializable a, Serializable b) => Serializable (a, b) where
     serialize t = serializeTuple t
 
+instance Serializable a => Serializable [a] where
+    serialize list = serializeList list
+
 serializeBool :: Bool -> [Word8]
 serializeBool bool = [if bool then 0x01 else 0x00]
 

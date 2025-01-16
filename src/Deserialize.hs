@@ -6,11 +6,12 @@ import Bits (u32)
 import Data.ByteString.Internal (w2c)
 import Data.Word (Word8)
 import GHC.Float (castWord32ToFloat)
+import Serialize (Serializable)
 import Type (Type(..))
 import Utils (Safe(..))
 import VM (Any(..))
 
-toAnyAndBytes :: Show a => Type -> (a, [Word8]) -> (Any, [Word8])
+toAnyAndBytes :: (Serializable a, Show a) => Type -> (a, [Word8]) -> (Any, [Word8])
 toAnyAndBytes t (val, bytes) = (Any (t, val), bytes)
 
 deserialize :: Type -> [Word8] -> Safe (Any, [Word8])

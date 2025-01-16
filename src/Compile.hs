@@ -9,9 +9,10 @@ import Data.Word (Word8)
 import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, toAny)
 import AST (AST(..), Call(..), getType)
 import Bits (u32)
-import Utils (Safe(..))
+import Serialize (Serializable)
 import SymbolTable (SymbolTable, writeSymbolTable)
 import Type
+import Utils (Safe(..))
 import VM (Any(..), Address)
 
 data Symbol = BackendSymbol (String, (Symbols -> [AST] -> Safe AST))
@@ -126,7 +127,7 @@ addSymbol status name status'
         _symbols = (_symbols status) ++ [(name, status')]
     }
 
-compileValue :: Show a => Type -> a -> Bool -> CompilationStatus
+compileValue :: (Serializable a, Show a) => Type -> a -> Bool -> CompilationStatus
 compileValue _type value isNested = CompilationStatus {
     _instructions = [(if isNested then PushValue else OutValue) (Any (_type, value))],
     _symbols = [],
