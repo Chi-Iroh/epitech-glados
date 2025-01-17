@@ -1,8 +1,10 @@
 module VM where
 
+import Data.Functor ((<&>))
 import Data.Word (Word8, Word32)
-import Text.Printf (printf)
 import System.Exit (die)
+import Text.Printf (printf)
+import Unsafe.Coerce (unsafeCoerce)
 
 import AssemblyInstructions (AssemblyInstruction(..))
 import BinaryIO (readBinary, writeBinary)
@@ -54,7 +56,7 @@ parseInstruction (0x10 : reg : xs) = Value (Pop reg, 2)
 parseInstruction (0x30 : reg : xs) = Value (Test reg, 2)
 -- parseInstruction (0x40 : xs) = snd (fromSafe $ deserialize xs)
 -- parseInstruction (0x50 : xs) = snd (fromSafe $ deserialize xs)
--- parseInstruction (0x60 : xs) = mapFst Call <$> deserializeList T_Char 0 xs [] 
+parseInstruction (0x60 : xs) = deserializeList T_Char 0 xs [] <&> (\(str, i) -> (map (\(Any (_, a)) -> unsafeCoerce a :: Char) str, i)) <&> mapFst Call
 parseInstruction (0x70 : xs) = mapFst RetValue <$> deserializeTypeAndValue xs
 parseInstruction (0x71 : reg : xs) = Value (RetRegister reg, 2)
 parseInstruction (0x80 : reg : xs) = mapFst (MovValue reg) <$> deserializeTypeAndValue xs
