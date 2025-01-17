@@ -21,37 +21,37 @@ testSexprSListHandling4 :: Test
 testSexprSListHandling4 = myAssertEqual "sexprSListHandling '#f'" (Value $ ASTBool False) (sexprSListHandling [SSymbol "#f"])
 
 testSexprSListHandling5 :: Test
-testSexprSListHandling5 = myAssertEqual "sexprSListHandling '(define x 0)'" (Value $ ASTDefine "x" T_Undefined (ASTInt 0)) (sexprSListHandling [SSymbol "define", SSymbol "x", SNumber 0])
+testSexprSListHandling5 = myAssertEqual "sexprSListHandling '(define x int 0)'" (Value $ ASTDefine "x" T_Int (ASTInt 0)) (sexprSListHandling [SSymbol "define", SSymbol "x", SSymbol "int", SNumber 0])
 
 testSexprSListHandling6 :: Test
 testSexprSListHandling6 = myAssertEqual "sexprSListHandling '(+ 1 2)'" (Value $ ASTCall (FunctionCall "+") [ASTInt 1, ASTInt 2]) (sexprSListHandling [SSymbol "+", SNumber 1, SNumber 2])
 
 testSexprSListHandling7 :: Test
-testSexprSListHandling7 = myAssertEqual "sexprSListHandling '(lambda (a b) (+ a b))'" (Value $ ASTLambda [(ASTProcedure "a", T_Undefined), (ASTProcedure "b", T_Undefined)] (ASTCall (FunctionCall "+") [ASTProcedure "a", ASTProcedure "b"]) T_Undefined) (sexprSListHandling [SSymbol "lambda", SList [SSymbol "a", SSymbol "b"], SList [SSymbol "+", SSymbol "a", SSymbol "b"]])
+testSexprSListHandling7 = myAssertEqual "sexprSListHandling '(lambda (a::int b::int) (+ a b) int)'" (Value $ ASTLambda [(ASTProcedure "a", T_Int), (ASTProcedure "b", T_Int)] (ASTCall (FunctionCall "+") [ASTProcedure "a", ASTProcedure "b"]) T_Int) (sexprSListHandling [SSymbol "lambda", SList [SSymbol "a::int", SSymbol "b::int"], SList [SSymbol "+", SSymbol "a", SSymbol "b"], SSymbol "int"])
 
 testSexprSListHandling8 :: Test
-testSexprSListHandling8 = myAssertEqual "sexprSListHandling '((lambda (a b) (+ a b)) 1 2)'" (Value $ ASTCall (LambdaCall [(ASTProcedure "a", T_Undefined), (ASTProcedure "b", T_Undefined)] (ASTCall (FunctionCall "+") [ASTProcedure "a", ASTProcedure "b"]) T_Undefined) [ASTInt 1, ASTInt 2]) (sexprSListHandling [SList [SSymbol "lambda", SList [SSymbol "a", SSymbol "b"], SList [SSymbol "+", SSymbol "a", SSymbol "b"]], SNumber 1, SNumber 2])
+testSexprSListHandling8 = myAssertEqual "sexprSListHandling '((lambda (a::int b::int) (+ a b) int) 1 2)'" (Value $ ASTCall (LambdaCall [(ASTProcedure "a", T_Int), (ASTProcedure "b", T_Int)] (ASTCall (FunctionCall "+") [ASTProcedure "a", ASTProcedure "b"]) T_Int) [ASTInt 1, ASTInt 2]) (sexprSListHandling [SList [SSymbol "lambda", SList [SSymbol "a::int", SSymbol "b::int"], SList [SSymbol "+", SSymbol "a", SSymbol "b"], SSymbol "int"], SNumber 1, SNumber 2])
 
 testSexprSListHandling9 :: Test
-testSexprSListHandling9 = myAssertEqual "sexprSListHandling '(define (add a b) (+ a b))'" (Value $ ASTDefine "add" T_Undefined (ASTLambda [(ASTProcedure "a", T_Undefined), (ASTProcedure "b", T_Undefined)] (ASTCall (FunctionCall "+") [ASTProcedure "a", ASTProcedure "b"]) T_Undefined)) (sexprSListHandling [SSymbol "define", SList [SSymbol "add", SSymbol "a", SSymbol "b"], SList [SSymbol "+", SSymbol "a", SSymbol "b"]])
+testSexprSListHandling9 = myAssertEqual "sexprSListHandling '(function add (a::int b::int) (+ a b) int)'" (Value $ ASTFunction "add" [(ASTProcedure "a", T_Int), (ASTProcedure "b", T_Int)] (ASTCall (FunctionCall "+") [ASTProcedure "a", ASTProcedure "b"]) T_Int) (sexprSListHandling [SSymbol "function", SSymbol "add", SList [SSymbol "a::int", SSymbol "b::int"], SList [SSymbol "+", SSymbol "a", SSymbol "b"], SSymbol "int"])
 
 testSexprSListHandling10 :: Test
 testSexprSListHandling10 = myAssertEqual "sexprSListHandling '(define)'" (Value $ ASTProcedure "define") (sexprSListHandling [SSymbol "define"])
 
 testSexprSListHandling11 :: Test
-testSexprSListHandling11 = myAssertEqual "sexprSListHandling '(define x)'" (Error "GLaDOS: SyntaxError: Define expression must assign something to the defined symbol.\n") (sexprSListHandling [SSymbol "define", SSymbol "x"])
+testSexprSListHandling11 = myAssertEqual "sexprSListHandling '(define x)'" (Error "GLaDOS: ConverterError: Invalid define declaration. [Converter.hs]\n") (sexprSListHandling [SSymbol "define", SSymbol "x"])
 
 testSexprSListHandling12 :: Test
-testSexprSListHandling12 = myAssertEqual "sexprSListHandling '(lambda () #t)'" (Value $ ASTLambda [] (ASTBool True) T_Undefined) (sexprSListHandling [SSymbol "lambda", SList [], SSymbol "#t"])
+testSexprSListHandling12 = myAssertEqual "sexprSListHandling '(lambda () #t bool)'" (Value $ ASTLambda [] (ASTBool True) T_Bool) (sexprSListHandling [SSymbol "lambda", SList [], SSymbol "#t", SSymbol "bool"])
 
 testSexprSListHandling13 :: Test
 testSexprSListHandling13 = myAssertEqual "sexprSListHandling '(lambda)'" (Value $ ASTProcedure "lambda") (sexprSListHandling [SSymbol "lambda"])
 
 testSexprSListHandling14 :: Test
-testSexprSListHandling14 = myAssertEqual "sexprSListHandling '(lambda (a b))'" (Error "GLaDOS: SyntaxError: Not enough arguments to declare a lambda.\n") (sexprSListHandling [SSymbol "lambda", SList [SSymbol "a", SSymbol "b"]])
+testSexprSListHandling14 = myAssertEqual "sexprSListHandling '(lambda (a::int b::int))'" (Error "GLaDOS: ConverterError: Invalid lambda declaration. [Converter.hs]\n") (sexprSListHandling [SSymbol "lambda", SList [SSymbol "a::int", SSymbol "b::int"]])
 
 testSexprSListHandling15 :: Test
-testSexprSListHandling15 = myAssertEqual "sexprSListHandling '(lambda #t)'" (Error "GLaDOS: SyntaxError: Not enough arguments to declare a lambda.\n") (sexprSListHandling [SSymbol "lambda", SSymbol "#t"])
+testSexprSListHandling15 = myAssertEqual "sexprSListHandling '(lambda #t)'" (Error "GLaDOS: ConverterError: Invalid lambda declaration. [Converter.hs]\n") (sexprSListHandling [SSymbol "lambda", SSymbol "#t"])
 
 testSexprSListHandling :: Test
 testSexprSListHandling = TestList [
@@ -81,10 +81,10 @@ testConvert2 :: Test
 testConvert2 = myAssertEqual "convert 'x'" (Value [ASTProcedure "x"]) (convert $ Value [SSymbol "x"])
 
 testConvert3 :: Test
-testConvert3 = myAssertEqual "convert '(define x 0)'" (Value [ASTDefine "x" T_Undefined (ASTInt 0)]) (convert $ Value [ SList [(SSymbol "define"), (SSymbol "x"), (SNumber 0)]])
+testConvert3 = myAssertEqual "convert '(define x int 0)'" (Value [ASTDefine "x" T_Int (ASTInt 0)]) (convert $ Value [ SList [(SSymbol "define"), (SSymbol "x"), SSymbol "int", (SNumber 0)]])
 
 testConvert4 :: Test
-testConvert4 = myAssertEqual "convert '()'" (Error "GLaDOS: ConverterError: Expected a list of at least one SExpr but got an empty list instead. [Converter.hs:12]\n") (convert $ Value [SList []])
+testConvert4 = myAssertEqual "convert '()'" (Error "GLaDOS: ConverterError: Expected a list of at least one SExpr but got an empty list instead.\n") (convert $ Value [SList []])
 
 testConvert5 :: Test
 testConvert5 = myAssertEqual "convert 'Error test'" (Error "test") (convert $ Error "test")
@@ -103,21 +103,18 @@ testConvert7 = myAssertEqual "convert '(+ (* (- 10 2) (mod 19 3)) (div 10 2))'" 
         c' = ASTCall (FunctionCall "div") [ASTInt 10, ASTInt 2]
 
 testConvert8 :: Test
-testConvert8 = myAssertEqual "convert '(if #f 4 #f)'" (Value [ASTCall (FunctionCall "if") [ASTBool False, ASTInt 4, ASTBool False]]) (convert $ Value [SList [(SSymbol "if"), (SSymbol "#f"), (SNumber 4), (SSymbol "#f")]])
+testConvert8 = myAssertEqual "convert '(if #f 4 #f)'" (Value [ASTIf (ASTBool False) (ASTInt 4) (ASTBool False)]) (convert $ Value [SList [(SSymbol "if"), (SSymbol "#f"), (SNumber 4), (SSymbol "#f")]])
 
 testConvert9 :: Test
-testConvert9 = myAssertEqual "convert '((lambda (a b) (+ a b)) 1 2)'" (Value [ASTCall (LambdaCall a' b' T_Undefined) [ASTInt 1,ASTInt 2]]) (convert $ Value [SList [SList [(SSymbol "lambda"), a, b], (SNumber 1), (SNumber 2)]])
+testConvert9 = myAssertEqual "convert '((lambda (a::int b::int) (+ a b) int) 1 2)'" (Value [ASTCall (LambdaCall a' b' T_Int) [ASTInt 1,ASTInt 2]]) (convert $ Value [SList [SList [(SSymbol "lambda"), a, b, SSymbol "int"], (SNumber 1), (SNumber 2)]])
     where
-        a = SList [(SSymbol "a"), (SSymbol "b")]
+        a = SList [(SSymbol "a::int"), (SSymbol "b::int")]
         b = SList [(SSymbol "+"), (SSymbol "a"), (SSymbol "b")]
-        a' = [(ASTProcedure "a", T_Undefined),(ASTProcedure "b", T_Undefined)]
+        a' = [(ASTProcedure "a", T_Int),(ASTProcedure "b", T_Int)]
         b' = ASTCall (FunctionCall "+") [ASTProcedure "a",ASTProcedure "b"]
 
 testConvert10 :: Test
-testConvert10 = myAssertEqual "convert '(define (< a b)\n    #t\n)'" (Value [ASTDefine "<" T_Undefined a']) (convert $ Value [SList [(SSymbol "define"), a, (SSymbol "#t")]])
-    where
-        a = SList [(SSymbol "<"), (SSymbol "a"), (SSymbol "b")]
-        a' = ASTLambda [(ASTProcedure "a", T_Undefined),(ASTProcedure "b", T_Undefined)] (ASTBool True) T_Undefined
+testConvert10 = myAssertEqual "convert '(function add (a::int b::int) (+ a b) int)'" (Value $ ASTFunction "add" [(ASTProcedure "a", T_Int), (ASTProcedure "b", T_Int)] (ASTCall (FunctionCall "+") [ASTProcedure "a", ASTProcedure "b"]) T_Int) (sexprSListHandling [SSymbol "function", SSymbol "add", SList [SSymbol "a::int", SSymbol "b::int"], SList [SSymbol "+", SSymbol "a", SSymbol "b"], SSymbol "int"])
 
 testConvert :: Test
 testConvert = TestList [

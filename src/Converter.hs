@@ -124,14 +124,15 @@ sexprSListHandling [SArray elements] =
         Error err -> Error err
 
 -- tuple
-sexprSListHandling (STuple(a:b):_) =
+sexprSListHandling (STuple (a:b):_) =
     case (sexprSListHandling [a], sexprSListHandling b) of
         (Value astA, Value astB) -> Value (ASTTuple (astA, astB))
         (Error err, _) -> Error err
         (_, Error err) -> Error err
 
 -- function declaration
-sexprSListHandling (SSymbol "function":(SSymbol name):parameters:body:[rType]) = lambdaToFunction (toLambda (SSymbol "function":parameters:body:[rType])) name
+sexprSListHandling (SSymbol "function":(SSymbol name):parameters:body:[rType]) = lambdaToFunction (toLambda (SSymbol "lambda":parameters:body:[rType])) name
+sexprSListHandling (SSymbol "function":_) = Error "GLaDOS: ConverterError: Invalid function declaration. [Converter.hs]\n"
 
 -- lambda call
 sexprSListHandling (SList lambda@(SSymbol "lambda":_:_:[_]):arguments) =
@@ -140,19 +141,23 @@ sexprSListHandling (SList lambda@(SSymbol "lambda":_:_:[_]):arguments) =
             Value rest -> Value (ASTCall (rLambda) rest)
             Error err -> Error err
         Error err -> Error err
+sexprSListHandling (SList (SSymbol "lambda":_):_) = Error "GLaDOS: ConverterError: Invalid lambda call declaration. [Converter.hs]\n"
 
 -- lambda declaration
 sexprSListHandling lambda@(SSymbol "lambda":_:_:[_]) = toLambda lambda
+sexprSListHandling (SSymbol "lambda":_) = Error "GLaDOS: ConverterError: Invalid lambda declaration. [Converter.hs]\n"
 
 -- define declaration
 sexprSListHandling (SSymbol "define":(SSymbol name):vType:[body]) =
     case sexprToAST [body] of
         Value [result] -> Value (ASTDefine name (getTypeSExpr vType) result)
-        Value _ -> Error "GLaDOS: ConverterError: Expression not assignable in define déclaration. [Converter.hs]\n"
+        Value _ -> Error "GLaDOS: ConverterError: Expression not assignable in define declaration. [Converter.hs]\n"
         Error err -> Error err
+sexprSListHandling (SSymbol "define":_) = Error "GLaDOS: ConverterError: Invalid define declaration. [Converter.hs]\n"
 
 -- if declaration
 sexprSListHandling (SSymbol "if":condition:trueStatment:[falseStatment]) = makeSafeIf (sexprToAST [condition]) (sexprToAST [trueStatment]) (sexprToAST [falseStatment])
+sexprSListHandling (SSymbol "if":_) = Error "GLaDOS: ConverterError: Invalid if declaration. [Converter.hs]\n"
 
 -- function call
 sexprSListHandling (SSymbol symbol:rest) =
