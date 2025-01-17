@@ -2,7 +2,7 @@ module Comment (deleteComment) where
 
 removeTillNewLineOrComment :: String -> String
 removeTillNewLineOrComment [] = []
-removeTillNewLineOrComment a@[_] = []
+removeTillNewLineOrComment [_] = []
 removeTillNewLineOrComment (a:b:c)
         | a == '\n' = a : deleteComment (b:c)
         | a == '-' && b == '-' = deleteComment c
