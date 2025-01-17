@@ -1,3 +1,1 @@
-(define (< a b)
-    #t
-)
+(define < <(number number) => bool> (lambda (a::number b::number) #t bool))
