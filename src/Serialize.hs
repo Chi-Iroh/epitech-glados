@@ -2,9 +2,10 @@
 {-# LANGUAGE NumericUnderscores #-}
 module Serialize where
 
-import Data.Bits (complement, shiftR, (.&.))
-import Bits (splitWord32, setBit)
+import Bits (splitWord32, setBit, i32, u32)
+import Data.Bits (complement, shiftR, (.&.), (.<<.), Bits)
 import Data.ByteString.Internal (c2w)
+import Data.Int (Int32)
 import Data.Word (Word8)
 import GHC.Float (castFloatToWord32)
 import Limits (checkInt, checkUInt, checkFloat)
@@ -48,18 +49,19 @@ serializeChar char = [c2w char]
 serializeUInt :: Int -> [Word8]
 serializeUInt uint
     | not (checkUInt uint) = error "Negative uint !"
-    | otherwise = serializeInt' uint
+    | otherwise = serializeInt' (u32 uint)
 
-serializeInt' :: Int -> [Word8]
-serializeInt' int
-    | int >= 0 = splitWord32 (toEnum int)
-    | int == (-1) = replicate 4 0xFF
-    | otherwise = setBit 0 True ((serializeInt' . complement . abs) (int - 1))
+serializeInt' :: (Integral a, Bits a) => a -> [Word8]
+serializeInt' value =
+    [ fromIntegral (value .<<. 24)
+    , fromIntegral (value .<<. 16)
+    , fromIntegral (value .<<. 8)
+    , fromIntegral value ]
 
 serializeInt :: Int -> [Word8]
 serializeInt int
     | not (checkInt int) = error "Out of range int !"
-    | otherwise = serializeInt' int
+    | otherwise = serializeInt' (i32 int)
 
 serializeFloat' :: Float -> [Word8]
 serializeFloat' float = splitWord32 (castFloatToWord32 float)
@@ -72,10 +74,13 @@ serializeFloat float
 serializeTuple :: (Serializable a, Serializable b) => (a, b) -> [Word8]
 serializeTuple (x, y) = serialize x ++ serialize y
 
+serializeList' :: (Serializable a) => [a] -> [Word8]
+serializeList' (x:xs) = serialize x ++ serializeList' xs
+serializeList' [x] = serialize x
+serializeList' [] = []
+
 serializeList :: (Serializable a) => [a] -> [Word8]
-serializeList (x:xs) = serialize x ++ serializeList xs
-serializeList [x] = serialize x
-serializeList [] = []
+serializeList xs = serializeUInt (length xs) ++ serializeList' xs
 
 -- serializeCombination :: [Type] -> [Word8]
 -- serializeCombination list = serializeList list

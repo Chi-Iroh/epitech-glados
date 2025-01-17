@@ -22,6 +22,7 @@ data AST =  ASTInt Int                              |
             ASTBool Bool                            |
             ASTTuple (AST, AST)                     |
             ASTArray [AST]                          |
+            ASTList [AST]                           |
             ASTString String                        |
             ASTProcedure String                     |
             ASTDefine String Type AST               |
@@ -29,8 +30,7 @@ data AST =  ASTInt Int                              |
             ASTLambda [Parameter] AST Type          |
             ASTCall Call [AST]                      |
             ASTIf AST AST AST                       |
-            ASTNULL
-            deriving (Eq, Show)
+            ASTNULL deriving (Eq, Show)
 
 data MainAST = MainAST AST
 

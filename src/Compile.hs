@@ -2,6 +2,7 @@
 
 module Compile (compileAST, Symbol(..), Symbols) where
 
+import Control.Applicative (liftA3)
 import Data.Functor ((<&>))
 import Data.List (singleton, find)
 import Data.Word (Word8)
@@ -128,8 +129,11 @@ addSymbol status name status'
     }
 
 compileValue :: (Serializable a, Show a) => Type -> a -> Bool -> CompilationStatus
-compileValue _type value isNested = CompilationStatus {
-    _instructions = [(if isNested then PushValue else OutValue) (Any (_type, value))],
+compileValue _type value isNested = compileValueFromAny (Any (_type, value)) isNested
+
+compileValueFromAny :: Any -> Bool -> CompilationStatus
+compileValueFromAny val isNested = CompilationStatus {
+    _instructions = [(if isNested then PushValue else OutValue) val],
     _symbols = [],
     _nLambdas = 0
 }
@@ -148,17 +152,34 @@ compileElem a = case a of
     (ASTCall (FunctionCall name) args) -> mapM (\a' -> toAny a' <&> PushValue) (reverse args) <&> (++ [Call name])
     _ -> toAny a <&> singleton . PushValue
 
+allEqual :: Eq a => [a] -> Bool
+allEqual [] = True
+allEqual (x : xs) = null (filter (/= x) xs)
+
+haveSameType :: [AST] -> Safe Bool
+haveSameType list = mapM getTypeAST list <&> allEqual
+
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
 compileAST1 status (ASTInt n) isNested = status +++ compileValue T_Int n isNested
 compileAST1 status (ASTBool b) isNested = status +++ compileValue T_Bool b isNested
 compileAST1 status (ASTCall (FunctionCall f) args) _ = compileCall f args >>= (status +++)
 compileAST1 status (ASTProcedure s) _ = compileCall s [] >>= (status +++)
 compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
-compileAST1 status (ASTArray []) isNested = status +++ compileValue T_EmptyList ([] :: [Int]) isNested
-compileAST1 status astList@(ASTArray list) isNested = getTypeAST astList >>= (\type' -> concatMapM compileElem list <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
+compileAST1 status (ASTList []) isNested = status +++ compileValue T_EmptyList ([] :: [Int]) isNested
+
+compileAST1 status astList@(ASTList list) isNested = getTypeAST astList >>= (\type' -> concatMapM compileElem list <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
     where outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
+
 compileAST1 status astTuple@(ASTTuple (a, b)) isNested = getTypeAST astTuple >>= (\type' -> liftA2 (\a' b' -> b' ++ a' ++ [Construct type' 2] ++ outputIfNotNested) (compileElem a) (compileElem b)) >>= ((status +++) . statusFromInstructions)
     where outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
+
+compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothValuesTheSameType >> concatInstructions conditionCompiled trueValueCompiled falseValueCompiled >>= ((status +++) . statusFromInstructions)
+    where haveBothValuesTheSameType = haveSameType [trueValue, falseValue]
+          conditionCompiled = toAny condition <&> ((++ [Test 0]) . singleton . MovValue 0)
+          trueValueCompiled = toAny trueValue <&> (\val -> _instructions $ compileValueFromAny val isNested)
+          falseValueCompiled = toAny falseValue <&> (\val -> _instructions $ compileValueFromAny val isNested)
+          concatInstructions = liftA3 (\conditionCode trueCode falseCode -> conditionCode ++ [JumpIfFalse (u32 $ length trueCode)] ++ trueCode ++ falseCode)
+
 compileAST1 _ a _ = Error ("Compiling " ++ show a ++ " isn't not implemented for now !")
 
 -- astArithmeticOp' :: String -> (Int -> Int -> Int) -> [AST] -> Safe AST
