@@ -12,7 +12,6 @@ module Parser (
 
 import Text.Read
 import Data.Maybe
-import Debug.Trace (trace)
 import Data.List (isPrefixOf)
 import Data.Char (isSpace)
 
@@ -152,7 +151,6 @@ checkValidTuple list
 
 verifyTuple :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
 verifyTuple (Value (rList, pList)) list =
-    -- trace ("rlist: " ++ show rList ++ "\npList " ++ show pList ++ "list" ++ show list) $
     let tuple = checkValidTuple pList
     in case tuple of
         Value validTuple -> 
@@ -182,10 +180,6 @@ verifyASExpr :: Maybe Char -> Int -> [AlmostSExpr] -> Safe (Int, [AlmostSExpr])
 verifyASExpr char index list
     | index > length list - 1 = Value (index, list)
     | otherwise =
-        -- trace ("char: " ++ show char) $
-        -- trace ("index: " ++ show index) $
-        -- trace ("list: " ++ show list) $
-        -- trace ("\n") $
         if charNothing
             then
                 let currentElement = list !! index
