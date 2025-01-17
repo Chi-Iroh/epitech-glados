@@ -34,10 +34,10 @@ sexprSListHandling [SSymbol "#f"] = Value (ASTBool False)
 sexprSListHandling [SSymbol a] = Value (ASTProcedure a)
 -- sexprSListHandling [SFunctionType (params : SSymbol "=>" : body)] = Value (ASTBool False)
 sexprSListHandling [SFunctionType (params : SSymbol "=>" : body)] = 
-    case toLambdaParamsList params of
+    case sexprToAST [params] of
         Value parameters -> 
             -- The return type is set to T_Undefined for simplicity (adjust if you have type information)
-            let paramTypes = map (\_ -> T_Undefined) parameters
+            let paramTypes = map (\_ -> T_Undefined) [parameters]
             in case sexprToAST body of
                 Value [expression] -> 
                     -- Create ASTFunction, setting the parameter types and the return type to T_Undefined
@@ -50,7 +50,7 @@ sexprSListHandling [SArray elements] =
     case mapM (sexprSListHandling . pure) elements of
         Value astList -> Value (ASTArray astList)
         Error err -> Error err
-sexprSListHandling (STuple(a:b):_) =
+sexprSListHandling (STuple(a: b):_) =
     case (sexprSListHandling [a], sexprSListHandling b) of
         (Value astA, Value astB) -> Value (ASTTuple (astA, astB))
         (Error err, _) -> Error err
