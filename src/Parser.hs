@@ -311,7 +311,5 @@ removeCommas (Value list) = Value (map removeCommasFromExpr list)
 parse :: String -> Safe [SExpr]
 parse str = let result = verifyASExpr Nothing 0 (stringToASExpr (customWords str) [])
             in case result of
-                Value (_, list) ->
-                    trace ("remove comma: " ++ show (removeCommas (aSExprToSExpr list (Value [])))) $
-                    removeCommas (aSExprToSExpr list (Value []))
+                Value (_, list) -> removeCommas (aSExprToSExpr list (Value []))
                 Error err -> Error err

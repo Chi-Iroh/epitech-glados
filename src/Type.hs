@@ -1,5 +1,8 @@
 module Type (
     Type(..),
+    typeInteger,
+    typeNumber,
+    typeAny,
     verifyTypeTuple,
     verifyTypeList,
     combinateTypes,
@@ -9,12 +12,28 @@ module Type (
 import Utils
 import Data.List (intercalate)
 
-data Type = T_Int | T_UInt | T_Char | T_Float | T_Bool | T_Tuple (Type, Type) | T_List Type | T_EmptyList | T_String | T_Procedure | T_Function [Type] Type | T_Combination [Type] | T_NULL | T_Template | T_Type | T_Undefined deriving (Show)
+data Type = T_Int | T_UInt | T_Char | T_Float | T_Bool | T_Tuple (Type, Type) | T_List Type | T_EmptyList | T_String | T_Procedure | T_Function [Type] Type | T_Combination [Type] | T_NULL | T_Template | T_Type | T_Undefined
 
 instance Eq Type where
     (==) T_String (T_List T_Char) = True
     (==) (T_List T_Char) T_String = True
-    (==) a b = a == b
+    (==) T_Int T_Int = True
+    (==) T_UInt T_UInt = True
+    (==) T_Char T_Char = True
+    (==) T_Float T_Float = True
+    (==) T_Bool T_Bool = True
+    (==) (T_Tuple (a, b)) (T_Tuple (a', b')) = (a == a') && (b == b')
+    (==) (T_List a) (T_List a') = a == a'
+    (==) T_EmptyList T_EmptyList = True
+    (==) T_String T_String = True
+    (==) T_Procedure T_Procedure = True
+    (==) (T_Function a b) (T_Function a' b') = (a == a') && (b == b')
+    (==) (T_Combination a) (T_Combination a') = a == a'
+    (==) T_NULL T_NULL = True
+    (==) T_Template T_Template = True
+    (==) T_Type T_Type = True
+    (==) T_Undefined T_Undefined = True
+    (==) _ _ = False
 
 instance Show Type where
     show T_Int = "int"
@@ -87,42 +106,8 @@ verifyType _ T_Undefined = False                                               -
 verifyType _ T_NULL = True
 verifyType (T_List _) T_EmptyList = True
 verifyType T_Procedure (T_Function _ _) = True
-verifyType (T_Combination ps) (T_Combination as) = foldr (&&) True $ fmap (\a -> foldr (\x y -> (x == a) || y) False ps) as
+verifyType (T_Combination ps) (T_Combination as) = foldr (&&) True $ map (\a -> foldr (\x y -> (x == a) || y) False ps) as
 verifyType (T_Combination ps) a = foldr (\x y -> (x == a) || y) False ps
-verifyType p a
-    | p == a = True
+verifyType param arg
+    | param == arg = True
     | otherwise = False
-
--------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-data SExpr = SNumber Int | SSymbol String | SList [SExpr] | STuple (SExpr, SExpr) | SArray [SExpr] | SFunction [SExpr] deriving (Eq, Show) --A commenter
-
--- list [] 0
--- (le reste de la liste, la liste des paranthèses)
-parseParanthese :: [AlmostSExpr] -> [AlmostSExpr] -> Int -> Safe ([AlmostSExpr], [AlmostSExpr])
-parseParanthese [] _ _ = Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected\n"
-parseParanthese (SListEnd:rList) pList 0 = Value (rList, reverse pList)
-parseParanthese (SListEnd:rList) pList i = parseParanthese rList (SListEnd:pList) (i - 1)
-parseParanthese (SListBegin:rList) pList i = parseParanthese rList (SListBegin:pList) (i + 1)
-parseParanthese (r:rList) pList i = parseParanthese rList (r:pList) i
-
-getType :: String -> Type
-getType "int" = T_Int
-getType "uint" = T_UInt
-getType "char" = T_Char
-getType "float" = T_Float
-getType "bool" = T_Bool
-getType "string" = T_String
-getType "procedure" = T_Procedure
-getType str
-    | isPrefixOf "[" && isSuffixOf "}" = T_List $ getType $ extractBounds str
-    | isPrefixOf "{" && isSuffixOf "}" = T_Tuple (..., ...)
-    | isPrefixOf "<" && isSuffixOf ">" = T_Function ... ...
-    | otherwise = T_Undefined
