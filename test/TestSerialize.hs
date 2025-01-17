@@ -30,7 +30,7 @@ testSerializeTuple :: Test
 testSerializeTuple = myAssertEqual "Normal tuple (int, char)" (serializeInt (1 :: Int) ++ serializeChar 'a') (serializeTuple ((1 :: Int), ('a' :: Char)))
 
 testSerializeList :: Test
-testSerializeList = myAssertEqual "int list [1,1,1]" (serializeInt 1 ++ serializeInt 1 ++ serializeInt 1) (serializeList [(1 :: Int),(1 :: Int),(1 :: Int)])
+testSerializeList = myAssertEqual "int list [0,7,-78]" (serializeUInt 3 ++ serializeInt 0 ++ serializeInt 7 ++ serializeInt (-78)) (serializeList [(0 :: Int),(7 :: Int),((-78) :: Int)])
 
 testSerializeValues :: Test
 testSerializeValues = TestList [
