@@ -8,7 +8,6 @@ import Unsafe.Coerce (unsafeCoerce)
 
 import AssemblyInstructions (AssemblyInstruction(..))
 import BinaryIO (readBinary, writeBinary)
-
 import Bits (splitWord32, combineWord32)
 import Deserialize (deserialize, deserializeType, deserializeInt)
 import SymbolTable (readSymbolTable, SymbolTable)
@@ -84,24 +83,3 @@ mainVM path = do
 -- - pass it through 
 -- scope changing cond : call
 -- deserialize xs >>= 
-
-data Any = forall a. (Serializable a, Show a) => Any (Type, a)
-type Address = Word32
-
-instance Serializable Any where
-    serialize (Any (_, a)) = serialize a
-
-instance Show Any where
-    show :: Any -> String
-    show (Any (type', val)) = printf "Any (%s, %s)" (show type') (show val)
-
-data VM = VM {
-    _registers :: [Any],    -- 16 registers
-    _callStack :: [Int],    -- call stack for function calls
-    _bf :: Maybe Bool,      -- boolean flag for branching
-    _valueStack :: [Any],   -- value stack (where args are pushed)
-    _pc :: Address          -- position of current opcode
-}
-
-addrToBytes :: Address -> [Word8]
-addrToBytes = splitWord32
