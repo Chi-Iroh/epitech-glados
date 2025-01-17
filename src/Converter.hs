@@ -32,11 +32,25 @@ sexprSListHandling [SNumber a] = Value (ASTInt a)
 sexprSListHandling [SSymbol "#t"] = Value (ASTBool True)
 sexprSListHandling [SSymbol "#f"] = Value (ASTBool False)
 sexprSListHandling [SSymbol a] = Value (ASTProcedure a)
+-- sexprSListHandling [SFunctionType (params : SSymbol "=>" : body)] = Value (ASTBool False)
+sexprSListHandling [SFunctionType (params : SSymbol "=>" : body)] = 
+    case sexprToAST [params] of
+        Value parameters -> 
+            -- The return type is set to T_Undefined for simplicity (adjust if you have type information)
+            let paramTypes = map (\_ -> T_Undefined) [parameters]
+            in case sexprToAST body of
+                Value [expression] -> 
+                    -- Create ASTFunction, setting the parameter types and the return type to T_Undefined
+                    Value (ASTFunction "" (zip parameters paramTypes) expression T_Undefined)
+                Value [] -> converterListError "an empty" 100
+                Value (_:_:_) -> converterListError "a bigger" 101
+                Error err -> Error err
+        Error err -> Error ("Error in parameters: " ++ err)
 sexprSListHandling [SArray elements] =
     case mapM (sexprSListHandling . pure) elements of
         Value astList -> Value (ASTArray astList)
         Error err -> Error err
-sexprSListHandling (STuple(a:b):_) =
+sexprSListHandling (STuple(a: b):_) =
     case (sexprSListHandling [a], sexprSListHandling b) of
         (Value astA, Value astB) -> Value (ASTTuple (astA, astB))
         (Error err, _) -> Error err
@@ -121,19 +135,19 @@ sexprSListHandling (_:_) = Error "GLaDOS: ConverterError: Not handled case. [Con
 sexprToAST :: [SExpr] -> Safe [AST]
 sexprToAST [] = Value []
 sexprToAST (SList elements : rest) =
-    -- trace ("list 1: " ++ show elements ++ "\n" ++ show rest ++ "\n") $
+    trace ("list 1: " ++ show elements ++ "\n" ++ show rest ++ "\n") $
     case sexprSListHandling elements of
         Value result ->
-            -- trace ("result:" ++ show result) $
+            trace ("result:" ++ show result) $
             case sexprToAST rest of
                 Value restAST -> Value (result : restAST)
                 Error err -> Error err
         Error err -> Error err
 sexprToAST (a : rest) =
-    -- trace ("list 2: " ++ show a ++ "\n" ++ show rest ++ "\n") $
+    trace ("list 2: " ++ show a ++ "\n" ++ show rest ++ "\n") $
     case sexprSListHandling [a] of
         Value resultA ->
-            -- trace ("resultA:" ++ show resultA) $
+            trace ("resultA:" ++ show resultA) $
             case sexprToAST rest of
                 Value resultRest -> Value (resultA : resultRest)
                 Error err -> Error err

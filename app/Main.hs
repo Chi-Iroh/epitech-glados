@@ -11,6 +11,8 @@ import System.Exit (die, exitWith, ExitCode(ExitFailure))
 import System.Environment
 import Utils
 
+import Debug.Trace (trace)
+
 getFileName :: [String] -> Maybe String
 getFileName [a] = Just a
 getFileName _ = Nothing
@@ -42,5 +44,8 @@ main = do
             -- case parse (deleteComment content) of
             --     Error err -> die err
             --     -- Value sexprs -> putResult (show sexprs)
-        Value content -> putResult (fmap showAll ((convert $ parse (deleteComment content)) >>= evaluateAST))
+
+        Value content -> 
+            -- trace ("sexpression: " ++ show (parse (deleteComment content))) $
+            putResult (fmap showAll ((convert $ parse (deleteComment content)) >>= evaluateAST))
 
