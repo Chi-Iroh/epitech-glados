@@ -20,7 +20,7 @@ import SExpression
 
 import Utils
 
-data AlmostSExpr = ASExpr SExpr | SListBegin | SListEnd | STupleBegin | STupleEnd | SArrayBegin | SArrayEnd deriving (Eq, Show)
+data AlmostSExpr = ASExpr SExpr | SListBegin | SListEnd | STupleBegin | STupleEnd | SArrayBegin | SArrayEnd | SFunctionTypeBegin | SFunctionTypeEnd deriving (Eq, Show)
 
 -- take any string and return a SNumber if the string is an integer, return a SSymbol otherwise
 convertToASExpr :: String -> [AlmostSExpr]
@@ -32,6 +32,8 @@ convertToASExpr str@(_:xs)
     | isPrefixOf "}" (reverse str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [STupleEnd]
     | isPrefixOf "[" str = (SArrayBegin:(convertToASExpr xs))
     | isPrefixOf "]" (reverse str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [SArrayEnd]
+    | isPrefixOf "<" str = (SFunctionTypeBegin:(convertToASExpr xs))
+    | isPrefixOf ">" (reverse str) && not (isPrefixOf "=" str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [SFunctionTypeEnd]
     | isNothing (readMaybe str :: Maybe Int) = [ASExpr (SSymbol str)]
     | otherwise = [ASExpr (SNumber (fromJust $ readMaybe str))]
 
@@ -64,6 +66,13 @@ parseArray (SArrayEnd:rList) pList i = parseArray rList (SArrayEnd:pList) (i - 1
 parseArray (SArrayBegin:rList) pList i = parseArray rList (SArrayBegin:pList) (i + 1)
 parseArray (r:rList) pList i = parseArray rList (r:pList) i
 
+parseFunctionType :: [AlmostSExpr] -> [AlmostSExpr] -> Int -> Safe ([AlmostSExpr], [AlmostSExpr])
+parseFunctionType [] _ _ = Error "GLaDOS: SyntaxError: unexpected EOF while parsing, '>' expected\n"
+parseFunctionType (SFunctionTypeEnd:rList) pList 0 = Value (rList, reverse pList)
+parseFunctionType (SFunctionTypeEnd:rList) pList i = parseFunctionType rList (SFunctionTypeEnd:pList) (i - 1)
+parseFunctionType (SFunctionTypeBegin:rList) pList i = parseFunctionType rList (SFunctionTypeBegin:pList) (i + 1)
+parseFunctionType (r:rList) pList i = parseFunctionType rList (r:pList) i
+
 fromSafe :: Safe [SExpr] -> Safe SExpr
 fromSafe (Value list) = Value (SList list)
 fromSafe (Error err) = Error err
@@ -75,6 +84,10 @@ fromSafeTuple (Error err) = Error err
 fromSafeArray :: Safe [SExpr] -> Safe SExpr
 fromSafeArray (Value list) = Value (SArray list)
 fromSafeArray (Error err) = Error err
+
+fromSafeFunctionType :: Safe [SExpr] -> Safe SExpr
+fromSafeFunctionType (Value list) = Value (SFunctionType list)
+fromSafeFunctionType (Error err) = Error err
 
 concatSafe :: Safe SExpr -> Safe [SExpr] -> Safe [SExpr]
 concatSafe (Value e) (Value es) = Value (e:es)
@@ -131,6 +144,21 @@ toSArrayEnd (x:xs) nbStructure
             SArrayBegin -> toSArrayEnd xs (nbStructure + 1)
             _ -> toSArrayEnd xs nbStructure
 
+-- return a list of AlmostSexpr trunc to the first SFunctionTypeEnd (and trunc it)
+toSFunctionTypeEnd :: [AlmostSExpr] -> Int -> [AlmostSExpr]
+toSFunctionTypeEnd [] _ = []
+toSFunctionTypeEnd (x:xs) nbStructure
+    | nbStructure == 0 =
+        case x of
+            SFunctionTypeEnd -> xs
+            SFunctionTypeBegin -> toSFunctionTypeEnd xs (nbStructure + 1)
+            _ -> toSFunctionTypeEnd xs nbStructure
+    | otherwise =
+        case x of
+            SFunctionTypeEnd -> toSFunctionTypeEnd xs (nbStructure - 1)
+            SFunctionTypeBegin -> toSFunctionTypeEnd xs (nbStructure + 1)
+            _ -> toSFunctionTypeEnd xs nbStructure
+
 -- bollean for checkValidTuple
 isValidTuple :: Int -> [AlmostSExpr] -> Bool
 isValidTuple _ [] = True
@@ -141,6 +169,7 @@ isValidTuple nbElement (x:xs)
             SListBegin -> isValidTuple nbElement (toSListEnd xs 0)
             STupleBegin -> isValidTuple nbElement (toSTupleEnd xs 0)
             SArrayBegin -> isValidTuple nbElement (toSArrayEnd xs 0)
+            SFunctionTypeBegin -> isValidTuple nbElement (toSFunctionTypeEnd xs 0)
             ASExpr (SSymbol ",") -> isValidTuple (nbElement + 1) xs
             _ -> isValidTuple nbElement xs
 
@@ -158,13 +187,18 @@ verifyTuple (Value (rList, pList)) list =
         Value validTuple -> 
             aSExprToSExpr rList (concatSafe (fromSafeTuple (aSExprToSExpr validTuple (Value []))) list)
         Error err -> 
-            Error err
+            Error err 
 verifyTuple (Error err) _ = Error err
 
 verifyArray :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
 verifyArray (Value (rList, pList)) list =
     aSExprToSExpr rList (concatSafe (fromSafeArray (aSExprToSExpr pList (Value []))) list)
 verifyArray (Error err) _ = Error err
+
+verifyFunctionType :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
+verifyFunctionType (Value (rList, pList)) list =
+    aSExprToSExpr rList (concatSafe (fromSafeFunctionType (aSExprToSExpr pList (Value []))) list)
+verifyFunctionType (Error err) _ = Error err
 
 aSExprToSExpr :: [AlmostSExpr] -> Safe [SExpr] -> Safe [SExpr]
 aSExprToSExpr _ (Error err) = Error err
@@ -176,6 +210,8 @@ aSExprToSExpr (STupleBegin:xs) list = verifyTuple (parseTuple xs [] 0) list
 aSExprToSExpr (STupleEnd:_) _ = Error "GLaDOS: SyntaxError: unexpected '}' while parsing\n"
 aSExprToSExpr (SArrayBegin:xs) list = verifyArray (parseArray xs [] 0) list
 aSExprToSExpr (SArrayEnd:_) _ = Error "GLaDOS: SyntaxError: unexpected ']' while parsing\n"
+aSExprToSExpr (SFunctionTypeBegin:xs) list = verifyFunctionType (parseFunctionType xs [] 0) list
+aSExprToSExpr (SFunctionTypeEnd:_) _ = Error "GLaDOS: SyntaxError: unexpected '>' while parsing\n"
 
 -- recursive function for check if array, tuple, etc.. are not interlocked    
 verifyASExpr :: Maybe Char -> Int -> [AlmostSExpr] -> Safe (Int, [AlmostSExpr])
@@ -205,9 +241,15 @@ verifyASExpr char index list
                         in case result of
                             Value (returnIndex, _) -> verifyASExpr Nothing (returnIndex + 1) list
                             Error err -> Error err
+                    SFunctionTypeBegin ->
+                        let result = verifyASExpr (Just '<') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr Nothing (returnIndex + 1) list
+                            Error err -> Error err
                     SListEnd -> Error "SyntaxError: Unexpecting closing paranthese found"
                     STupleEnd -> Error "SyntaxError: Unexpecting closing curly bracket found"
                     SArrayEnd -> Error "SyntaxError: Unexpecting closing bracket found"
+                    SFunctionTypeEnd -> Error "SyntaxError: Unexpected closing function type bracket found"
                     _ ->  verifyASExpr Nothing (index + 1) list
         else if charParanthese
             then
@@ -228,9 +270,15 @@ verifyASExpr char index list
                         in case result of
                             Value (returnIndex, _) -> verifyASExpr (Just '(') (returnIndex + 1) list
                             Error err -> Error err
+                    SFunctionTypeBegin ->
+                        let result = verifyASExpr (Just '<') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '(') (returnIndex + 1) list
+                            Error err -> Error err
                     SListEnd -> Value (index, list)
                     STupleEnd -> Error "SyntaxError: Interlocked Tuple in ()"
                     SArrayEnd -> Error "SyntaxError: Interlocked Array in ()"
+                    SFunctionTypeEnd -> Error "SyntaxError: Interlocked FunctionType in ()"
                     _ -> verifyASExpr (Just '(')  (index + 1) list
         else if charCurlyBrack
             then
@@ -251,9 +299,15 @@ verifyASExpr char index list
                         in case result of
                             Value (returnIndex, _) -> verifyASExpr (Just '{') (returnIndex + 1) list
                             Error err -> Error err
+                    SFunctionTypeBegin ->
+                        let result = verifyASExpr (Just '<') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '{') (returnIndex + 1) list
+                            Error err -> Error err
                     SListEnd -> Error "SyntaxError: Interlocked () in Tuple"
                     STupleEnd -> Value (index, list)
                     SArrayEnd -> Error "SyntaxError: Interlocked Array in Tuple"
+                    SFunctionTypeEnd -> Error "SyntaxError: Interlocked FunctionType in Tuple"
                     _ -> verifyASExpr (Just '{')  (index + 1) list
         else if charBrack
             then
@@ -274,10 +328,45 @@ verifyASExpr char index list
                         in case result of
                             Value (returnIndex, _) -> verifyASExpr (Just '[') (returnIndex + 1) list
                             Error err -> Error err
+                    SFunctionTypeBegin ->
+                        let result = verifyASExpr (Just '<') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '[') (returnIndex + 1) list
+                            Error err -> Error err
                     SListEnd -> Error "SyntaxError: Interlocked () in Array"
                     STupleEnd -> Error "SyntaxError: Interlocked Tuple in Array"
                     SArrayEnd -> Value (index, list)
+                    SFunctionTypeEnd -> Error "SyntaxError: Interlocked FunctionType in Array"
                     _ -> verifyASExpr (Just '[')  (index + 1) list
+        else if charFunctionType
+            then
+                let currentElement = list !! index
+                in case currentElement of
+                    SListBegin ->
+                        let result = verifyASExpr (Just '(') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '<') (returnIndex + 1) list
+                            Error err -> Error err
+                    STupleBegin ->
+                        let result = verifyASExpr (Just '{') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '<') (returnIndex + 1) list
+                            Error err -> Error err
+                    SArrayBegin ->
+                        let result = verifyASExpr (Just '[') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '<') (returnIndex + 1) list
+                            Error err -> Error err
+                    SFunctionTypeBegin ->
+                        let result = verifyASExpr (Just '<') (index + 1) list
+                        in case result of
+                            Value (returnIndex, _) -> verifyASExpr (Just '<') (returnIndex + 1) list
+                            Error err -> Error err
+                    SListEnd -> Error "SyntaxError: Interlocked () in FunctionType"
+                    STupleEnd -> Error "SyntaxError: Interlocked Tuple in FunctionType"
+                    SArrayEnd -> Error "SyntaxError: Interlocked Array in FunctionType"
+                    SFunctionTypeEnd -> Value (index, list)
+                    _ -> verifyASExpr (Just '<')  (index + 1) list
         else
             error "You unlock an achivement because this is impossible. Unexpected character passes as argument"
     where
@@ -285,6 +374,7 @@ verifyASExpr char index list
         charParanthese = char == Just '('
         charCurlyBrack = char == Just '{'
         charBrack = char == Just '['
+        charFunctionType = char == Just '<'
 
 customWords :: String -> [String]
 customWords [] = []
@@ -302,6 +392,7 @@ removeCommas (Value list) = Value (map removeCommasFromExpr list)
     removeCommasFromExpr (SList exprs) = SList (map removeCommasFromExpr (filter (not . isComma) exprs))
     removeCommasFromExpr (STuple exprs) = STuple (map removeCommasFromExpr (filter (not . isComma) exprs))
     removeCommasFromExpr (SArray exprs) = SArray (map removeCommasFromExpr (filter (not . isComma) exprs))
+    removeCommasFromExpr (SFunctionType exprs) = SFunctionType (map removeCommasFromExpr (filter (not . isComma) exprs))
     removeCommasFromExpr expr = expr  -- Leave other expressions unchanged
 
     isComma :: SExpr -> Bool
@@ -309,9 +400,10 @@ removeCommas (Value list) = Value (map removeCommasFromExpr list)
     isComma _ = False
 
 parse :: String -> Safe [SExpr]
-parse str = let result = verifyASExpr Nothing 0 (stringToASExpr (customWords str) [])
+parse str = -- trace ("list output" ++ show (stringToASExpr (customWords str) [])) $
+    let result = verifyASExpr Nothing 0 (stringToASExpr (customWords str) [])
             in case result of
                 Value (_, list) ->
-                    trace ("remove comma: " ++ show (removeCommas (aSExprToSExpr list (Value [])))) $
+                    -- trace ("remove comma: " ++ show (removeCommas (aSExprToSExpr list (Value [])))) $
                     removeCommas (aSExprToSExpr list (Value []))
                 Error err -> Error err
