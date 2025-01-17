@@ -8,7 +8,7 @@ import Data.Word (Word8)
 import Debug.Trace (traceShowId)
 import Unsafe.Coerce (unsafeCoerce)
 
-import AST (AST(..), getType)
+import AST (AST(..), getTypeAST)
 import Hex (showHex32)
 import Serialize
 import Type (Type(..))
@@ -63,9 +63,9 @@ toAny (ASTUInt n) = Value (Any (T_UInt, n))
 toAny (ASTFloat f) = Value (Any (T_Float, f))
 toAny (ASTString str) = Value (Any (T_String, str))
 toAny (ASTTuple (a, b)) = liftA2 (\types' values' -> Any (T_Tuple types', values')) types values
-    where types = liftA2 (,) (getType a) (getType b)
+    where types = liftA2 (,) (getTypeAST a) (getTypeAST b)
           values = liftA2 (,) (toAny a) (toAny b)
-toAny list@(ASTList xs) = liftA2 (\type' values' -> Any (type', map fromAny values')) (getType list) values
+toAny list@(ASTArray xs) = liftA2 (\type' values' -> Any (type', map fromAny values')) (getTypeAST list) values
     where values = traceVal "values" (mapM toAny xs)
 toAny a = Error ("toAny: Invalid argument : '" ++ show a ++ "'")
 
@@ -77,8 +77,8 @@ toAssemblyValueInstruction instruction ast = fmap instruction (toAny ast)
 -- toAssemblyValueInstruction instruction (ASTUInt n) = Value $ instruction (Any (T_UInt, n))
 -- toAssemblyValueInstruction instruction (ASTFloat f) = Value $ instruction (Any (T_Float, f))
 -- toAssemblyValueInstruction instruction (ASTString str) = Value $ instruction (Any (T_String, str))
--- toAssemblyValueInstruction instruction (ASTTuple (a, b)) = liftA2 (getType tuple) (toAny ) instruction . Any . (, tuple) <$> 
--- toAssemblyValueInstruction instruction (ASTList x) = instruction . Any . (, x) <$> getType x
+-- toAssemblyValueInstruction instruction (ASTTuple (a, b)) = liftA2 (getTypeAST tuple) (toAny ) instruction . Any . (, tuple) <$> 
+-- toAssemblyValueInstruction instruction (ASTList x) = instruction . Any . (, x) <$> getTypeAST x
 -- toAssemblyValueInstruction _ _ = Error "Invalid argument !"
 
 assemble' :: AssemblyInstruction -> [Word8]

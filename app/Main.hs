@@ -45,6 +45,9 @@ main = do
     fileimport <- parseImport (deleteComment file)
     case fileimport of
         Error err -> die err
+        -- Value content ->
+            -- putResult (fmap showAll ((convert $ parse (deleteComment content)) >>= evaluateAST))
+
         -- Value content -> 
             -- case parse (deleteComment content) of
             --     Error err -> die err
