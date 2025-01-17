@@ -259,7 +259,7 @@ testParse5 :: Test
 testParse5 = myAssertEqual "parse '('" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected\n") (parse "(")
 
 testParse6 :: Test
-testParse6 = myAssertEqual "parse ')'" (Error "GLaDOS: SyntaxError: unexpected ')' while parsing\n") (parse ")")
+testParse6 = myAssertEqual "parse ')'" (Error "SyntaxError: Unexpecting closing paranthese found") (parse ")")
 
 testParse7 :: Test
 testParse7 = myAssertEqual "parse ''" (Value []) (parse "")
