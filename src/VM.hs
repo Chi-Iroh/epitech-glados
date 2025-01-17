@@ -47,20 +47,20 @@ deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
 deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest >>= \(a, len', rest') -> Value (Any (_type, a), len + len'))
 
 parseInstruction :: [Word8] -> Safe (AssemblyInstruction, Int)
-parseInstruction (pushVal : xs) = mapFst PushValue <$> deserializeTypeAndValue xs
-parseInstruction (pushReg : reg : xs) = Value (PushRegister reg, 2)
-parseInstruction (pop : reg : xs) = Value (Pop reg, 2)
--- parseInstruction (construct : xs) = mapFst Construct <$> deserializeTypeAndValue xs >>= deserializeTypeAndValue xs
-parseInstruction (test : reg : xs) = Value (Test reg, 2)
--- parseInstruction (jt : xs) = snd (fromSafe $ deserialize xs)
--- parseInstruction (jf : xs) = snd (fromSafe $ deserialize xs)
--- parseInstruction (call : xs) = mapFst Call <$> deserializeList T_String 0 xs [] 
-parseInstruction (retVal : xs) = mapFst RetValue <$> deserializeTypeAndValue xs
-parseInstruction (retReg : reg : xs) = Value (RetRegister reg, 2)
-parseInstruction (movVal : reg : xs) = mapFst (MovValue reg) <$> deserializeTypeAndValue xs
-parseInstruction (movReg : reg1 : reg2 : xs) = Value (MovRegister reg1 reg2, 3)
-parseInstruction (outVal : xs) = mapFst OutValue <$> deserializeTypeAndValue xs
-parseInstruction (outReg : reg : xs) = Value (RetRegister reg, 2)
+parseInstruction (0x00 : xs) = mapFst PushValue <$> deserializeTypeAndValue xs
+parseInstruction (0x01 : reg : xs) = Value (PushRegister reg, 2)
+parseInstruction (0x10 : reg : xs) = Value (Pop reg, 2)
+-- parseInstruction (0x20 : xs) = mapFst Construct <$> deserializeTypeAndValue xs >>= deserializeTypeAndValue xs
+parseInstruction (0x30 : reg : xs) = Value (Test reg, 2)
+-- parseInstruction (0x40 : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (0x50 : xs) = snd (fromSafe $ deserialize xs)
+-- parseInstruction (0x60 : xs) = mapFst Call <$> deserializeList T_Char 0 xs [] 
+parseInstruction (0x70 : xs) = mapFst RetValue <$> deserializeTypeAndValue xs
+parseInstruction (0x71 : reg : xs) = Value (RetRegister reg, 2)
+parseInstruction (0x80 : reg : xs) = mapFst (MovValue reg) <$> deserializeTypeAndValue xs
+parseInstruction (0x81 : reg1 : reg2 : xs) = Value (MovRegister reg1 reg2, 3)
+parseInstruction (0x90 : xs) = mapFst OutValue <$> deserializeTypeAndValue xs
+parseInstruction (0x91 : reg : xs) = Value (RetRegister reg, 2)
 parseInstruction [] = Error endOfFile -- maybe special handling to return 0 instead of 1 when  end of file, because it's totally normal behavior
 
 mainVM :: FilePath -> IO ()
