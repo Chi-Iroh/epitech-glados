@@ -39,7 +39,7 @@ mapFst :: (a -> c) -> (a, b) -> (c, b)
 mapFst f (a, b) = (f a, b)
 
 deserializeList :: Type -> Int -> [Word8] -> [Any] -> Safe ([Any], Int)
-deserializeList _ len 0x00 list = Value (list, len)
+deserializeList _ len (0x00:_) list = Value (list, len)
 deserializeList _ _ [] _ = Error "No end bytes in list"
 deserializeList a len bytes list = deserialize a bytes >>= (\(member, len', rest) -> deserializeList a (len + len') rest $ member : list)
 
