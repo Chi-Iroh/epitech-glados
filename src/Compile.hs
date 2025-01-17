@@ -14,7 +14,7 @@ import Serialize (Serializable)
 import SymbolTable (SymbolTable, writeSymbolTable)
 import Type
 import Utils (Safe(..))
-import VM (Any(..), Address)
+import VMData (Any(..), Address)
 
 data Symbol = BackendSymbol (String, (Symbols -> [AST] -> Safe AST))
 type Symbols = [Symbol]

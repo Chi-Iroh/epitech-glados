@@ -8,7 +8,7 @@ import Data.Word (Word8)
 import Bits (splitWord32, combineWord32)
 import Serialize (serializeChar)
 import Utils (Safe(..))
-import VM (Address)
+import VMData (Address)
 
 type Symbol = (String, Address)
 type SymbolTable = [Symbol]

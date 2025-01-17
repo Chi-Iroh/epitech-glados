@@ -13,6 +13,7 @@ import Parser
 import System.Exit (die, exitWith, ExitCode(ExitFailure))
 import System.Environment
 import Utils
+import VM (mainVM)
 
 getFileName :: [String] -> Maybe String
 getFileName [a] = Just a
@@ -41,15 +42,16 @@ main = do
     filename <- case getFileName args of
                 Nothing -> exitWith(ExitFailure 84)
                 Just filename -> pure filename
-    file <- readFile filename
-    fileimport <- parseImport (deleteComment file)
-    case fileimport of
-        Error err -> die err
-        -- Value content ->
+    mainVM filename
+    -- file <- readFile filename
+    -- fileimport <- parseImport (deleteComment file)
+    -- case fileimport of
+        -- Error err -> die err
+        -- -- Value content ->
             -- putResult (fmap showAll ((convert $ parse (deleteComment content)) >>= evaluateAST))
 
         -- Value content -> 
             -- case parse (deleteComment content) of
             --     Error err -> die err
             --     -- Value sexprs -> putResult (show sexprs)
-        Value content -> safeToIO ((traceShowId $ convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary "output.bin"
+        -- Value content -> safeToIO ((traceShowId $ convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary "output.bin"

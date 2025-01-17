@@ -13,7 +13,7 @@ import Hex (showHex32)
 import Serialize
 import Type (Type(..))
 import Utils (Safe(..))
-import VM (Any(..), Address, addrToBytes)
+import VMData (Any(..), Address, addrToBytes)
 
 type RegisterID = Word8
 
