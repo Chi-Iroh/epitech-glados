@@ -52,7 +52,9 @@ deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -
 executeInstruction :: AssemblyInstruction -> Vm -> Safe Vm
 executeInstruction (PushRegister registerID) (Vm reg cstack bf vstack pc) = pushRegister registerID reg vstack >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
 executeInstruction (PushValue value) (Vm reg cstack bf vstack pc) = pushValue value vstack >>=(\ _stack -> Value (Vm reg cstack bf _stack pc))
-executeInstruction (Pop registerID)(Vm reg cstack bf vstack pc) = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
+executeInstruction (Pop registerID) (Vm reg cstack bf vstack pc) = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
+executeInstruction (JumpIfTrue move) (Vm reg cstack bf vstack pc) = Value (Vm reg cstack bf vstack (pc + move))
+executeInstruction (JumpIfFalse move) (Vm reg cstack bf vstack pc) = Value (Vm reg cstack bf vstack (pc + move))
 
 parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
 parseInstruction' (0x00 : xs) = mapFst PushValue <$> deserializeTypeAndValue xs
