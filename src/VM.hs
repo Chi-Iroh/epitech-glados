@@ -8,8 +8,8 @@ import Unsafe.Coerce (unsafeCoerce)
 
 import AssemblyInstructions (AssemblyInstruction(..))
 import BinaryIO (readBinary, writeBinary)
-import Bits (splitWord32)
-import Deserialize (deserialize, deserializeType)
+import Bits (splitWord32, combineWord32)
+import Deserialize (deserialize, deserializeType, deserializeInt)
 import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
 import Utils (Safe(..))
@@ -52,10 +52,10 @@ parseInstruction :: [Word8] -> Safe (AssemblyInstruction, Int)
 parseInstruction (0x00 : xs) = mapFst PushValue <$> deserializeTypeAndValue xs
 parseInstruction (0x01 : reg : xs) = Value (PushRegister reg, 2)
 parseInstruction (0x10 : reg : xs) = Value (Pop reg, 2)
--- parseInstruction (0x20 : xs) = mapFst Construct <$> deserializeTypeAndValue xs >>= deserializeTypeAndValue xs
+parseInstruction (0x20 : xs) = deserializeType xs >>=(\(_type, len, rest) -> deserializeInt xs >>= \(a, len', _) -> Value (Construct _type a, len + len'))
 parseInstruction (0x30 : reg : xs) = Value (Test reg, 2)
--- parseInstruction (0x40 : xs) = snd (fromSafe $ deserialize xs)
--- parseInstruction (0x50 : xs) = snd (fromSafe $ deserialize xs)
+parseInstruction (0x40 : byte1 : byte2 : byte3 : byte4 : xs) = Value (JumpIfTrue (combineWord32 $ byte1 : [byte2] ++ [byte3] ++ [byte4]), 5)
+parseInstruction (0x50 : byte1 : byte2 : byte3 : byte4 : xs) = Value (JumpIfFalse (combineWord32 $ byte1 : [byte2] ++ [byte3] ++ [byte4]), 5)
 parseInstruction (0x60 : xs) = deserializeList T_Char 0 xs [] <&> (\(str, i) -> (map (\(Any (_, a)) -> unsafeCoerce a :: Char) str, i)) <&> mapFst Call
 parseInstruction (0x70 : xs) = mapFst RetValue <$> deserializeTypeAndValue xs
 parseInstruction (0x71 : reg : xs) = Value (RetRegister reg, 2)
@@ -63,6 +63,7 @@ parseInstruction (0x80 : reg : xs) = mapFst (MovValue reg) <$> deserializeTypeAn
 parseInstruction (0x81 : reg1 : reg2 : xs) = Value (MovRegister reg1 reg2, 3)
 parseInstruction (0x90 : xs) = mapFst OutValue <$> deserializeTypeAndValue xs
 parseInstruction (0x91 : reg : xs) = Value (RetRegister reg, 2)
+parseInstruction (_ : xs) = parseInstruction xs
 parseInstruction [] = Error endOfFile -- maybe special handling to return 0 instead of 1 when  end of file, because it's totally normal behavior
 
 mainVM :: FilePath -> IO ()
