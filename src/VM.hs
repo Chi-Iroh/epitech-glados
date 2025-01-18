@@ -94,14 +94,6 @@ endOfFile = "End of file"
 mapFst :: (a -> c) -> (a, b) -> (c, b)
 mapFst f (a, b) = (f a, b)
 
-deserializeList :: Type -> Int -> [Word8] -> [Any] -> Safe ([Any], Int)
-deserializeList _ len (0x00:_) list = Value (list, len)
-deserializeList _ _ [] _ = Error "No end bytes in list"
-deserializeList a len bytes list = deserialize a bytes >>= (\(member, len', rest) -> deserializeList a (len + len') rest $ list ++ [member])
-
-deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
-deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest >>= \(a, len', rest') -> Value (Any (_type, a), len + len'))
-
 executeInstruction :: AssemblyInstruction -> SymbolTable -> Vm -> Int -> Safe Vm
 executeInstruction (PushRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc))
 executeInstruction (PushValue value) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm (reg:rs) cstack bf _stack pc))

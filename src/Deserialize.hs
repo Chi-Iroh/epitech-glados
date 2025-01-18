@@ -50,3 +50,11 @@ deserializeFloat bytes = Error ("Cannot deserialize a float, less than 4 bytes t
 
 deserializeType :: [Word8] -> Safe (Type, Int, [Word8])
 deserializeType = Value . (T_NULL, 1,)
+
+deserializeList :: Type -> Int -> [Word8] -> [Any] -> Safe ([Any], Int)
+deserializeList _ len (0x00:_) list = Value (list, len)
+deserializeList _ _ [] _ = Error "No end bytes in list"
+deserializeList a len bytes list = deserialize a bytes >>= (\(member, len', rest) -> deserializeList a (len + len') rest $ list ++ [member])
+
+deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
+deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest >>= \(a, len', rest') -> Value (Any (_type, a), len + len'))
