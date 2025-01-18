@@ -73,6 +73,15 @@ jumpFalse _ Nothing _ = Error "BF not set, please use test before conditional ju
 jumpFalse _ (Just True)_  = Value 0
 jumpFalse addr (Just False) len = Value $ addr - u32 len
 
+returnRegister :: [Address] -> Maybe Any -> [Any] -> Safe ([Address], [Any], Address)
+returnRegister (a:as) (Just val) stack = Value (as, val : stack, a)
+returnRegister _ Nothing _ = Error "Empty register in return call"
+returnRegister [] _ _ = Error "Can't return in highest degree function"
+
+returnValue :: [Address] -> Any -> [Any] -> Safe ([Address], [Any], Address)
+returnValue (a:as) val stack = Value (as, val : stack, a)
+returnValue [] _ _ = Error "Can't return in highest degree function"
+
 endOfFile :: String
 endOfFile = "End of file"
 
@@ -94,8 +103,8 @@ executeInstruction (Pop registerID) (Vm (reg:rs) cstack bf vstack pc) _ = popSta
 executeInstruction (Test registerID) (Vm (reg:rs) cstack bf vstack pc) _ = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc))
 executeInstruction (JumpIfTrue addr) (Vm (reg:rs) cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move)))
 executeInstruction (JumpIfFalse addr) (Vm (reg:rs) cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move)))
--- executeInstruction (RetRegister registerID) (Vm (reg:rs) cstack bf vstack pc) len = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len)))
--- executeInstruction (RetValue value) (Vm (reg:rs) cstack bf vstack pc) len = returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len)))
+executeInstruction (RetRegister registerID) (Vm (reg:rs) cstack bf vstack pc) len = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len)))
+executeInstruction (RetValue value) (Vm (reg:rs) cstack bf vstack pc) len = returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len)))
 executeInstruction (MovRegister register1 register2) (Vm (reg:rs) cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc))
 executeInstruction (MovValue registerID value) (Vm (reg:rs) cstack bf vstack pc) _ =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc))
 
