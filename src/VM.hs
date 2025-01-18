@@ -2,6 +2,7 @@ module VM where
 
 import Data.Functor ((<&>))
 import Data.Word (Word8, Word32)
+import Data.Typeable (typeOf)
 import System.Exit (die)
 import Text.Printf (printf)
 import Unsafe.Coerce (unsafeCoerce)
@@ -20,11 +21,20 @@ fromSafe :: Safe a -> a
 fromSafe (Error err) = error err
 fromSafe (Value a) = a
 
-pushRegister :: RegisterID -> [Maybe Any] -> [Any] -> Safe ([Maybe Any], [Any])
-pushRegister 0 ((Just a):reg) stack = Value (Nothing:reg, a:stack)
-pushRegister 0 (Nothing:_) _ = Error "Register empty"
-pushRegister x (a:as) stack = pushRegister (x - 1) as stack >>=(\(_reg, _stack) -> Value (a:_reg, _stack))
-pushRegister _ [] _ = Error "Register out of bounds"
+imap :: (Int -> a -> b) -> [a] -> [b]
+imap f arr = map (\(i, a) -> f i a) (zip [0..] arr)
+
+setAt :: Int -> a -> [a] -> [a]
+setAt _ _ [] = []
+setAt 0 a (_ : xs) = a : xs
+setAt n a (x : xs) = x : setAt (n - 1) a xs
+
+mapAt :: (a -> a) -> Int -> [a] -> [a]
+mapAt f i = imap (\i' a -> if i == i' then f a else a)
+
+pushRegister :: Maybe Any -> [Any] -> Safe [Any]
+pushRegister (Just a) stack = Value $ a:stack
+pushRegister Nothing _ = Error "Register empty"
 
 pushValue :: Any -> [Any] -> Safe [Any]
 pushValue a stack = Value $ a:stack
@@ -45,6 +55,13 @@ moveRegister 0 0 _ (Nothing : _) = Error "Source register empty"
 moveRegister 0 y reg1 (r': rs') = moveRegister 0 (y - 1) reg1 rs'
 moveRegister x 0 (r : rs) reg2 = moveRegister (x - 1) 0 rs reg2 >>=(\_reg -> Value (r:_reg))
 moveRegister x y (r : rs) (r': rs') = moveRegister (x - 1) (y - 1) rs rs' >>=(\_reg -> Value (r:_reg))
+
+testReg :: Maybe Any -> Safe Bool
+testReg (Just (Any(T_Bool, val)))
+                    | unsafeCoerce val :: Bool = Value True
+                    | otherwise = Value False
+testReg (Just r) = Error "Register doesn't contain a boolean value"
+testReg Nothing = Error "Register is empty"
 
 jumpTrue :: Address -> Maybe Bool -> Int -> Safe Address
 jumpTrue _ Nothing _ = Error "BF not set, please use test before conditional jump"
@@ -71,9 +88,10 @@ deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
 deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest >>= \(a, len', rest') -> Value (Any (_type, a), len + len'))
 
 executeInstruction :: AssemblyInstruction -> Vm -> Int -> Safe Vm
-executeInstruction (PushRegister registerID) (Vm reg cstack bf vstack pc) _ = pushRegister registerID reg vstack >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
+executeInstruction (PushRegister registerID) (Vm reg cstack bf vstack pc) _ = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm reg cstack bf _stack pc))
 executeInstruction (PushValue value) (Vm reg cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm reg cstack bf _stack pc))
 executeInstruction (Pop registerID) (Vm reg cstack bf vstack pc) _ = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
+executeInstruction (Test registerID) (Vm reg cstack bf vstack pc) _ = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm reg cstack (Just _bf) vstack pc))
 executeInstruction (JumpIfTrue addr) (Vm reg cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm reg cstack bf vstack (pc + move)))
 executeInstruction (JumpIfFalse addr) (Vm reg cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm reg cstack bf vstack (pc + move)))
 executeInstruction (MovRegister register1 register2) (Vm reg cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm _reg cstack bf vstack pc))
