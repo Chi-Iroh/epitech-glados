@@ -159,9 +159,11 @@ To track the call stack, the VM has a hidden internal stack of addresses simply 
 Opcode : 0x6
 ```x86asm
 call function_name  ; addressing mode = 0x0
+call                ; addressing mode = 0x1
 ```
 
-This instructions calls a function, it means it saves the current address in an internal and hidden stack, and then jumps to the function address.  
+This instructions calls a function, it means it saves the current address in an internal and hidden stack.  
+Then, if the address if specified, it jumps to the function address, otherwise it acts as the function address was at the very next opcode.  
 
 #### Function name lookup
 
