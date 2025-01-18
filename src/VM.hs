@@ -23,7 +23,7 @@ fromSafe (Value a) = a
 pushRegister :: RegisterID -> [Maybe Any] -> [Any] -> Safe ([Maybe Any], [Any])
 pushRegister 0 ((Just a):reg) stack = Value (Nothing:reg, a:stack)
 pushRegister 0 (Nothing:_) _ = Error "Register empty"
-pushRegister x (a:as) stack = pushRegister (x - 1) as stack >>=(\(_reg, _stack) -> Value (a:_reg, _stack)) -- not sure about reg movement
+pushRegister x (a:as) stack = pushRegister (x - 1) as stack >>=(\(_reg, _stack) -> Value (a:_reg, _stack))
 pushRegister _ [] _ = Error "Register out of bounds"
 
 pushValue :: Any -> [Any] -> Safe [Any]
@@ -34,6 +34,17 @@ popStack 0 (a : as) (_ : rs) = Value  (Just a : rs, as)
 popStack x stack (r : rs) = popStack (x - 1) stack rs >>=(\(_reg, _stack) -> Value (r:_reg, _stack))
 popStack _ [] _ = Error "Stack empty"
 popStack _ _ [] = Error "Register out of bounds"
+
+moveValue :: RegisterID -> [Maybe Any] -> Any -> Safe [Maybe Any]
+moveValue 0 (_ : rs) a = Value (Just a : rs)
+moveValue x (r:rs) a = moveValue (x - 1) rs a >>=(\_reg -> Value (r:_reg))
+
+moveRegister :: RegisterID -> RegisterID -> [Maybe Any] -> [Maybe Any] -> Safe [Maybe Any]
+moveRegister 0 0 (_ : rs) (r : _) = Value (r : rs)
+moveRegister 0 0 _ (Nothing : _) = Error "Source register empty"
+moveRegister 0 y reg1 (r': rs') = moveRegister 0 (y - 1) reg1 rs'
+moveRegister x 0 (r : rs) reg2 = moveRegister (x - 1) 0 rs reg2 >>=(\_reg -> Value (r:_reg))
+moveRegister x y (r : rs) (r': rs') = moveRegister (x - 1) (y - 1) rs rs' >>=(\_reg -> Value (r:_reg))
 
 endOfFile :: String
 endOfFile = "End of file"
@@ -55,6 +66,8 @@ executeInstruction (PushValue value) (Vm reg cstack bf vstack pc) = pushValue va
 executeInstruction (Pop registerID) (Vm reg cstack bf vstack pc) = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
 executeInstruction (JumpIfTrue move) (Vm reg cstack bf vstack pc) = Value (Vm reg cstack bf vstack (pc + move))
 executeInstruction (JumpIfFalse move) (Vm reg cstack bf vstack pc) = Value (Vm reg cstack bf vstack (pc + move))
+executeInstruction (MovRegister register1 register2) (Vm reg cstack bf vstack pc) = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm _reg cstack bf vstack pc))
+executeInstruction (MovValue registerID value) (Vm reg cstack bf vstack pc) =  moveValue registerID reg value >>=(\_reg -> Value (Vm _reg cstack bf vstack pc))
 
 parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
 parseInstruction' (0x00 : xs) = mapFst PushValue <$> deserializeTypeAndValue xs
