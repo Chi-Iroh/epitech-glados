@@ -2,18 +2,20 @@
 {-# LANGUAGE InstanceSigs #-}
 module AssemblyInstructions (RegisterID, AssemblyInstruction(..), toAny, assemble, toAssemblyValueInstruction) where
 
+import Data.Dynamic (Dynamic, toDyn)
+import Data.Functor ((<&>))
 import Data.Typeable (typeOf, Typeable)
-import Debug.Trace (traceShow)
 import Data.Word (Word8)
-import Debug.Trace (traceShowId)
+import Debug.Trace (traceShow, traceShowId)
 import Unsafe.Coerce (unsafeCoerce)
 
+import Any (Any(..))
 import AST (AST(..), getTypeAST)
 import Hex (showHex32)
 import Serialize
 import Type (Type(..))
 import Utils (Safe(..))
-import VM (Any(..), Address, addrToBytes)
+import VM (Address, addrToBytes)
 
 type RegisterID = Word8
 
@@ -52,9 +54,6 @@ instance Show AssemblyInstruction where
 traceVal :: (Typeable a, Show a) => String -> a -> a
 traceVal msg a = traceShow (msg ++ " = " ++ show a ++ " :: " ++ show (typeOf a)) a
 
-fromAny :: Any -> Int
-fromAny (Any (_, a)) = unsafeCoerce a
-
 toAny :: AST -> Safe Any
 toAny (ASTBool b) = Value (Any (T_Bool, b))
 toAny (ASTChar c) = Value (Any (T_Char, c))
@@ -65,8 +64,22 @@ toAny (ASTString str) = Value (Any (T_String, str))
 toAny (ASTTuple (a, b)) = liftA2 (\types' values' -> Any (T_Tuple types', values')) types values
     where types = liftA2 (,) (getTypeAST a) (getTypeAST b)
           values = liftA2 (,) (toAny a) (toAny b)
-toAny list@(ASTArray xs) = liftA2 (\type' values' -> Any (type', map fromAny values')) (getTypeAST list) values
-    where values = traceVal "values" (mapM toAny xs)
+
+toAny (ASTArray []) = Value (Any (T_EmptyList, [] :: [Int]))
+toAny list@(ASTArray xs) = liftA2 (\type'@(T_List t) values' -> Any (type', dynamicList t values')) (getTypeAST list) values
+  where
+    values = mapM toAny xs
+    -- Converts a list of Any to a list of a specific type dynamically
+    dynamicList :: Type -> [Any] -> [Dynamic]
+    dynamicList t xs' = map (fromAnyDynamic t) xs'
+
+    -- Extracts value dynamically based on the provided Type
+    fromAnyDynamic :: Type -> Any -> Dynamic
+    fromAnyDynamic _ (Any (_, a)) = toDyn a
+
+-- toAny list@(ASTArray xs) = liftA2 (\type' values' -> Any (type', map fromAny values')) (getTypeAST list) values
+    -- where values = traceVal "values" (mapM toAny xs)
+
 toAny a = Error ("toAny: Invalid argument : '" ++ show a ++ "'")
 
 toAssemblyValueInstruction :: (Any -> AssemblyInstruction) -> AST -> Safe AssemblyInstruction

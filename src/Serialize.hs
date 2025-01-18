@@ -1,10 +1,13 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NumericUnderscores #-}
+
 module Serialize where
 
 import Bits (splitWord32, setBit, i32, u32)
 import Data.Bits (complement, shiftR, (.&.), (.<<.), Bits)
 import Data.ByteString.Internal (c2w)
+import Data.Dynamic (Dynamic, fromDynamic)
 import Data.Int (Int32)
 import Data.Word (Word8)
 import GHC.Float (castFloatToWord32)
@@ -39,6 +42,11 @@ instance (Serializable a, Serializable b) => Serializable (a, b) where
 
 instance Serializable a => Serializable [a] where
     serialize list = serializeList list
+
+instance Serializable Dynamic where
+    serialize :: Dynamic -> [Word8]
+    serialize dyn
+        | Just (x :: Int) -> 
 
 serializeBool :: Bool -> [Word8]
 serializeBool bool = [if bool then 0x01 else 0x00]

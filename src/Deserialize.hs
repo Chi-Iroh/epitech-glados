@@ -1,17 +1,18 @@
 module Deserialize (deserialize) where
 
 import Data.Bits ((.<<.), (.|.))
-import Data.Functor ((<&>))
-import Bits (u32)
 import Data.ByteString.Internal (w2c)
+import Data.Functor ((<&>))
 import Data.Word (Word8)
 import GHC.Float (castWord32ToFloat)
+
+import Any (Any(..), Anyable(..))
+import Bits (u32)
 import Serialize (Serializable)
 import Type (Type(..))
 import Utils (Safe(..))
-import VM (Any(..))
 
-toAnyAndBytes :: (Serializable a, Show a) => Type -> (a, [Word8]) -> (Any, [Word8])
+toAnyAndBytes :: Anyable a => Type -> (a, [Word8]) -> (Any, [Word8])
 toAnyAndBytes t (val, bytes) = (Any (t, val), bytes)
 
 deserialize :: Type -> [Word8] -> Safe (Any, [Word8])

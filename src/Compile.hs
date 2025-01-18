@@ -7,6 +7,7 @@ import Data.Functor ((<&>))
 import Data.List (singleton, find)
 import Data.Word (Word8)
 
+import Any (Any(..), Anyable(..))
 import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, toAny)
 import AST (AST(..), Call(..), getTypeAST)
 import Bits (u32)
@@ -14,7 +15,7 @@ import Serialize (Serializable)
 import SymbolTable (SymbolTable, writeSymbolTable)
 import Type
 import Utils (Safe(..))
-import VM (Any(..), Address)
+import VM (Address)
 
 data Symbol = BackendSymbol (String, (Symbols -> [AST] -> Safe AST))
 type Symbols = [Symbol]
@@ -128,7 +129,7 @@ addSymbol status name status'
         _symbols = (_symbols status) ++ [(name, status')]
     }
 
-compileValue :: (Serializable a, Show a) => Type -> a -> Bool -> CompilationStatus
+compileValue :: Anyable a => Type -> a -> Bool -> CompilationStatus
 compileValue _type value isNested = compileValueFromAny (Any (_type, value)) isNested
 
 compileValueFromAny :: Any -> Bool -> CompilationStatus
