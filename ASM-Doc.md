@@ -190,12 +190,12 @@ If CS is empty, the VM will throw a runtime error.
 
 Opcode : 0x8
 ```x86asm
-mov register, type value                            ; addressing mode = 0x0
-mov register (destination), type register (source)  ; addressing mode = 0x1
+mov register, value                            ; addressing mode = 0x0
+mov register (destination), register (source)  ; addressing mode = 0x1
 ```
 
 This instruction puts a value in a register, it can be either another register of the given type or an immediate value of the given type.  
-If the source register isn't of the given type, the VM will throw a runtime error.  
+If the source register is empty, the VM will throw a runtime error.  
 
 ## VM output
 
