@@ -46,6 +46,16 @@ moveRegister 0 y reg1 (r': rs') = moveRegister 0 (y - 1) reg1 rs'
 moveRegister x 0 (r : rs) reg2 = moveRegister (x - 1) 0 rs reg2 >>=(\_reg -> Value (r:_reg))
 moveRegister x y (r : rs) (r': rs') = moveRegister (x - 1) (y - 1) rs rs' >>=(\_reg -> Value (r:_reg))
 
+jumpTrue :: Address -> Maybe Bool -> Int -> Safe Address
+jumpTrue _ Nothing _ = Error "BF not set, please use test before conditional jump"
+jumpTrue _ (Just False) _ = Value 0
+jumpTrue addr (Just True) len = Value $ addr - u32 len
+
+jumpFalse :: Address -> Maybe Bool -> Int -> Safe Address
+jumpFalse _ Nothing _ = Error "BF not set, please use test before conditional jump"
+jumpFalse _ (Just True)_  = Value 0
+jumpFalse addr (Just False) len = Value $ addr - u32 len
+
 endOfFile :: String
 endOfFile = "End of file"
 
@@ -60,14 +70,14 @@ deserializeList a len bytes list = deserialize a bytes >>= (\(member, len', rest
 deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
 deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest >>= \(a, len', rest') -> Value (Any (_type, a), len + len'))
 
-executeInstruction :: AssemblyInstruction -> Vm -> Safe Vm
-executeInstruction (PushRegister registerID) (Vm reg cstack bf vstack pc) = pushRegister registerID reg vstack >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
-executeInstruction (PushValue value) (Vm reg cstack bf vstack pc) = pushValue value vstack >>=(\ _stack -> Value (Vm reg cstack bf _stack pc))
-executeInstruction (Pop registerID) (Vm reg cstack bf vstack pc) = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
-executeInstruction (JumpIfTrue move) (Vm reg cstack bf vstack pc) = Value (Vm reg cstack bf vstack (pc + move))
-executeInstruction (JumpIfFalse move) (Vm reg cstack bf vstack pc) = Value (Vm reg cstack bf vstack (pc + move))
-executeInstruction (MovRegister register1 register2) (Vm reg cstack bf vstack pc) = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm _reg cstack bf vstack pc))
-executeInstruction (MovValue registerID value) (Vm reg cstack bf vstack pc) =  moveValue registerID reg value >>=(\_reg -> Value (Vm _reg cstack bf vstack pc))
+executeInstruction :: AssemblyInstruction -> Vm -> Int -> Safe Vm
+executeInstruction (PushRegister registerID) (Vm reg cstack bf vstack pc) _ = pushRegister registerID reg vstack >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
+executeInstruction (PushValue value) (Vm reg cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm reg cstack bf _stack pc))
+executeInstruction (Pop registerID) (Vm reg cstack bf vstack pc) _ = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
+executeInstruction (JumpIfTrue addr) (Vm reg cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm reg cstack bf vstack (pc + move)))
+executeInstruction (JumpIfFalse addr) (Vm reg cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm reg cstack bf vstack (pc + move)))
+executeInstruction (MovRegister register1 register2) (Vm reg cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm _reg cstack bf vstack pc))
+executeInstruction (MovValue registerID value) (Vm reg cstack bf vstack pc) _ =  moveValue registerID reg value >>=(\_reg -> Value (Vm _reg cstack bf vstack pc))
 
 parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
 parseInstruction' (0x00 : xs) = mapFst PushValue <$> deserializeTypeAndValue xs
@@ -88,7 +98,7 @@ parseInstruction' (_ : xs) = parseInstruction' xs
 parseInstruction' [] = Error endOfFile -- maybe special handling to return 0 instead of 1 when  end of file, because it's totally normal behavior
 
 parseInstruction :: Vm -> [Word8] -> Safe Vm
-parseInstruction vm bytes = parseInstruction' bytes >>=(\(instruction, movement) -> case executeInstruction instruction vm of
+parseInstruction vm bytes = parseInstruction' bytes >>=(\(instruction, movement) -> case executeInstruction instruction vm movement of
     Error err -> Error err
     Value (Vm _reg _cstack _bf _vstack _pc) -> Value (Vm _reg _cstack _bf _vstack (_pc + u32 movement))) --
 
