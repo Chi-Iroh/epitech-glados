@@ -88,14 +88,16 @@ deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
 deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest >>= \(a, len', rest') -> Value (Any (_type, a), len + len'))
 
 executeInstruction :: AssemblyInstruction -> Vm -> Int -> Safe Vm
-executeInstruction (PushRegister registerID) (Vm reg cstack bf vstack pc) _ = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm reg cstack bf _stack pc))
-executeInstruction (PushValue value) (Vm reg cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm reg cstack bf _stack pc))
-executeInstruction (Pop registerID) (Vm reg cstack bf vstack pc) _ = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm _reg cstack bf _stack pc))
-executeInstruction (Test registerID) (Vm reg cstack bf vstack pc) _ = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm reg cstack (Just _bf) vstack pc))
-executeInstruction (JumpIfTrue addr) (Vm reg cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm reg cstack bf vstack (pc + move)))
-executeInstruction (JumpIfFalse addr) (Vm reg cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm reg cstack bf vstack (pc + move)))
-executeInstruction (MovRegister register1 register2) (Vm reg cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm _reg cstack bf vstack pc))
-executeInstruction (MovValue registerID value) (Vm reg cstack bf vstack pc) _ =  moveValue registerID reg value >>=(\_reg -> Value (Vm _reg cstack bf vstack pc))
+executeInstruction (PushRegister registerID) (Vm (reg:rs) cstack bf vstack pc) _ = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc))
+executeInstruction (PushValue value) (Vm (reg:rs) cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm (reg:rs) cstack bf _stack pc))
+executeInstruction (Pop registerID) (Vm (reg:rs) cstack bf vstack pc) _ = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm (_reg:rs) cstack bf _stack pc))
+executeInstruction (Test registerID) (Vm (reg:rs) cstack bf vstack pc) _ = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc))
+executeInstruction (JumpIfTrue addr) (Vm (reg:rs) cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move)))
+executeInstruction (JumpIfFalse addr) (Vm (reg:rs) cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move)))
+-- executeInstruction (RetRegister registerID) (Vm (reg:rs) cstack bf vstack pc) len = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len)))
+-- executeInstruction (RetValue value) (Vm (reg:rs) cstack bf vstack pc) len = returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len)))
+executeInstruction (MovRegister register1 register2) (Vm (reg:rs) cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc))
+executeInstruction (MovValue registerID value) (Vm (reg:rs) cstack bf vstack pc) _ =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc))
 
 parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
 parseInstruction' (0x00 : xs) = mapFst PushValue <$> deserializeTypeAndValue xs
@@ -132,3 +134,4 @@ mainVM path = do
             Value (Vm _reg _cstack _bf _vstack _pc) -> print _pc
             -- writeBinary "output.txt"
 
+-- reg >> [[Any]], prend toujours le head

@@ -20,8 +20,8 @@ instance Show Any where
     show (Any (type', val)) = printf "Any (%s, %s)" (show type') (show val)
 
 data Vm = Vm {
-    _registers :: [Maybe Any],    -- 16 registers
-    _callStack :: [Int],    -- call stack for function calls
+    _registers :: [[Maybe Any]],    -- 16 registers
+    _callStack :: [Address],    -- call stack for function calls
     _bf :: Maybe Bool,      -- boolean flag for branching
     _valueStack :: [Any],   -- value stack (where args are pushed)
     _pc :: Address          -- position of current opcode
@@ -29,7 +29,7 @@ data Vm = Vm {
 
 defaultVM :: Vm
 defaultVM = Vm {
-    _registers = replicate 16 Nothing,
+    _registers = [replicate 16 Nothing],
     _callStack = [],
     _bf = Nothing,
     _valueStack = [],
