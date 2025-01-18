@@ -73,6 +73,12 @@ jumpFalse _ Nothing _ = Error "BF not set, please use test before conditional ju
 jumpFalse _ (Just True)_  = Value 0
 jumpFalse addr (Just False) len = Value $ addr - u32 len
 
+call :: String -> SymbolTable -> Safe Address
+call str ((str', address):ts)
+                | str == str' = Value address
+                | otherwise = call str ts 
+call str [] = Error $ "Can't find function " ++ str
+
 returnRegister :: [Address] -> Maybe Any -> [Any] -> Safe ([Address], [Any], Address)
 returnRegister (a:as) (Just val) stack = Value (as, val : stack, a)
 returnRegister _ Nothing _ = Error "Empty register in return call"
@@ -96,17 +102,18 @@ deserializeList a len bytes list = deserialize a bytes >>= (\(member, len', rest
 deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
 deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest >>= \(a, len', rest') -> Value (Any (_type, a), len + len'))
 
-executeInstruction :: AssemblyInstruction -> Vm -> Int -> Safe Vm
-executeInstruction (PushRegister registerID) (Vm (reg:rs) cstack bf vstack pc) _ = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc))
-executeInstruction (PushValue value) (Vm (reg:rs) cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm (reg:rs) cstack bf _stack pc))
-executeInstruction (Pop registerID) (Vm (reg:rs) cstack bf vstack pc) _ = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm (_reg:rs) cstack bf _stack pc))
-executeInstruction (Test registerID) (Vm (reg:rs) cstack bf vstack pc) _ = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc))
-executeInstruction (JumpIfTrue addr) (Vm (reg:rs) cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move)))
-executeInstruction (JumpIfFalse addr) (Vm (reg:rs) cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move)))
-executeInstruction (RetRegister registerID) (Vm (reg:rs) cstack bf vstack pc) len = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len)))
-executeInstruction (RetValue value) (Vm (reg:rs) cstack bf vstack pc) len = returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len)))
-executeInstruction (MovRegister register1 register2) (Vm (reg:rs) cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc))
-executeInstruction (MovValue registerID value) (Vm (reg:rs) cstack bf vstack pc) _ =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc))
+executeInstruction :: AssemblyInstruction -> SymbolTable -> Vm -> Int -> Safe Vm
+executeInstruction (PushRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc))
+executeInstruction (PushValue value) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm (reg:rs) cstack bf _stack pc))
+executeInstruction (Pop registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm (_reg:rs) cstack bf _stack pc))
+executeInstruction (Test registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc))
+executeInstruction (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move)))
+executeInstruction (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move)))
+executeInstruction (Call str) table (Vm reg cstack bf vstack pc) len = call str table >>=(\_address -> Value (Vm (replicate 16 Nothing : reg) (pc:cstack) bf vstack (_address - u32 len)))
+executeInstruction (RetRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) len = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len)))
+executeInstruction (RetValue value) _ (Vm (reg:rs) cstack bf vstack pc) len = returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len)))
+executeInstruction (MovRegister register1 register2) _ (Vm (reg:rs) cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc))
+executeInstruction (MovValue registerID value) _ (Vm (reg:rs) cstack bf vstack pc) _ =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc))
 
 parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
 parseInstruction' (0x00 : xs) = mapFst PushValue <$> deserializeTypeAndValue xs
@@ -126,8 +133,8 @@ parseInstruction' (0x91 : reg : _) = Value (RetRegister reg, 2)
 parseInstruction' (_ : xs) = parseInstruction' xs
 parseInstruction' [] = Error endOfFile -- maybe special handling to return 0 instead of 1 when  end of file, because it's totally normal behavior
 
-parseInstruction :: Vm -> [Word8] -> Safe Vm
-parseInstruction vm bytes = parseInstruction' bytes >>=(\(instruction, movement) -> case executeInstruction instruction vm movement of
+parseInstruction :: Vm -> [Word8] -> SymbolTable -> Safe Vm
+parseInstruction vm bytes table = parseInstruction' bytes >>=(\(instruction, movement) -> case executeInstruction instruction table vm movement of
     Error err -> Error err
     Value (Vm _reg _cstack _bf _vstack _pc) -> Value (Vm _reg _cstack _bf _vstack (_pc + u32 movement))) --
 
@@ -138,7 +145,7 @@ mainVM path = do
     file <- readBinary path
     case readSymbolTable file of
         Error err -> die err
-        Value (table, rest) -> case parseInstruction defaultVM rest of
+        Value (table, rest) -> case parseInstruction defaultVM rest table of
             Error err' -> die err'
             Value (Vm _reg _cstack _bf _vstack _pc) -> print _pc
             -- writeBinary "output.txt"
