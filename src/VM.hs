@@ -10,7 +10,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary, writeBinary)
 import Bits (splitWord32, combineWord32, u32)
-import Deserialize (deserialize, deserializeType, deserializeInt)
+import Deserialize (deserialize, deserializeTypeAndValue, deserializeList, deserializeType, deserializeInt)
 import SymbolTable (readSymbolTable, SymbolTable)
 import Serialize (Serializable, serialize)
 import Type (Type(..))
@@ -44,6 +44,20 @@ popStack 0 (a : as) (_ : rs) = Value  (Just a : rs, as)
 popStack x stack (r : rs) = popStack (x - 1) stack rs >>=(\(_reg, _stack) -> Value (r:_reg, _stack))
 popStack _ [] _ = Error "Stack empty"
 popStack _ _ [] = Error "Register out of bounds"
+
+constructList :: Int -> Type -> [Any] -> [Any] -> Safe [Any]
+constructList 0 _type stack newlist = Value $ Any (T_List _type, newlist):stack 
+constructList x _type (a:as) newlist = constructList (x - 1) _type as $ a:newlist
+constructList x _type [] _ = Error "Not enough value in stack to perform construct"
+
+constructTupple :: [Any] -> Type -> Type -> Safe [Any]
+constructTupple (a : b : as) typeA typeB = Value $ Any (T_Tuple (typeA, typeB), (a, b)):as
+constructTupple [a] _ _ = Error "Not enough value in stack to perform construct"
+
+construct :: Type -> Int -> [Any] -> Safe [Any]
+construct (T_List _type) size stack = constructList size _type stack []
+construct (T_Tuple (typeA, typeB)) 2 stack = constructTupple stack typeA typeB
+construct (T_Tuple (_, _)) size _ = Error $ "Tried to construct tupple of size" ++ show size ++ "but tupples can only be of size 2"
 
 moveValue :: RegisterID -> [Maybe Any] -> Any -> Safe [Maybe Any]
 moveValue 0 (_ : rs) a = Value (Just a : rs)
@@ -98,6 +112,7 @@ executeInstruction :: AssemblyInstruction -> SymbolTable -> Vm -> Int -> Safe Vm
 executeInstruction (PushRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc))
 executeInstruction (PushValue value) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm (reg:rs) cstack bf _stack pc))
 executeInstruction (Pop registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm (_reg:rs) cstack bf _stack pc))
+executeInstruction (Construct _type _size) _ (Vm (reg:rs) cstack bf vstack pc) _ = construct _type _size vstack >>=(\_stack -> Value $ Vm (reg:rs) cstack bf _stack pc)
 executeInstruction (Test registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc))
 executeInstruction (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move)))
 executeInstruction (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move)))

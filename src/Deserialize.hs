@@ -1,6 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 
-module Deserialize (deserialize, deserializeType, deserializeInt) where
+module Deserialize (deserialize, deserializeTypeAndValue, deserializeType, deserializeList, deserializeInt) where
 
 import Data.Bits ((.<<.), (.|.))
 import Data.Functor ((<&>))
