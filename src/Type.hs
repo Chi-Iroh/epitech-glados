@@ -62,10 +62,10 @@ typeInteger :: Type
 typeInteger = T_Combination [T_Int, T_UInt, T_Char]
 
 typeNumber :: Type
-typeNumber = T_Combination [typeInteger, T_Float]
+typeNumber = T_Combination [T_Int, T_UInt, T_Char, T_Float]
 
 typeAny :: Type
-typeAny = T_Combination [typeNumber, T_Bool, T_Tuple (T_Template, T_Template), T_List T_Template, T_Procedure]
+typeAny = T_Combination [T_Int, T_UInt, T_Char, T_Float, T_Bool, T_Tuple (T_Template, T_Template), T_List T_Template, T_Procedure]
 
 -------------------------------------------------------------------------------
 
@@ -102,8 +102,11 @@ verifyType T_EmptyList _ = False                                               -
 verifyType T_NULL _ = False                                                    -- invalid parameter type
 verifyType T_Undefined _ = False                                               -- invalid parameter type
 verifyType (T_Combination []) _ = False                                        -- invalid parameter type
+verifyType _ (T_Combination []) = False                                        -- invalid argument type
 verifyType _ T_Undefined = False                                               -- invalid argument type
+verifyType T_Template _ = True
 verifyType _ T_NULL = True
+verifyType T_String T_EmptyList = True
 verifyType (T_List _) T_EmptyList = True
 verifyType T_Procedure (T_Function _ _) = True
 verifyType (T_Combination ps) (T_Combination as) = foldr (&&) True $ map (\a -> foldr (\x y -> (x == a) || y) False ps) as
