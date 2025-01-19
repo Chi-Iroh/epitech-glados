@@ -184,7 +184,6 @@ compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
 compileAST1 status (ASTInt n) isNested = status +++ compileValue T_Int n isNested
 compileAST1 status (ASTBool b) isNested = status +++ compileValue T_Bool b isNested
 compileAST1 status (ASTCall (FunctionCall f) args) _ = compileCall f args >>= (status +++)
-compileAST1 status (ASTProcedure s) _ = compileCall s [] >>= (status +++)
 compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
 compileAST1 status (ASTArray []) isNested = status +++ compileValue T_EmptyList ([] :: [Int]) isNested
 compileAST1 status (ASTProcedure name) isNested = status +++ (statusFromInstructions $ singleton $ alternativeMap (PushRegister) (Call name) index)
