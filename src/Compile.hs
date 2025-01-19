@@ -145,6 +145,7 @@ compileCall :: String -> [AST] -> Safe CompilationStatus
 compileCall symbol args = concatMapM compileArg (reverse args) <&> (statusFromInstructions . (++ [Call symbol]))
     where compileArg arg = case arg of
             ASTCall (FunctionCall symbol') args' -> compileCall symbol' args' <&> _instructions
+            ASTProcedure name -> Value [Call name]
             _ -> singleton <$> toAssemblyValueInstruction PushValue arg
 
 compileElem :: AST -> Safe [AssemblyInstruction]

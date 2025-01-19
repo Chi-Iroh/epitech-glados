@@ -68,7 +68,8 @@ toAny (ASTTuple (a, b)) = liftA2 (\types' values' -> Any (T_Tuple types', values
           values = liftA2 (,) (toAny a) (toAny b)
 toAny list@(ASTArray xs) = liftA2 (\type' values' -> Any (type', map fromAny values')) (getTypeAST list) values
     where values = traceVal "values" (mapM toAny xs)
-toAny a = Error ("toAny: Invalid argument : '" ++ show a ++ "'")
+toAny a = error ("toAny: Invalid argument : '" ++ show a ++ "'")
+-- toAny a = Error ("toAny: Invalid argument : '" ++ show a ++ "'")
 
 toAssemblyValueInstruction :: (Any -> AssemblyInstruction) -> AST -> Safe AssemblyInstruction
 toAssemblyValueInstruction instruction ast = fmap instruction (toAny ast)
