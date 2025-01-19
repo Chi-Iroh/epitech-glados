@@ -5,8 +5,14 @@ module Utils
     concatSStrings,
     joinSStrings,
     isValue,
-    mapFst
+    mapFst,
+    alternativeMap,
+    maybeToSafe,
+    bind2
     ) where
+
+import Control.Applicative ((<|>), Alternative)
+import Control.Monad (join)
 
 data Safe a = Value a | Error String deriving (Eq, Ord, Read)
 
@@ -21,6 +27,10 @@ instance Applicative Safe where
     _ <*> (Error err) = Error err
     (Value _) *> b = b
     (Error err) *> _ = Error err
+
+instance Alternative Safe where
+    (<|>) first (Error _) = first
+    (<|>) (Error _) second = second
 
 instance Monad Safe where
     (Value a) >>= f = f a
@@ -46,6 +56,14 @@ isValue :: Safe a -> Bool
 isValue (Value _) = True
 isValue _ = False
 
+fromSafe :: Safe a -> a
+fromSafe (Value a) = a
+fromSafe (Error err) = error ("Attempted to unwrap a Safe but got error '" ++ err ++ "' instead !")
+
+maybeToSafe :: String -> Maybe a -> Safe a
+maybeToSafe err Nothing = Error err
+maybeToSafe _ (Just a) = Value a
+
 type SString = Safe String
 
 concatSStrings :: SString -> SString -> SString
@@ -59,3 +77,9 @@ joinSStrings sep = foldr (\a b -> concatSStrings a (concatSStrings (b *> Value s
 
 mapFst :: (a -> c) -> (a, b) -> (c, b)
 mapFst f (a, b) = (f a, b)
+
+alternativeMap :: (a -> b) -> b -> Safe a -> b
+alternativeMap f _default a = fromSafe ((f <$> a) <|> (Value _default))
+
+bind2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
+bind2 f a b = join (liftA2 f a b)

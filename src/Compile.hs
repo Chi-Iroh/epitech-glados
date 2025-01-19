@@ -2,18 +2,18 @@
 
 module Compile (compileAST, Symbol(..), Symbols) where
 
-import Control.Applicative (liftA3)
+import Control.Applicative (liftA3, (<|>))
 import Data.Functor ((<&>))
-import Data.List (singleton, find)
+import Data.List (singleton, find, elemIndex)
 import Data.Word (Word8)
 
-import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, toAny)
-import AST (AST(..), Call(..), getTypeAST)
+import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, toAny, RegisterID)
+import AST (AST(..), Call(..), getTypeAST, Parameter)
 import Bits (u32)
 import Serialize (Serializable)
 import SymbolTable (SymbolTable, writeSymbolTable)
 import Type
-import Utils (Safe(..))
+import Utils (Safe(..), maybeToSafe, alternativeMap, bind2)
 import VM (Any(..), Address)
 
 data Symbol = BackendSymbol (String, (Symbols -> [AST] -> Safe AST))
@@ -84,14 +84,14 @@ findSymbol symbols symbol = toSafe ("*** ERROR : variable " ++ symbol ++ " is no
 data CompilationStatus = CompilationStatus {
     _instructions :: [AssemblyInstruction],
     _symbols :: [(String, CompilationStatus)],
-    _nLambdas :: Int
+    _params :: [[Parameter]]
 }
 
 emptyCompilationStatus :: CompilationStatus
 emptyCompilationStatus = CompilationStatus {
     _instructions = [],
     _symbols = [],
-    _nLambdas = 0
+    _params = []
 }
 
 compileSymbols :: Int -> [(String, CompilationStatus)] -> (SymbolTable, [Word8])
@@ -108,7 +108,7 @@ statusFromInstructions :: [AssemblyInstruction] -> CompilationStatus
 statusFromInstructions instructions = CompilationStatus {
     _instructions = instructions,
     _symbols = [],
-    _nLambdas = 0
+    _params = []
 }
 
 (+++) :: CompilationStatus -> CompilationStatus -> Safe CompilationStatus
@@ -116,10 +116,9 @@ statusFromInstructions instructions = CompilationStatus {
     | any (`elem` (map fst (_symbols comp2))) (map fst (_symbols comp1)) = Error "Duplicate symbols !"
     | otherwise = Value CompilationStatus {
         _instructions = _instructions comp1 ++ _instructions comp2,
-        _symbols = symbols,
-        _nLambdas = _nLambdas comp1 + _nLambdas comp2
+        _symbols = _symbols comp1 ++ _symbols comp2,
+        _params = _params comp2 ++ _params comp1
     }
-    where symbols = _symbols comp1 ++ _symbols comp2
 
 addSymbol :: CompilationStatus -> String -> CompilationStatus -> Safe CompilationStatus
 addSymbol status name status'
@@ -135,7 +134,7 @@ compileValueFromAny :: Any -> Bool -> CompilationStatus
 compileValueFromAny val isNested = CompilationStatus {
     _instructions = [(if isNested then PushValue else OutValue) val],
     _symbols = [],
-    _nLambdas = 0
+    _params = []
 }
 
 concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
@@ -159,6 +158,28 @@ allEqual (x : xs) = null (filter (/= x) xs)
 haveSameType :: [AST] -> Safe Bool
 haveSameType list = mapM getTypeAST list <&> allEqual
 
+findParamIndex :: String -> CompilationStatus -> Safe RegisterID
+findParamIndex name (CompilationStatus _ _ params) = maybeToSafe (show name ++ " isn't a function parameter !") foundIndex
+    where
+          findParamIndex1 :: String -> [Parameter] -> Maybe RegisterID
+          findParamIndex1 name' params' = elemIndex (ASTProcedure name') (map fst params') <&> fromIntegral
+
+          foundIndex = foldr (\params' index -> index <|> findParamIndex1 name params') Nothing params
+
+pushParams :: [Parameter] -> CompilationStatus -> CompilationStatus
+pushParams params status = status {
+    _params = params : _params status
+}
+
+popParams :: CompilationStatus -> CompilationStatus
+popParams status = status {
+    _params = drop 1 (_params status) -- tail is partial, thus causes a fatal error if the list is empty, but drop does not.
+}
+
+compileFunction :: AST -> [Parameter] -> CompilationStatus -> Safe CompilationStatus
+compileFunction ast params status = compileAST1 statusWithParams ast False <&> popParams
+    where statusWithParams = pushParams params status
+
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
 compileAST1 status (ASTInt n) isNested = status +++ compileValue T_Int n isNested
 compileAST1 status (ASTBool b) isNested = status +++ compileValue T_Bool b isNested
@@ -166,6 +187,8 @@ compileAST1 status (ASTCall (FunctionCall f) args) _ = compileCall f args >>= (s
 compileAST1 status (ASTProcedure s) _ = compileCall s [] >>= (status +++)
 compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
 compileAST1 status (ASTList []) isNested = status +++ compileValue T_EmptyList ([] :: [Int]) isNested
+compileAST1 status (ASTProcedure name) isNested = status +++ (statusFromInstructions $ singleton $ alternativeMap (PushRegister) (Call name) index)
+    where index = findParamIndex name status
 
 compileAST1 status astList@(ASTList list) isNested = getTypeAST astList >>= (\type' -> concatMapM compileElem list <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
     where outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
@@ -179,6 +202,13 @@ compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothVal
           trueValueCompiled = toAny trueValue <&> (\val -> _instructions $ compileValueFromAny val isNested)
           falseValueCompiled = toAny falseValue <&> (\val -> _instructions $ compileValueFromAny val isNested)
           concatInstructions = liftA3 (\conditionCode trueCode falseCode -> conditionCode ++ [JumpIfFalse (u32 $ length trueCode)] ++ trueCode ++ falseCode)
+
+compileAST1 status (ASTLambda params ast _) _ = compileFunction ast params status >>= (status +++)
+compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)
+    where checkArgs = if (length args) > 16 then Error "Too many arguments (16 max) !" else Value args
+          argsToAny = checkArgs >> mapM toAny args
+          pushArgs = argsToAny <&> (map PushValue . reverse)
+          functionCode = compileFunction ast params status
 
 compileAST1 _ a _ = Error ("Compiling " ++ show a ++ " isn't not implemented for now !")
 
