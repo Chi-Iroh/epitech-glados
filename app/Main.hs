@@ -1,6 +1,5 @@
 module Main (main) where
 
-import Control.Applicative ((<|>))
 import Data.Maybe (isNothing, isJust, fromMaybe, fromJust)
 import Debug.Trace (traceShowId)
 
