@@ -114,6 +114,9 @@ sexprSListHandling [SSymbol "#f"] = Value $ ASTBool False
 -- NULL
 sexprSListHandling [SSymbol "NULL"] = Value ASTNULL
 
+--String
+sexprSListHandling [SString str] = Value $ ASTString str
+
 -- procedure (variable or function name)
 sexprSListHandling [SSymbol a] = Value (ASTProcedure a)
 

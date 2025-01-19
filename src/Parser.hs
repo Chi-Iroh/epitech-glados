@@ -14,6 +14,7 @@ import Text.Read
 import Data.Maybe
 import Data.List (isPrefixOf)
 import Data.Char (isSpace)
+import Debug.Trace (trace)
 
 import SExpression
 
@@ -31,9 +32,10 @@ convertToASExpr str@(_:xs)
     | isPrefixOf "}" (reverse str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [STupleEnd]
     | isPrefixOf "[" str = (SArrayBegin:(convertToASExpr xs))
     | isPrefixOf "]" (reverse str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [SArrayEnd]
-    | isPrefixOf "<" str = (SFunctionTypeBegin:(convertToASExpr xs))
-    | isPrefixOf ">" (reverse str) && not (isPrefixOf "=" str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [SFunctionTypeEnd]
-    | isNothing (readMaybe str :: Maybe Int) = [ASExpr (SSymbol str)]
+    | isPrefixOf "<-" str = (SFunctionTypeBegin:(convertToASExpr (drop 2 str)))
+    | isPrefixOf ">-" (reverse str) && not (isPrefixOf "=" str) = convertToASExpr (reverse (drop 2 (reverse str))) ++ [SFunctionTypeEnd]
+    | head str == '\"' && last str == '\"' = [ASExpr (SString str)]
+    | isNothing (readMaybe str :: Maybe Int) = trace ("str: " ++ show (str)) $ [ASExpr (SSymbol str)]
     | otherwise = [ASExpr (SNumber (fromJust $ readMaybe str))]
 
 stringToASExpr :: [String] -> [AlmostSExpr] -> [AlmostSExpr]
@@ -372,11 +374,15 @@ verifyASExpr char index list
 
 customWords :: String -> [String]
 customWords [] = []
+customWords ('"':xs) =
+    let (quoted, rest) = span (/= '"') xs
+    in ['"' : quoted ++ "\""] ++ customWords (drop 1 rest)
 customWords (x:xs)
     | x == ','  = [","] ++ customWords xs
     | isSpace x = customWords xs
-    | otherwise = let (word, rest) = break (\c -> isSpace c || c == ',') (x:xs)
-                in word : customWords rest
+    | otherwise = 
+        let (word, rest) = break (\c -> isSpace c || c == ',') (x:xs)
+        in [word] ++ customWords rest
 
 removeCommas :: Safe [SExpr] -> Safe [SExpr]
 removeCommas (Error err) = Error err
