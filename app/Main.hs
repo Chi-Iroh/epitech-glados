@@ -46,7 +46,7 @@ processArg arg args
     | arg == "-h" || arg == "--help" = Value args { help = True }
     | isNothing (file args) = Value args { file = Just arg }
     | isNothing (output args) = Value args { output = Just arg }
-    | otherwise = Error ("Both INPUT and output file paths are already specified, got unexpected argument '" ++ arg ++ "' !")
+    | otherwise = Error ("Both input and output file paths are already specified, got unexpected argument '" ++ arg ++ "' !")
 
 processArgs :: [String] -> Safe Args
 processArgs args = foldl (\args' arg -> args' >>= processArg arg) (Value defaultArgs) args
