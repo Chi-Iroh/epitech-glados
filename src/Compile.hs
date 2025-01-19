@@ -96,12 +96,12 @@ emptyCompilationStatus = CompilationStatus {
 
 compileSymbols :: Int -> [(String, CompilationStatus)] -> (SymbolTable, [Word8])
 compileSymbols _ [] = ([], [])
-compileSymbols offset ((symbol, status) : others) = ((symbol, u32 offset) : otherTable, concatMap assemble instructions ++ otherBytes)
+compileSymbols offset ((symbol, status) : others) = ((symbol, u32 offset) : otherTable, assemble instructions ++ otherBytes)
     where (otherTable, otherBytes) = compileSymbols (offset + length instructions) others
           instructions = _instructions status
 
 compileAll :: CompilationStatus -> [Word8]
-compileAll (CompilationStatus instructions symbols _) = concatMap assemble instructions ++ symbolInstructions
+compileAll (CompilationStatus instructions symbols _) = assemble instructions ++ symbolInstructions
     where (symbolTable, symbolInstructions) = compileSymbols (length instructions) symbols
 
 statusFromInstructions :: [AssemblyInstruction] -> CompilationStatus
@@ -227,8 +227,8 @@ makeSymbolTable :: [(String, CompilationStatus)] -> SymbolTable
 makeSymbolTable = makeSymbolTable' 0
 
 finishCompilation :: CompilationStatus -> [Word8]
-finishCompilation (CompilationStatus instructions symbols _) = writeSymbolTable (makeSymbolTable symbols) ++ symbols' ++ concatMap assemble instructions
-    where symbols' = concatMap (\sym -> concatMap assemble (_instructions (snd sym))) symbols
+finishCompilation (CompilationStatus instructions symbols _) = writeSymbolTable (makeSymbolTable symbols) ++ symbols' ++ assemble instructions
+    where symbols' = concatMap (\sym -> assemble (_instructions (snd sym))) symbols
 
 compileAST :: [AST] -> Safe [Word8]
 compileAST ast = compileAST' emptyCompilationStatus ast <&> finishCompilation

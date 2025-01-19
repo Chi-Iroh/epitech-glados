@@ -4,7 +4,8 @@ module Utils
     printSafeList,
     concatSStrings,
     joinSStrings,
-    isValue
+    isValue,
+    mapFst
     ) where
 
 data Safe a = Value a | Error String deriving (Eq, Ord, Read)
@@ -55,3 +56,6 @@ concatSStrings (Value first) (Value other) = Value $ concat [first, other]
 
 joinSStrings :: String -> [SString] -> SString
 joinSStrings sep = foldr (\a b -> concatSStrings a (concatSStrings (b *> Value sep) b)) (Error "Cannot join those strings.")
+
+mapFst :: (a -> c) -> (a, b) -> (c, b)
+mapFst f (a, b) = (f a, b)
