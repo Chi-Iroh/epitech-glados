@@ -104,6 +104,8 @@ executeInstruction (RetRegister registerID) _ (Vm (reg:rs) cstack bf vstack _) l
 executeInstruction (RetValue value) _ (Vm (_:rs) cstack bf vstack _) len = returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len), Nothing))
 executeInstruction (MovRegister register1 register2) _ (Vm (reg:rs) cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
 executeInstruction (MovValue registerID value) _ (Vm (reg:rs) cstack bf vstack pc) _ =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
+executeInstruction (OutRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) _= Value (Vm (reg:rs) cstack bf vstack pc, reg !! fromIntegral registerID)
+executeInstruction (OutValue value) _ vm _= Value (vm, Just value)
 executeInstruction _ _ _ _ = Error "Instruction not recognized"
 
 parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
@@ -134,9 +136,7 @@ parseFile _ _ [] = print "End of file. VM closing now."
 parseFile vm table bytes = case parseInstruction vm bytes table of
                         Error err -> die err
                         Value (_vm, Nothing) -> parseFile _vm table bytes
-                        Value (_vm, Just a) -> do
-                                print a
-                                parseFile _vm table bytes
+                        Value (_vm, Just a) -> print a >> parseFile _vm table bytes
 
 mainVM :: FilePath -> IO ()
 mainVM path = do
