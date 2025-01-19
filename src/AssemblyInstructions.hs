@@ -98,9 +98,9 @@ assemble1 (OutRegister reg) = [0x91, reg]
 assemble1 a = error ("assemble1: Instruction " ++ show a ++ " not implemented !")
 
 assemble' :: [AssemblyInstruction] -> [Word8]
-assemble' (JumpIfTrue size : xs) = [0x40] ++ addrToBytes (u32 $ length falseCode) ++ assemble' rest
+assemble' (JumpIfTrue size : xs) = [0x40] ++ addrToBytes (u32 $ length falseCode) ++ falseCode ++ assemble' rest
     where (falseCode, rest) = mapFst (concatMap assemble1) $ splitAt (fromIntegral size) xs
-assemble' (JumpIfFalse size : xs) = [0x50] ++ addrToBytes (u32 $ length trueCode) ++ assemble' rest
+assemble' (JumpIfFalse size : xs) = [0x50] ++ addrToBytes (u32 $ length trueCode) ++ trueCode ++ assemble' rest
     where (trueCode, rest) = mapFst (concatMap assemble1) $ splitAt (fromIntegral size) xs
 assemble' (x : xs) = assemble1 x ++ assemble' xs
 assemble' [] = []
