@@ -64,15 +64,15 @@ testReg (Just (Any(T_Bool, val)))
 testReg (Just _) = Error "Register doesn't contain a boolean value"
 testReg Nothing = Error "Register is empty"
 
-jumpTrue :: Address -> Maybe Bool -> Int -> Safe Address
-jumpTrue _ Nothing _ = Error "BF not set, please use test before conditional jump"
-jumpTrue _ (Just False) _ = Value 0
-jumpTrue addr (Just True) len = Value addr
+jumpTrue :: Address -> Maybe Bool -> Safe Address
+jumpTrue _ Nothing = Error "BF not set, please use test before conditional jump"
+jumpTrue _ (Just False) = Value 0
+jumpTrue addr (Just True) = Value addr
 
-jumpFalse :: Address -> Maybe Bool -> Int -> Safe Address
-jumpFalse _ Nothing _ = Error "BF not set, please use test before conditional jump"
-jumpFalse _ (Just True)_  = Value 0
-jumpFalse addr (Just False) len = Value addr
+jumpFalse :: Address -> Maybe Bool -> Safe Address
+jumpFalse _ Nothing = Error "BF not set, please use test before conditional jump"
+jumpFalse _ (Just True) = Value 0
+jumpFalse addr (Just False) = Value addr
 
 call :: String -> SymbolTable -> Safe Address
 call str ((str', address):ts)
@@ -92,24 +92,24 @@ returnValue [] _ _ = Error "Not in a function cannot return"
 mapFst :: (a -> c) -> (a, b) -> (c, b)
 mapFst f (a, b) = (f a, b)
 
-executeInstruction' :: AssemblyInstruction -> SymbolTable -> Vm -> Int -> Safe (Vm, Maybe Any)
-executeInstruction' (PushRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
-executeInstruction' (PushValue value) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
-executeInstruction' (Pop registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm (_reg:rs) cstack bf _stack pc, Nothing))
-executeInstruction' (Construct _type _size) _ (Vm (reg:rs) cstack bf vstack pc) _ = construct _type _size vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
-executeInstruction' (Test registerID) _ (Vm (reg:rs) cstack _ vstack pc) _ = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc, Nothing))
-executeInstruction' (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
-executeInstruction' (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
-executeInstruction' (Call str) table (Vm reg cstack bf vstack pc) len = call str table >>=(\_address -> Value (Vm (replicate 16 Nothing : reg) (pc:cstack) bf vstack (_address - u32 len), Nothing))
-executeInstruction' (RetRegister registerID) _ (Vm (reg:rs) cstack bf vstack _) len = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len), Nothing))
-executeInstruction' (RetValue value) _ (Vm (_:rs) cstack bf vstack _) len = returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len), Nothing))
-executeInstruction' (MovRegister register1 register2) _ (Vm (reg:rs) cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
-executeInstruction' (MovValue registerID value) _ (Vm (reg:rs) cstack bf vstack pc) _ =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
-executeInstruction' (OutRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) _= Value (Vm (reg:rs) cstack bf vstack pc, reg !! fromIntegral registerID)
-executeInstruction' (OutValue value) _ vm _= Value (vm, Just value)
-executeInstruction' _ _ _ _ = Error "Instruction not recognized"
+executeInstruction' :: AssemblyInstruction -> SymbolTable -> Vm -> Safe (Vm, Maybe Any)
+executeInstruction' (PushRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
+executeInstruction' (PushValue value) _ (Vm (reg:rs) cstack bf vstack pc) = pushValue value vstack >>=(\ _stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
+executeInstruction' (Pop registerID) _ (Vm (reg:rs) cstack bf vstack pc) = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm (_reg:rs) cstack bf _stack pc, Nothing))
+executeInstruction' (Construct _type _size) _ (Vm (reg:rs) cstack bf vstack pc) = construct _type _size vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
+executeInstruction' (Test registerID) _ (Vm (reg:rs) cstack _ vstack pc) = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc, Nothing))
+executeInstruction' (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpTrue addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
+executeInstruction' (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpFalse addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
+executeInstruction' (Call str) table (Vm reg cstack bf vstack pc)= call str table >>=(\_address -> Value (Vm (replicate 16 Nothing : reg) (pc:cstack) bf vstack _address, Nothing))
+executeInstruction' (RetRegister registerID) _ (Vm (reg:rs) cstack bf vstack _) = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack _address, Nothing))
+executeInstruction' (RetValue value) _ (Vm (_:rs) cstack bf vstack _)= returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack _address, Nothing))
+executeInstruction' (MovRegister register1 register2) _ (Vm (reg:rs) cstack bf vstack pc) = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
+executeInstruction' (MovValue registerID value) _ (Vm (reg:rs) cstack bf vstack pc) =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
+executeInstruction' (OutRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) = Value (Vm (reg:rs) cstack bf vstack pc, reg !! fromIntegral registerID)
+executeInstruction' (OutValue value) _ vm = Value (vm, Just value)
+executeInstruction' _ _ _ = Error "Instruction not recognized"
 
-executeInstruction :: AssemblyInstruction -> SymbolTable -> Vm -> Int -> Safe (Vm, Maybe Any)
+executeInstruction :: AssemblyInstruction -> SymbolTable -> Vm -> Safe (Vm, Maybe Any)
 executeInstruction instruction = executeInstruction' (traceShowId instruction)
 
 parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
@@ -135,9 +135,7 @@ movePc increment vm = vm {
 }
 
 parseInstruction :: Vm -> [Word8] -> SymbolTable -> Safe (Vm, Maybe Any)
-parseInstruction vm bytes table = parseInstruction' (traceShowId $ drop (fromIntegral $ _pc vm) bytes) >>=(\(instruction, movement) -> case executeInstruction instruction table vm movement of
-    Error err -> Error err
-    Value (Vm _reg _cstack _bf _vstack _pc, out) -> Value (Vm _reg _cstack _bf _vstack (_pc + u32 movement), out))
+parseInstruction vm bytes table = parseInstruction' (traceShowId $ drop (fromIntegral $ _pc vm) bytes) >>=(\(instruction, movement) -> executeInstruction instruction table (movePc movement vm))
 
 parseFile :: Vm -> SymbolTable -> [Word8] -> IO ()
 parseFile _ _ [] = print "End of file. VM closing now."
