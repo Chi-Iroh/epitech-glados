@@ -6,6 +6,7 @@ import Control.Applicative (liftA3, (<|>))
 import Data.Functor ((<&>))
 import Data.List (singleton, find, elemIndex)
 import Data.Word (Word8)
+import Debug.Trace
 
 import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, toAny, RegisterID)
 import AST (AST(..), Call(..), getTypeAST, Parameter)
@@ -205,8 +206,9 @@ compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothVal
 compileAST1 status (ASTLambda params ast _) _ = compileFunction ast params status >>= (status +++)
 compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)
     where checkArgs = if (length args) > 16 then Error "Too many arguments (16 max) !" else Value args
-          argsToAny = checkArgs >> mapM toAny args
-          pushArgs = argsToAny <&> (map PushValue . reverse)
+          paramNames = traceShowId $ map (\(ASTProcedure name, _) -> name) params
+          argsToAny = checkArgs <&> (\args' -> traceShowId $ reverse $ zip paramNames (map toAny args'))
+          pushArgs = argsToAny <&> (map (\(name, any) -> alternativeMap PushValue (Call name) any))
           functionCode = compileFunction ast params status
 
 compileAST1 _ a _ = Error ("Compiling " ++ show a ++ " isn't not implemented for now !")
