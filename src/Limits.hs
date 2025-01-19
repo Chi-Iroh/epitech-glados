@@ -1,5 +1,9 @@
 {-# LANGUAGE NumericUnderscores #-}
-module Limits where
+module Limits (
+    checkInt,
+    checkUInt,
+    checkFloat
+) where
 
 uintMax :: Int
 uintMax = 4_294_967_295

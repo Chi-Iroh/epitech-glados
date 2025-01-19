@@ -1,5 +1,12 @@
 {-# LANGUAGE NumericUnderscores #-}
-module Bits where
+module Bits (
+    combineWord32,
+    splitWord32,
+    u32,
+    i32,
+    nthBit,
+    setBit
+) where
 
 import Data.Bits ((.<<.), (.>>.), (.&.), (.|.))
 import Data.Int (Int32)

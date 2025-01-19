@@ -1,9 +1,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NumericUnderscores #-}
-module Serialize where
 
-import Bits (splitWord32, setBit, i32, u32)
-import Data.Bits (complement, shiftR, (.&.), (.<<.), Bits)
+module Serialize (
+    Serializable,
+    serialize,
+    serializeChar,
+    serializeType
+) where
+
+import Bits (splitWord32, i32, u32)
+import Data.Bits ((.<<.), Bits)
 import Data.ByteString.Internal (c2w)
 import Data.Int (Int32)
 import Data.Word (Word8)

@@ -22,7 +22,7 @@ data AST =  ASTInt Int                              |
             ASTBool Bool                            |
             ASTTuple (AST, AST)                     |
             ASTArray [AST]                          |
-            ASTList [AST]                           |
+            -- ASTList [AST]                           |
             ASTString String                        |
             ASTProcedure String                     |
             ASTDefine String Type AST               |

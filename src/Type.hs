@@ -13,7 +13,6 @@ module Type (
 
 import Data.List (intercalate)
 import Utils
-import Data.List (intercalate)
 
 data Type = T_Int | T_UInt | T_Char | T_Float | T_Bool | T_Tuple (Type, Type) | T_List Type | T_EmptyList | T_String | T_Procedure | T_Function [Type] Type | T_Combination [Type] | T_NULL | T_Template | T_Type | T_Undefined
 

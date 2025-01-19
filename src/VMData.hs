@@ -1,13 +1,19 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE InstanceSigs #-}
-module VMData where
+
+module VMData (
+    Any(..),
+    Address,
+    Vm(..),
+    addrToBytes,
+    defaultVM
+) where
 
 import Data.Word (Word8, Word32)
 import Text.Printf (printf)
 import Bits (splitWord32)
 import Serialize (Serializable(..))
 import Type (Type(..))
-import BinaryIO (readBinary)
 
 data Any = forall a. (Serializable a, Show a) => Any (Type, a)
 type Address = Word32

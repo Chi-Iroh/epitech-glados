@@ -9,10 +9,11 @@ import Debug.Trace (traceShowId)
 import Unsafe.Coerce (unsafeCoerce)
 
 import AST (AST(..), getTypeAST)
+import Bits (u32)
 import Hex (showHex32)
 import Serialize
 import Type (Type(..))
-import Utils (Safe(..))
+import Utils (Safe(..), mapFst)
 import VMData (Any(..), Address, addrToBytes)
 
 type RegisterID = Word8
@@ -39,8 +40,8 @@ instance Show AssemblyInstruction where
     show (Pop reg) = "pop r" ++ show reg
     show (Construct _type n) = "construct " ++ show _type ++ " " ++ show n
     show (Test reg) = "test r" ++ show reg
-    show (JumpIfTrue addr) = "jt " ++ showHex32 addr
-    show (JumpIfFalse addr) = "jf " ++ showHex32 addr
+    show (JumpIfTrue addr) = "jt " ++ showHex32 addr ++ " (number of instructions, not actual assembled bytes)"
+    show (JumpIfFalse addr) = "jf " ++ showHex32 addr ++ " (number of instructions, not actual assembled bytes)"
     show (Call symbol) = "call " ++ symbol
     show (RetRegister reg) = "ret r" ++ show reg
     show (RetValue (Any (_type, a))) = "ret " ++ show _type ++ " " ++ show a
@@ -81,21 +82,28 @@ toAssemblyValueInstruction instruction ast = fmap instruction (toAny ast)
 -- toAssemblyValueInstruction instruction (ASTList x) = instruction . Any . (, x) <$> getTypeAST x
 -- toAssemblyValueInstruction _ _ = Error "Invalid argument !"
 
-assemble' :: AssemblyInstruction -> [Word8]
-assemble' (PushValue (Any (_type, val))) = [0x00] ++ serializeType _type ++ serialize val -- 0x00 : 1st nibble = instruction ID, 2nd nibble = addressing mode
-assemble' (PushRegister reg) = [0x01, reg]
-assemble' (Pop reg) = [0x10, reg]
-assemble' (Construct _type n) = [0x20] ++ serializeType _type ++ serialize n
-assemble' (Test reg) = [0x30, reg]
-assemble' (JumpIfTrue addr) = [0x40] ++ addrToBytes addr
-assemble' (JumpIfFalse addr) = [0x50] ++ addrToBytes addr
-assemble' (Call name) = [0x60] ++ concatMap serialize name ++ [0x00]
-assemble' (RetValue (Any (_type, val))) = [0x70] ++ serializeType _type ++ serialize val
-assemble' (RetRegister reg) = [0x71, reg]
-assemble' (MovValue dest (Any (_type, val))) = [0x80, dest] ++ serializeType _type ++ serialize val
-assemble' (MovRegister dest src) = [0x81, dest, src]
-assemble' (OutValue (Any (_type, val))) = [0x90] ++ serializeType _type ++ serialize val
-assemble' (OutRegister reg) = [0x91, reg]
+assemble1 :: AssemblyInstruction -> [Word8]
+assemble1 (PushValue (Any (_type, val))) = [0x00] ++ serializeType _type ++ serialize val -- 0x00 : 1st nibble = instruction ID, 2nd nibble = addressing mode
+assemble1 (PushRegister reg) = [0x01, reg]
+assemble1 (Pop reg) = [0x10, reg]
+assemble1 (Construct _type n) = [0x20] ++ serializeType _type ++ serialize n
+assemble1 (Test reg) = [0x30, reg]
+assemble1 (Call name) = [0x60] ++ concatMap serialize name ++ [0x00]
+assemble1 (RetValue (Any (_type, val))) = [0x70] ++ serializeType _type ++ serialize val
+assemble1 (RetRegister reg) = [0x71, reg]
+assemble1 (MovValue dest (Any (_type, val))) = [0x80, dest] ++ serializeType _type ++ serialize val
+assemble1 (MovRegister dest src) = [0x81, dest, src]
+assemble1 (OutValue (Any (_type, val))) = [0x90] ++ serializeType _type ++ serialize val
+assemble1 (OutRegister reg) = [0x91, reg]
+assemble1 a = error ("assemble1: Instruction " ++ show a ++ " not implemented !")
 
-assemble :: AssemblyInstruction -> [Word8]
-assemble = assemble' . traceShowId
+assemble' :: [AssemblyInstruction] -> [Word8]
+assemble' (JumpIfTrue size : xs) = [0x40] ++ addrToBytes (u32 $ length falseCode) ++ assemble' rest
+    where (falseCode, rest) = mapFst (concatMap assemble1) $ splitAt (fromIntegral size) xs
+assemble' (JumpIfFalse size : xs) = [0x50] ++ addrToBytes (u32 $ length trueCode) ++ assemble' rest
+    where (trueCode, rest) = mapFst (concatMap assemble1) $ splitAt (fromIntegral size) xs
+assemble' (x : xs) = assemble1 x ++ assemble' xs
+assemble' [] = []
+
+assemble :: [AssemblyInstruction] -> [Word8]
+assemble = assemble' . (map traceShowId)
