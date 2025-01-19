@@ -1,6 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 
-module Deserialize (deserialize, deserializeTypeAndValue, deserializeType, deserializeList, deserializeInt) where
+module Deserialize (deserialize, deserializeTypeAndValue, deserializeType, deserializeList, deserializeInt, addBytesLen) where
 
 import Data.Bits ((.<<.), (.|.))
 import Data.Functor ((<&>))
@@ -59,3 +59,6 @@ deserializeList a len bytes list = deserialize a bytes >>= (\(member, len', rest
 
 deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
 deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest >>= \(a, len', rest') -> Value (Any (_type, a), len + len'))
+
+addBytesLen :: Int -> (Any, Int) -> (Any, Int)
+addBytesLen n (val, len) = (val, len + n)

@@ -2,13 +2,14 @@ module VM (mainVM) where
 
 import Data.Functor ((<&>))
 import Data.Word (Word8)
+import Debug.Trace (traceShowId)
 import System.Exit (die)
 import Unsafe.Coerce (unsafeCoerce)
 
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary)
 import Bits (combineWord32, u32)
-import Deserialize (deserializeTypeAndValue, deserializeList, deserializeType, deserializeInt)
+import Deserialize (deserializeTypeAndValue, deserializeList, deserializeType, deserializeInt, addBytesLen)
 import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
 import Utils (Safe(..))
@@ -76,7 +77,7 @@ jumpFalse addr (Just False) len = Value $ addr - u32 len
 call :: String -> SymbolTable -> Safe Address
 call str ((str', address):ts)
                 | str == str' = Value address
-                | otherwise = call str ts 
+                | otherwise = call str ts
 call str [] = Error $ "Can't find function " ++ str
 
 returnRegister :: [Address] -> Maybe Any -> [Any] -> Safe ([Address], [Any], Address)
@@ -91,44 +92,52 @@ returnValue [] _ _ = Error "Not in a function cannot return"
 mapFst :: (a -> c) -> (a, b) -> (c, b)
 mapFst f (a, b) = (f a, b)
 
+executeInstruction' :: AssemblyInstruction -> SymbolTable -> Vm -> Int -> Safe (Vm, Maybe Any)
+executeInstruction' (PushRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
+executeInstruction' (PushValue value) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
+executeInstruction' (Pop registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm (_reg:rs) cstack bf _stack pc, Nothing))
+executeInstruction' (Construct _type _size) _ (Vm (reg:rs) cstack bf vstack pc) _ = construct _type _size vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
+executeInstruction' (Test registerID) _ (Vm (reg:rs) cstack _ vstack pc) _ = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc, Nothing))
+executeInstruction' (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
+executeInstruction' (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
+executeInstruction' (Call str) table (Vm reg cstack bf vstack pc) len = call str table >>=(\_address -> Value (Vm (replicate 16 Nothing : reg) (pc:cstack) bf vstack (_address - u32 len), Nothing))
+executeInstruction' (RetRegister registerID) _ (Vm (reg:rs) cstack bf vstack _) len = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len), Nothing))
+executeInstruction' (RetValue value) _ (Vm (_:rs) cstack bf vstack _) len = returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len), Nothing))
+executeInstruction' (MovRegister register1 register2) _ (Vm (reg:rs) cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
+executeInstruction' (MovValue registerID value) _ (Vm (reg:rs) cstack bf vstack pc) _ =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
+executeInstruction' (OutRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) _= Value (Vm (reg:rs) cstack bf vstack pc, reg !! fromIntegral registerID)
+executeInstruction' (OutValue value) _ vm _= Value (vm, Just value)
+executeInstruction' _ _ _ _ = Error "Instruction not recognized"
+
 executeInstruction :: AssemblyInstruction -> SymbolTable -> Vm -> Int -> Safe (Vm, Maybe Any)
-executeInstruction (PushRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushRegister (reg !! fromIntegral registerID) vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
-executeInstruction (PushValue value) _ (Vm (reg:rs) cstack bf vstack pc) _ = pushValue value vstack >>=(\ _stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
-executeInstruction (Pop registerID) _ (Vm (reg:rs) cstack bf vstack pc) _ = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm (_reg:rs) cstack bf _stack pc, Nothing))
-executeInstruction (Construct _type _size) _ (Vm (reg:rs) cstack bf vstack pc) _ = construct _type _size vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
-executeInstruction (Test registerID) _ (Vm (reg:rs) cstack _ vstack pc) _ = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc, Nothing))
-executeInstruction (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) len = jumpTrue addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
-executeInstruction (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) len = jumpFalse addr bf len >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
-executeInstruction (Call str) table (Vm reg cstack bf vstack pc) len = call str table >>=(\_address -> Value (Vm (replicate 16 Nothing : reg) (pc:cstack) bf vstack (_address - u32 len), Nothing))
-executeInstruction (RetRegister registerID) _ (Vm (reg:rs) cstack bf vstack _) len = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len), Nothing))
-executeInstruction (RetValue value) _ (Vm (_:rs) cstack bf vstack _) len = returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack (_address - u32 len), Nothing))
-executeInstruction (MovRegister register1 register2) _ (Vm (reg:rs) cstack bf vstack pc) _ = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
-executeInstruction (MovValue registerID value) _ (Vm (reg:rs) cstack bf vstack pc) _ =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
-executeInstruction (OutRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) _= Value (Vm (reg:rs) cstack bf vstack pc, reg !! fromIntegral registerID)
-executeInstruction (OutValue value) _ vm _= Value (vm, Just value)
-executeInstruction _ _ _ _ = Error "Instruction not recognized"
+executeInstruction instruction = executeInstruction' (traceShowId instruction)
 
 parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
-parseInstruction' (0x00 : xs) = mapFst PushValue <$> deserializeTypeAndValue xs
+parseInstruction' (0x00 : xs) = mapFst PushValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
 parseInstruction' (0x01 : reg : _) = Value (PushRegister reg, 2)
 parseInstruction' (0x10 : reg : _) = Value (Pop reg, 2)
 parseInstruction' (0x20 : xs) = deserializeType xs >>=(\(_type, len, _) -> deserializeInt xs >>= \(a, len', _) -> Value (Construct _type a, len + len'))
 parseInstruction' (0x30 : reg : _) = Value (Test reg, 2)
-parseInstruction' (0x40 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfTrue (combineWord32 $ byte1 : [byte2] ++ [byte3] ++ [byte4]), 5)
-parseInstruction' (0x50 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfFalse (combineWord32 $ byte1 : [byte2] ++ [byte3] ++ [byte4]), 5)
+parseInstruction' (0x40 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfTrue (combineWord32 [byte1, byte2, byte3, byte4]), 5)
+parseInstruction' (0x50 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfFalse (combineWord32 [byte1, byte2, byte3, byte4]), 5)
 parseInstruction' (0x60 : xs) = deserializeList T_Char 0 xs [] <&> (\(str, i) -> (map (\(Any (_, a)) -> unsafeCoerce a :: Char) str, i)) <&> mapFst Call
-parseInstruction' (0x70 : xs) = mapFst RetValue <$> deserializeTypeAndValue xs
+parseInstruction' (0x70 : xs) = mapFst RetValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
 parseInstruction' (0x71 : reg : _) = Value (RetRegister reg, 2)
-parseInstruction' (0x80 : reg : xs) = mapFst (MovValue reg) <$> deserializeTypeAndValue xs
+parseInstruction' (0x80 : reg : xs) = mapFst (MovValue reg) <$> addBytesLen 2 <$> deserializeTypeAndValue xs
 parseInstruction' (0x81 : reg1 : reg2 : _) = Value (MovRegister reg1 reg2, 3)
-parseInstruction' (0x90 : xs) = mapFst OutValue <$> deserializeTypeAndValue xs
+parseInstruction' (0x90 : xs) = mapFst OutValue <$> addBytesLen 1 <$> deserializeTypeAndValue (traceShowId xs)
 parseInstruction' (0x91 : reg : _) = Value (RetRegister reg, 2)
 parseInstruction' _ = Error "No instruction to parse"
 
+movePc :: Int -> Vm -> Vm
+movePc increment vm = vm {
+    _pc = _pc vm + u32 increment
+}
+
 parseInstruction :: Vm -> [Word8] -> SymbolTable -> Safe (Vm, Maybe Any)
-parseInstruction vm bytes table = parseInstruction' bytes >>=(\(instruction, movement) -> case executeInstruction instruction table vm movement of
+parseInstruction vm bytes table = parseInstruction' (traceShowId $ drop (fromIntegral $ _pc vm) bytes) >>=(\(instruction, movement) -> case executeInstruction instruction table vm movement of
     Error err -> Error err
-    Value (Vm _reg _cstack _bf _vstack _pc, out) -> Value (Vm _reg _cstack _bf _vstack (_pc + u32 movement), out)) --
+    Value (Vm _reg _cstack _bf _vstack _pc, out) -> Value (Vm _reg _cstack _bf _vstack (_pc + u32 movement), out))
 
 parseFile :: Vm -> SymbolTable -> [Word8] -> IO ()
 parseFile _ _ [] = print "End of file. VM closing now."
