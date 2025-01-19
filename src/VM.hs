@@ -67,12 +67,12 @@ testReg Nothing = Error "Register is empty"
 jumpTrue :: Address -> Maybe Bool -> Int -> Safe Address
 jumpTrue _ Nothing _ = Error "BF not set, please use test before conditional jump"
 jumpTrue _ (Just False) _ = Value 0
-jumpTrue addr (Just True) len = Value $ addr - u32 len
+jumpTrue addr (Just True) len = Value addr
 
 jumpFalse :: Address -> Maybe Bool -> Int -> Safe Address
 jumpFalse _ Nothing _ = Error "BF not set, please use test before conditional jump"
 jumpFalse _ (Just True)_  = Value 0
-jumpFalse addr (Just False) len = Value $ addr - u32 len
+jumpFalse addr (Just False) len = Value addr
 
 call :: String -> SymbolTable -> Safe Address
 call str ((str', address):ts)
@@ -153,5 +153,3 @@ mainVM path = do
         Error err -> die err
         Value (table, rest) -> parseFile defaultVM table rest
             -- writeBinary "output.txt"
-
--- reg >> [[Any]], prend toujours le head
