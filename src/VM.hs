@@ -82,11 +82,11 @@ call str [] = Error $ "Can't find function " ++ str
 returnRegister :: [Address] -> Maybe Any -> [Any] -> Safe ([Address], [Any], Address)
 returnRegister (a:as) (Just val) stack = Value (as, val : stack, a)
 returnRegister _ Nothing _ = Error "Empty register in return call"
-returnRegister [] _ _ = Error "Can't return in highest degree function"
+returnRegister [] _ _ = Error "Not in a function cannot return"
 
 returnValue :: [Address] -> Any -> [Any] -> Safe ([Address], [Any], Address)
 returnValue (a:as) val stack = Value (as, val : stack, a)
-returnValue [] _ _ = Error "Can't return in highest degree function"
+returnValue [] _ _ = Error "Not in a function cannot return"
 
 mapFst :: (a -> c) -> (a, b) -> (c, b)
 mapFst f (a, b) = (f a, b)
@@ -123,7 +123,6 @@ parseInstruction' (0x80 : reg : xs) = mapFst (MovValue reg) <$> deserializeTypeA
 parseInstruction' (0x81 : reg1 : reg2 : _) = Value (MovRegister reg1 reg2, 3)
 parseInstruction' (0x90 : xs) = mapFst OutValue <$> deserializeTypeAndValue xs
 parseInstruction' (0x91 : reg : _) = Value (RetRegister reg, 2)
-parseInstruction' (_ : xs) = parseInstruction' xs
 parseInstruction' _ = Error "No instruction to parse"
 
 parseInstruction :: Vm -> [Word8] -> SymbolTable -> Safe (Vm, Maybe Any)
