@@ -8,6 +8,7 @@ module Utils
     mapFst,
     alternativeMap,
     maybeToSafe,
+    boolToSafe,
     bind2
     ) where
 
@@ -66,6 +67,10 @@ fromSafe (Error err) = error ("Attempted to unwrap a Safe but got error '" ++ er
 maybeToSafe :: String -> Maybe a -> Safe a
 maybeToSafe err Nothing = Error err
 maybeToSafe _ (Just a) = Value a
+
+boolToSafe :: String -> Bool -> a -> Safe a
+boolToSafe _ True a = Value a
+boolToSafe err False _ = Error err
 
 type SString = Safe String
 
