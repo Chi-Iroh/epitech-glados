@@ -49,7 +49,8 @@ deserializeFloat (b1 : b2 : b3 : b4 : bytes) = Value (castWord32ToFloat float, 4
 deserializeFloat bytes = Error ("Cannot deserialize a float, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes) !")
 
 deserializeType :: [Word8] -> Safe (Type, Int, [Word8])
-deserializeType = Value . (T_NULL, 1,)
+deserializeType (0x01 : xs) = Value (T_Bool, 1, xs)
+deserializeType bytes = Value (T_NULL, 1, bytes)
 
 deserializeList :: Type -> Int -> [Word8] -> [Any] -> Safe ([Any], Int)
 deserializeList _ len (0x00:_) list = Value (list, len)
