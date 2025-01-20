@@ -13,7 +13,7 @@ module Parser (
 import Text.Read
 import Data.Maybe
 import Data.List (isPrefixOf, isSuffixOf)
-import Data.Char (isSpace)
+import Data.Char (isSpace, chr)
 
 import SExpression
 import Utils
@@ -59,7 +59,27 @@ convertToASExpr str@(_:xs)
             Value result -> Value (result ++ [SFunctionTypeEnd])
             Error err -> Error err
 
-    | head str == '\"' && last str == '\"' = Value [ASExpr (SString str)]
+    | head str == '\"' && last str == '\"' =
+        case length str of
+            2 -> Error "SyntaxError: litteral can't be empty"
+            _ -> Value [ASExpr (SString (tail (init str)))]
+
+    | head str == '\'' && last str == '\'' =
+        if isValidInt (tail (init str))
+            then
+                case readMaybe (tail (init str)) :: Maybe Int of
+                    Just i ->
+                        (if (i < 0) || (i > 255) then
+                            Error "SyntaxError: char are only between 0 and 255"
+                        else
+                            Value [ASExpr (SChar (chr i))])
+                    Nothing -> Error "error while converting to int"
+        else
+            case length str of
+                3 -> Value [ASExpr (SChar (str !! 1))]
+                2 -> Error "SyntaxError: litteral can't be empty"
+                _ -> Error "SyntaxError: string is not a char"
+
 
     | isValidFloat str =
         case readMaybe str of
@@ -82,9 +102,13 @@ convertToASExpr str@(_:xs)
             Nothing -> Error "error while converting to int"
 
     | isSuffixOf "c" str && isValidInt (init str) = 
-        case length str of
-            2 -> Value [ASExpr (SChar (head str))]
-            _ -> Error "SyntaxError: invalid char number"
+        case readMaybe (init str) of
+            Just i ->
+                (if (i < 0) || (i > 255) then
+                    Error "SyntaxError: char are only between 0 and 255"
+                else
+                    Value [ASExpr (SChar (chr i))])
+            Nothing -> Error "error while converting to int"
 
     | isNothing (readMaybe str :: Maybe Int) =
         case processToken str of
@@ -452,6 +476,9 @@ customWords [] = []
 customWords ('"':xs) =
     let (quoted, rest) = span (/= '"') xs
     in ['"' : quoted ++ "\""] ++ customWords (drop 1 rest)
+customWords ('\'':xs) =
+    let (quoted, rest) = span (/= '\'') xs
+    in ['\'' : quoted ++ "'"] ++ customWords (drop 1 rest)
 customWords (x:xs)
     | x == ','  = [","] ++ customWords xs
     | isSpace x = customWords xs
