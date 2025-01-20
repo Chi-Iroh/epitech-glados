@@ -8,7 +8,7 @@ import Data.List (singleton, find, elemIndex)
 import Data.Word (Word8)
 import Debug.Trace
 
-import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, toAny, RegisterID)
+import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, astToAny, RegisterID)
 import AST (AST(..), Call(..), getTypeAST, Parameter)
 import Bits (u32)
 import Serialize (Serializable)
@@ -149,8 +149,8 @@ compileCall symbol args status = concatMapM compileArg (reverse args) <&> (statu
 
 compileElem :: AST -> Safe [AssemblyInstruction]
 compileElem a = case a of
-    (ASTCall (FunctionCall name) args) -> mapM (\a' -> toAny a' <&> PushValue) (reverse args) <&> (++ [Call name])
-    _ -> toAny a <&> singleton . PushValue
+    (ASTCall (FunctionCall name) args) -> mapM (\a' -> astToAny a' <&> PushValue) (reverse args) <&> (++ [Call name])
+    _ -> astToAny a <&> singleton . PushValue
 
 allEqual :: Eq a => [a] -> Bool
 allEqual [] = True
@@ -207,7 +207,7 @@ compileAST1 status (ASTLambda params ast _) isNested = if isNested then compileF
 compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)
     where checkArgs = if (length args) > 16 then Error "Too many arguments (16 max) !" else Value args
           paramNames = traceShowId $ map (\(ASTProcedure name, _) -> name) params
-          argsToAny = checkArgs <&> (\args' -> traceShowId $ reverse $ zip paramNames (map toAny args'))
+          argsToAny = checkArgs <&> (\args' -> traceShowId $ reverse $ zip paramNames (map astToAny args'))
           pushArgs = argsToAny <&> (map (\(name, any) -> alternativeMap PushValue (Call name) any))
           functionCode = compileFunction ast params status
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Utils
     ( Safe(Value, Error),
     printSafe,
@@ -6,9 +8,12 @@ module Utils
     joinSStrings,
     isValue,
     mapFst,
+    mapFst3,
     alternativeMap,
     maybeToSafe,
     boolToSafe,
+    safeCast,
+    errorIf,
     bind2,
     concatMapM
     ) where
@@ -16,6 +21,7 @@ module Utils
 import Control.Applicative ((<|>), empty, Alternative)
 import Control.Monad (join)
 import Data.Functor ((<&>))
+import Data.Typeable (Typeable, cast, typeOf)
 
 data Safe a = Value a | Error String deriving (Eq, Ord, Read)
 
@@ -74,6 +80,13 @@ boolToSafe :: String -> Bool -> a -> Safe a
 boolToSafe _ True a = Value a
 boolToSafe err False _ = Error err
 
+errorIf :: (a -> Bool) -> String -> Safe a -> Safe a
+errorIf f err a = a >>= (\a' -> if f a' then Value a' else Error err)
+
+safeCast :: forall a b. (Typeable a, Typeable b) => a -> Safe b -- forall allows undefined :: b, and ScopedVariables allows forall here
+safeCast a = maybeToSafe errorMsg (cast a)
+    where errorMsg = "Cannot cast value of type " ++ show (typeOf a) ++ " into type " ++ show (typeOf (undefined :: b)) ++ " !"
+
 type SString = Safe String
 
 concatSStrings :: SString -> SString -> SString
@@ -87,6 +100,9 @@ joinSStrings sep = foldr (\a b -> concatSStrings a (concatSStrings (b *> Value s
 
 mapFst :: (a -> c) -> (a, b) -> (c, b)
 mapFst f (a, b) = (f a, b)
+
+mapFst3 :: (a -> d) -> (a, b, c) -> (d, b, c)
+mapFst3 f (a, b, c) = (f a, b, c)
 
 alternativeMap :: (a -> b) -> b -> Safe a -> b
 alternativeMap f _default a = fromSafe ((f <$> a) <|> (Value _default))
