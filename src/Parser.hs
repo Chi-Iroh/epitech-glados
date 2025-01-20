@@ -12,7 +12,7 @@ module Parser (
 
 import Text.Read
 import Data.Maybe
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, isSuffixOf)
 import Data.Char (isSpace)
 
 import SExpression
@@ -66,6 +66,26 @@ convertToASExpr str@(_:xs)
             Just f -> Value [ASExpr (SFloat f)]
             Nothing -> Error "error while converting to float"
 
+    | isSuffixOf "i" str && isValidInt (init str) =
+        case readMaybe (init str) of
+            Just i -> Value [ASExpr (SNumber i)]
+            Nothing -> Error "error while converting to int"
+
+    | isSuffixOf "u" str && isValidInt (init str) =
+        case readMaybe (init str) of
+            Just i ->
+                if i >= 0
+                    then
+                        Value [ASExpr (SUint i)]
+                else
+                    Error "SyntaxError: invalid unsigned int"
+            Nothing -> Error "error while converting to int"
+
+    | isSuffixOf "c" str && isValidInt (init str) = 
+        case length str of
+            2 -> Value [ASExpr (SChar (head str))]
+            _ -> Error "SyntaxError: invalid char number"
+
     | isNothing (readMaybe str :: Maybe Int) =
         case processToken str of
             Value result -> 
@@ -83,6 +103,11 @@ convertToASExpr str@(_:xs)
 
 isValidFloat :: String -> Bool
 isValidFloat str = case readMaybe str :: Maybe Float of
+                    Just _  -> True
+                    Nothing -> False
+
+isValidInt :: String -> Bool
+isValidInt str = case readMaybe str :: Maybe Int of
                     Just _  -> True
                     Nothing -> False
 
