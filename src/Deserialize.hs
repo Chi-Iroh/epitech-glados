@@ -48,8 +48,20 @@ deserializeFloat (b1 : b2 : b3 : b4 : bytes) = Value (castWord32ToFloat float, 4
     where float = (u32 b1 .<<. 24) .|. (u32 b2 .<<. 16) .|. (u32 b3 .<<. 8)  .|. u32 b4
 deserializeFloat bytes = Error ("Cannot deserialize a float, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes) !")
 
+deserializeTypeCombinationTypes :: Int -> [Word8] -> Safe ([Type], Int, [Word8])
+deserializeTypeCombinationTypes 0 list = deserializeType list >>=(\(_type, size, rest) -> Value ([_type], size, rest))
+deserializeTypeCombinationTypes x [] = Error "Not enough element to deserialize combination type"
+deserializeTypeCombinationTypes x list = deserializeType list >>=(\(_type, size, rest) -> deserializeTypeCombinationTypes (x - 1) rest >>=(\(_list, _size, _rest') -> Value (_type:_list, size + _size, _rest')))
+
 deserializeType :: [Word8] -> Safe (Type, Int, [Word8])
 deserializeType (0x01 : xs) = Value (T_Bool, 1, xs)
+deserializeType (0x02 : xs) = Value (T_Int, 1, xs)
+deserializeType (0x03 : xs) = Value (T_UInt, 1, xs)
+deserializeType (0x04 : xs) = Value (T_Float, 1, xs)
+deserializeType (0x05 : xs) = Value (T_Char, 1, xs)
+deserializeType (0x06 : xs) = deserializeType xs >>=(\(type1, size1, rest) -> deserializeType rest >>=(\(type2, size2, rest') -> Value (T_Tuple (type1, type2), 1 + size1 + size2, rest')))
+deserializeType (0x07 : xs) = deserializeType xs >>=(\(_type, _size, rest) -> Value (T_List _type, _size + 1, rest))
+deserializeType (0x08 : xs) = deserializeInt xs >>=(\(_value, len, rest)-> deserializeTypeCombinationTypes _value rest >>= (\(_type, _size, _rest) -> Value (T_Combination _type, _size + 1 + len, _rest)))
 deserializeType bytes = Value (T_NULL, 1, bytes)
 
 deserializeList :: Type -> Int -> [Word8] -> [Any] -> Safe ([Any], Int)

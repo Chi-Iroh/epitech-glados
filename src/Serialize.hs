@@ -143,7 +143,7 @@ serializeTypeCombination' [t] = serializeType t
 serializeTypeCombination' [] = []
 
 serializeTypeCombination :: [Type] -> [Word8]
-serializeTypeCombination list = [0x08] ++ serializeTypeCombination' list
+serializeTypeCombination list = [0x08] ++ serializeInt (length list) ++ serializeTypeCombination' list
 serializeTypeCombination [] = error "Empty Combination !"
 
 serializeTypeNull :: [Word8]
