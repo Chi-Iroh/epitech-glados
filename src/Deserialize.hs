@@ -89,7 +89,7 @@ deserializeList _type bytes = listLen >>= (\(len, bytesLen, rest) -> deserialize
     where listLen = errorIf (\(val, _, _) -> val == 0) "Use deserializeEmptyList for empty lists !" (deserializeUInt bytes)
 
 deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
-deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest >>= \(a, len', _) -> makeAny _type a <&> (,len + len'))
+deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest <&> \(a, len', _) -> (a, len + len'))
 
 addBytesLen :: Int -> (Any, Int) -> (Any, Int)
 addBytesLen n (val, len) = (val, len + n)
