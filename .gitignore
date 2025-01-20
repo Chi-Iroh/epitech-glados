@@ -11,6 +11,7 @@ glados
 .stack-work/
 lambdananas
 output.bin
+.compiled.bin
 
 ## Unused files
 *~
