@@ -55,7 +55,7 @@ checkArgs :: Args -> Safe Args
 checkArgs args
     | [run args, compile args] == [Just True, Just True] = Error "Both compile and run mode are specified !"
     | [run args, compile args] == [Nothing, Nothing] = Error "Neither compile mode nor run mode is specified !"
-    | isNothing (file args) = Error "No file specified !"
+    | compile args == Just True && isNothing (file args) = Error "No file specified !"
     | isJust (run args) && isJust (output args) = Error "Output file is only relevant in compile mode !"
     | otherwise = Value args
 
@@ -81,7 +81,7 @@ helpMessage =   "USAGE: ./glados [-c/--compile] | [-r/--run [-h/--help] <filenam
                 \\t-c/--compile : Compilation mode, turns a .pdp file into a binary file\n\
                 \\t-r/--run : Run mode, the VM reads the compiled binary file and executes it\n\
                 \\t-h/--help : Shows this screen\n\
-                \\t<filename> : Input file path for the compiler or the VM\n\
+                \\t<filename> : Input file path for the compiler or the VM (default if output.bin for the VM, no default for the compiler)\n\
                 \\t<output_filename> : Output file path, optional and only valid in compile mode (default is output.bin)"
 
 mainCompiler :: String -> String -> IO ()
@@ -104,4 +104,4 @@ main = do
                 Error err -> die err
                 Value args'' -> do
                     let filename = file args''
-                    if isJust (run args'') then mainVM (fromJust filename) else mainCompiler (fromJust filename) (fromMaybe "output.bin" (output args''))
+                    if isJust (run args'') then mainVM (fromMaybe "output.bin" filename) else mainCompiler (fromJust filename) (fromMaybe "output.bin" (output args''))
