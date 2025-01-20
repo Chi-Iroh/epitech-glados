@@ -1,5 +1,9 @@
 {-# LANGUAGE NumericUnderscores #-}
-module Limits where
+module Limits (
+    checkInt,
+    checkUInt,
+    checkFloat
+) where
 
 uintMax :: Int
 uintMax = 4_294_967_295
@@ -21,3 +25,18 @@ checkInt int = isInRange intMin intMax int
 
 checkUInt :: Int -> Bool
 checkUInt uint = isInRange 0 uintMax uint
+
+floatMin :: Float
+floatMin = -3.4028237e38
+
+floatMax :: Float
+floatMax = 3.4028237e38
+
+isInFloatRange :: Ord a => a -> a -> a -> Bool
+isInFloatRange low high val
+    | val < low = False
+    | val > high = False
+    | otherwise = True
+
+checkFloat :: Float -> Bool
+checkFloat float = isInRange floatMin floatMax float

@@ -28,7 +28,7 @@ Chaque caractère ascii, noté entre `'`, est considéré comme un nombre entier
 - `[a]`: représente une liste de valeurs du même type (une liste s'initialise entre crochets `[]` et chaque élément de la liste doit être séparé d'une virgule `,`). `a` est un type template.
     - `string`: c'est un alias de `[char]`, représente une chaîne de caractères (une chaîne de caractère s'initialise entre guillemets `""`)
 - `procedure`: représente un symbole invocable (variable, fonction, etc.)
-    - `{(parameters_types...) => return_type}`: représente une fonction ou une lambda. `parameter_type` et `return_type` doivent être un type valide du PDP. Il peut il y avoir 0, 1 ou plusieurs `parameter_type`. Par exemple voilà une formulation valide : `{({a, integer} [a]) => a}`. *(Un type n'est pas une procédure. Un mot clé n'est pas une procédure non plus.)*
+    - `<(parameters_types...) => return_type>`: représente une fonction ou une lambda. `parameter_type` et `return_type` doivent être un type valide du PDP. Il peut il y avoir 0, 1 ou plusieurs `parameter_type`. Par exemple voilà une formulation valide : `<({a, integer} [a]) => a>`. *(Un type n'est pas une procédure. Un mot clé n'est pas une procédure non plus.)*
 - `type`: représente un type ou une combinaison de types.
 
 Le type d'une variable est strict. Pour transférer une valeur d'un type vers un autre il faut utiliser le builtin `cast`. *Pour plus d'informations à propos de `cast` consultez la liste des builtins.*
@@ -43,7 +43,7 @@ Plusieurs types mixtes possèdent un alias prédéfini :
 | ----- | -------------------- |
 | integer | `int\|unit\|char` |
 | number | `integer\|float` |
-| any | `number\|bool\|(a, b)\|[a]\|procedure\|type` |
+| any | `number\|bool\|{a, b}\|[a]\|procedure\|type` |
 
 ## Syntaxe
 

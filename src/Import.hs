@@ -4,7 +4,6 @@ import Utils (Safe(..))
 import Control.Exception (try, IOException)
 import Data.List (isPrefixOf)
 import System.Directory (doesFileExist)
-import qualified Data.Text as T
 
 -- Read and validate a file safely
 processFile :: FilePath -> IO (Safe String)
@@ -29,7 +28,7 @@ catchImport [] = return $ Value ""
 catchImport (line:rest)
     | "import" `isPrefixOf` line =
         case words line of
-            ["import", filepath] -> do
+            ["import", _] -> do
                 importResult <- processLine (words line)
                 case importResult of                                    -- handle import
                     Error err -> return $ Error err

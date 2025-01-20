@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
+from os import remove
 import subprocess
 import sys
 
@@ -16,6 +17,7 @@ def example_couple(path : Path) -> tuple[Path, Path]:
 
 TESTS : list[str] = list(map(example_couple, list(Path(EXAMPLES_DIR).rglob("*.scm"))))
 GLADOS : str = "./glados"
+COMPILED_FILE : str = "./.compiled.bin"
 
 if len(TESTS) == 0:
     print(f"No .scm test file in {EXAMPLES_DIR}")
@@ -62,7 +64,12 @@ for i, (test, expected) in enumerate(TESTS):
     config = parse_expected(expected)
     print(f"Test {i+1}: {GLADOS} {test}")
     passed = True
-    run = subprocess.run([GLADOS, str(test)], stdout=subprocess.PIPE, stderr = subprocess.PIPE)
+    compile = subprocess.run([GLADOS, "-c", str(test), COMPILED_FILE], stdout=subprocess.PIPE, stderr = subprocess.PIPE)
+    if compile.returncode != 0:
+        print(f"--> {RED}Cannot compile {test} !{BLANK}\t" + compile.stderr.decode("utf-8"))
+        continue
+
+    run = subprocess.run([GLADOS, "-r", COMPILED_FILE], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     if not check_return_code(config["RETCODE"], run.returncode):
         print(f"--> {RED}Got return code {run.returncode} but expected {config['RETCODE'] if config['RETCODE'] != 'nonzero' else "!= 0"}{BLANK}", file = sys.stderr)
         passed = False
@@ -79,6 +86,10 @@ for i, (test, expected) in enumerate(TESTS):
         print(f"--> {GREEN}PASSED{BLANK}")
         n_passed += 1
 
+try:
+    remove(COMPILED_FILE)
+except FileNotFoundError: # thrown if file not found (i.e. failed to compile)
+    pass
 print(f"\nSummary: passed {n_passed}/{len(TESTS)} test{'s' if len(TESTS) > 1 else ''}")
 
 if n_passed != len(TESTS):

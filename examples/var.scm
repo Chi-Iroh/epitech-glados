@@ -1,2 +1,2 @@
-(define n 10)
+(define n int 10)
 (* n 5)
