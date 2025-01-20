@@ -1,7 +1,7 @@
 module BooleanOperator(booleanBuiltins) where
-import Evaluate(evaluateAST1, toNumber, Symbol(BackendSymbol), Symbols)
-import AST (AST(..))
 import Utils (Safe(..))
+import VMData(Any)
+import DataBuiltins (Symbols, BuiltinsSymbol(BackendBuiltins))
 
 nand :: Bool -> Bool -> Bool
 nand a b = not $ a && b
@@ -19,62 +19,53 @@ xnor :: Bool -> Bool -> Bool
 xnor a b = not $ xor a b
 
 booleanBuiltins :: Symbols
-booleanBuiltins = [ BackendSymbol ("==", astComparisonOp "==" (==))
-            ,   BackendSymbol ("eq", astComparisonOp "eq" (==))
-            ,   BackendSymbol ("!=", astComparisonOp "!=" (/=))
-            ,   BackendSymbol ("neq", astComparisonOp "neq" (/=))
-            ,   BackendSymbol ("<", astComparisonOp "<" (<))
-            ,   BackendSymbol ("lw", astComparisonOp "lw" (<))
-            ,   BackendSymbol (">", astComparisonOp ">" (>))
-            ,   BackendSymbol ("gt", astComparisonOp "gt" (>))
-            ,   BackendSymbol ("<=", astComparisonOp "<=" (<=))
-            ,   BackendSymbol ("lweq", astComparisonOp "lweq" (<=))
-            ,   BackendSymbol (">=", astComparisonOp ">=" (>=))
-            ,   BackendSymbol ("gteq", astComparisonOp "gteq" (>=))
-            ,   BackendSymbol ("!", astNot)
-            ,   BackendSymbol ("not", astNot)
-            ,   BackendSymbol ("&&", astBoolOperations "&&" (&&))
-            ,   BackendSymbol ("and", astBoolOperations "and" (&&))
-            ,   BackendSymbol ("||", astBoolOperations "||" (||))
-            ,   BackendSymbol ("or", astBoolOperations "pr" (||))
-            ,   BackendSymbol ("!&", astBoolOperations "!&" nand)
-            ,   BackendSymbol ("nand", astBoolOperations "nand" nand)
-            ,   BackendSymbol ("!|", astBoolOperations "!|" nor)
-            ,   BackendSymbol ("nor", astBoolOperations "nor" nor)
-            ,   BackendSymbol (":|", astBoolOperations ":|" xor)
-            ,   BackendSymbol ("xor", astBoolOperations "xor" xor)
-            ,   BackendSymbol ("!:", astBoolOperations "!:" xnor)
-            ,   BackendSymbol ("xnor", astBoolOperations "xnor" xnor)
-            ,   BackendSymbol ("if", astIf)]
+booleanBuiltins = [ BackendBuiltins ("==", pdpComparisonOp "==" (==))
+            ,   BackendBuiltins ("eq", pdpComparisonOp "eq" (==))
+            ,   BackendBuiltins ("!=", pdpComparisonOp "!=" (/=))
+            ,   BackendBuiltins ("neq", pdpComparisonOp "neq" (/=))
+            ,   BackendBuiltins ("<", pdpComparisonOp "<" (<))
+            ,   BackendBuiltins ("lw", pdpComparisonOp "lw" (<))
+            ,   BackendBuiltins (">", pdpComparisonOp ">" (>))
+            ,   BackendBuiltins ("gt", pdpComparisonOp "gt" (>))
+            ,   BackendBuiltins ("<=", pdpComparisonOp "<=" (<=))
+            ,   BackendBuiltins ("lweq", pdpComparisonOp "lweq" (<=))
+            ,   BackendBuiltins (">=", pdpComparisonOp ">=" (>=))
+            ,   BackendBuiltins ("gteq", pdpComparisonOp "gteq" (>=))
+            ,   BackendBuiltins ("!", pdpNot)
+            ,   BackendBuiltins ("not", pdpNot)
+            ,   BackendBuiltins ("&&", pdpBoolOperations "&&" (&&))
+            ,   BackendBuiltins ("and", pdpBoolOperations "and" (&&))
+            ,   BackendBuiltins ("||", pdpBoolOperations "||" (||))
+            ,   BackendBuiltins ("or", pdpBoolOperations "pr" (||))
+            ,   BackendBuiltins ("!&", pdpBoolOperations "!&" nand)
+            ,   BackendBuiltins ("nand", pdpBoolOperations "nand" nand)
+            ,   BackendBuiltins ("!|", pdpBoolOperations "!|" nor)
+            ,   BackendBuiltins ("nor", pdpBoolOperations "nor" nor)
+            ,   BackendBuiltins (":|", pdpBoolOperations ":|" xor)
+            ,   BackendBuiltins ("xor", pdpBoolOperations "xor" xor)
+            ,   BackendBuiltins ("!:", pdpBoolOperations "!:" xnor)
+            ,   BackendBuiltins ("xnor", pdpBoolOperations "xnor" xnor)
+            ,   BackendBuiltins ("if", pdpIf)]
 
-astComparisonOp' :: String -> (Int -> Int -> Bool) -> [AST] -> Safe AST
-astComparisonOp' name f args@[_, _] = mapM toNumber args >>= compare'
-    where compare' [a', b'] = Value $ ASTBool (f a' b')
+pdpComparisonOp :: String -> (Int -> Int -> Bool) -> [Any] -> Safe Any
+pdpComparisonOp name f args@[_, _] = mapM toNumber args >>= compare'
+    where compare' [a', b'] = Value $ Bool (f a' b')
           compare' args' = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare booleans and integers, but got " ++ show args' ++ " !")
-astComparisonOp' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare 2 arguments, but got " ++ show (length args) ++ " !")
+pdpComparisonOp name _ args = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare 2 arguments, but got " ++ show (length args) ++ " !")
 
-astComparisonOp :: String -> (Int -> Int -> Bool) -> Symbols -> [AST] -> Safe AST
-astComparisonOp name f symbols args = mapM (fst . evaluateAST1 symbols) args >>= astComparisonOp' name f
+-- pdpIf' :: Symbols -> [Any] -> Safe Any
+-- pdpIf' symbols [(Bool condition), a, b] = if condition then eval a else eval b
+--     where eval s = fst (evaluateAny1 symbols s)
+-- pdpIf' _ args = Error ("if must be called as 'if <condition as boolean> <a> <b>', but got args " ++ show args)
 
-astIf' :: Symbols -> [AST] -> Safe AST
-astIf' symbols [(ASTBool condition), a, b] = if condition then eval a else eval b
-    where eval s = fst (evaluateAST1 symbols s)
-astIf' _ args = Error ("if must be called as 'if <condition as boolean> <a> <b>', but got args " ++ show args)
+-- pdpIf :: Symbols -> [Any] -> Safe Any
+-- pdpIf symbols [a, b, c] = (fst $ evaluateAny1 symbols a) >>= (\a' -> pdpIf' symbols [a', b, c])
+-- pdpIf _ args = Error ("if must be called with 3 arguments, but got " ++ show (length args))
 
-astIf :: Symbols -> [AST] -> Safe AST
-astIf symbols [a, b, c] = (fst $ evaluateAST1 symbols a) >>= (\a' -> astIf' symbols [a', b, c])
-astIf _ args = Error ("if must be called with 3 arguments, but got " ++ show (length args))
+pdpBoolOperations :: String -> (Bool -> Bool -> Bool) -> [Any] -> Safe Any
+pdpBoolOperations _ f [Bool a, Bool b] = Value $ Bool (f a b)
+pdpBoolOperations name _ args = Error ("Bad arguments when attempting to call " ++ name ++ " ! Expected 2 boolean but got " ++ show args ++ " !")
 
-astBoolOperations' :: String -> (Bool -> Bool -> Bool) -> [AST] -> Safe AST
-astBoolOperations' _ f [ASTBool a, ASTBool b] = Value $ ASTBool (f a b)
-astBoolOperations' name _ args = Error ("Bad arguments when attempting to call " ++ name ++ " ! Expected 2 boolean but got " ++ show args ++ " !")
-
-astBoolOperations :: String -> (Bool -> Bool -> Bool) -> Symbols -> [AST] -> Safe AST
-astBoolOperations name f symbols args = mapM (fst . evaluateAST1 symbols) args >>= astBoolOperations' name f
-
-astNot' :: [AST] -> Safe AST
-astNot' [ASTBool a] = Value $ ASTBool $ not a
-astNot' args = Error ("Bad arguments when attempting to call '!' ! Expected a boolean but got " ++ show args ++ " !")
-
-astNot :: Symbols -> [AST] -> Safe AST
-astNot symbols args = mapM (fst . evaluateAST1 symbols) args >>= astNot'
+pdpNot :: [Any] -> Safe Any
+pdpNot [Bool a] = Value $ Bool $ not a
+pdpNot args = Error ("Bad arguments when attempting to call '!' ! Expected a boolean but got " ++ show args ++ " !")
