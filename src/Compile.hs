@@ -201,9 +201,9 @@ compileAST1 status astTuple@(ASTTuple (a, b)) isNested = getTypeAST astTuple >>=
 
 compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothValuesTheSameType >> concatInstructions conditionCompiled trueValueCompiled falseValueCompiled >>= ((status +++) . statusFromInstructions)
     where haveBothValuesTheSameType = haveSameType [trueValue, falseValue]
-          conditionCompiled = toAny condition <&> ((++ [Test 0]) . singleton . MovValue 0)
-          trueValueCompiled = toAny trueValue <&> (\val -> _instructions $ compileValueFromAny val isNested)
-          falseValueCompiled = toAny falseValue <&> (\val -> _instructions $ compileValueFromAny val isNested)
+          conditionCompiled = compileAST1 status condition True <&> _instructions <&> (++ [Pop 0, Test 0])
+          trueValueCompiled = compileAST1 status trueValue True <&> _instructions
+          falseValueCompiled = compileAST1 status falseValue True <&> _instructions
           concatInstructions = liftA3 (\conditionCode trueCode falseCode -> conditionCode ++ [JumpIfFalse (u32 $ length trueCode)] ++ trueCode ++ falseCode)
 
 compileAST1 status (ASTLambda params ast _) isNested = if isNested then compileFunction ast params status >>= (status +++) else Value status -- don't execute lambda if not used
