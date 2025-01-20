@@ -14,7 +14,7 @@ import Bits (u32)
 import Serialize (Serializable)
 import SymbolTable (SymbolTable, writeSymbolTable)
 import Type
-import Utils (Safe(..), maybeToSafe, alternativeMap, bind2)
+import Utils (Safe(..), maybeToSafe, alternativeMap, bind2, concatMapM)
 import VMData (Any(..), Address)
 
 data Symbol = BackendSymbol (String, (Symbols -> [AST] -> Safe AST))
@@ -95,15 +95,15 @@ emptyCompilationStatus = CompilationStatus {
     _params = []
 }
 
-compileSymbols :: Int -> [(String, CompilationStatus)] -> (SymbolTable, [Word8])
-compileSymbols _ [] = ([], [])
-compileSymbols offset ((symbol, status) : others) = ((symbol, u32 offset) : otherTable, assemble instructions ++ otherBytes)
-    where (otherTable, otherBytes) = compileSymbols (offset + length instructions) others
+compileSymbols :: Int -> [(String, CompilationStatus)] -> Safe (SymbolTable, [Word8])
+compileSymbols _ [] = Value ([], [])
+compileSymbols offset ((symbol, status) : others) = liftA2 (\instructions' (otherTable, otherBytes) -> ((symbol, u32 offset) : otherTable, instructions' ++ otherBytes)) (assemble instructions) otherSymbols
+    where otherSymbols = compileSymbols (offset + length instructions) others
           instructions = _instructions status
 
-compileAll :: CompilationStatus -> [Word8]
-compileAll (CompilationStatus instructions symbols _) = assemble instructions ++ symbolInstructions
-    where (symbolTable, symbolInstructions) = compileSymbols (length instructions) symbols
+compileAll :: CompilationStatus -> Safe [Word8]
+compileAll (CompilationStatus instructions symbols _) = liftA2 (\instructions' (symbolTable, symbolInstructions) -> instructions' ++ symbolInstructions) (assemble instructions) symbols'
+    where symbols' = compileSymbols (length instructions) symbols
 
 statusFromInstructions :: [AssemblyInstruction] -> CompilationStatus
 statusFromInstructions instructions = CompilationStatus {
@@ -137,9 +137,6 @@ compileValueFromAny val isNested = CompilationStatus {
     _symbols = [],
     _params = []
 }
-
-concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
-concatMapM f xs = mapM f xs <&> concat
 
 compileCall :: String -> [AST] -> CompilationStatus -> Safe CompilationStatus
 compileCall symbol args status = concatMapM compileArg (reverse args) <&> (statusFromInstructions . (++ [Call symbol]))
@@ -263,12 +260,12 @@ makeSymbolTable' offset ((name, CompilationStatus instructions _ _) : xs) = (nam
 makeSymbolTable :: [(String, CompilationStatus)] -> SymbolTable
 makeSymbolTable = makeSymbolTable' 0
 
-finishCompilation :: CompilationStatus -> [Word8]
-finishCompilation (CompilationStatus instructions symbols _) = writeSymbolTable (makeSymbolTable symbols) ++ symbols' ++ assemble instructions
-    where symbols' = concatMap (\sym -> assemble (_instructions (snd sym))) symbols
+finishCompilation :: CompilationStatus -> Safe [Word8]
+finishCompilation (CompilationStatus instructions symbols _) = liftA2 (\symbols'' instructions' -> writeSymbolTable (makeSymbolTable symbols) ++ symbols'' ++ instructions') symbols' (assemble instructions)
+    where symbols' = concatMapM (\sym -> assemble (_instructions (snd sym))) symbols
 
 compileAST :: [AST] -> Safe [Word8]
-compileAST ast = compileAST' emptyCompilationStatus ast <&> finishCompilation
+compileAST ast = compileAST' emptyCompilationStatus ast >>= finishCompilation
 
 -- test :: [SExpr]
 -- test = [ List [Symbol "define", Symbol "x", List [Symbol "+", Number 6, Number 5]]
