@@ -14,33 +14,73 @@ import Text.Read
 import Data.Maybe
 import Data.List (isPrefixOf)
 import Data.Char (isSpace)
-import Debug.Trace (trace)
 
 import SExpression
-
 import Utils
+
+import Base
 
 data AlmostSExpr = ASExpr SExpr | SListBegin | SListEnd | STupleBegin | STupleEnd | SArrayBegin | SArrayEnd | SFunctionTypeBegin | SFunctionTypeEnd deriving (Eq, Show)
 
 -- take any string and return a SNumber if the string is an integer, return a SSymbol otherwise
-convertToASExpr :: String -> [AlmostSExpr]
-convertToASExpr [] = []
+convertToASExpr :: String -> Safe [AlmostSExpr]
+convertToASExpr [] = Value []
 convertToASExpr str@(_:xs)
-    | isPrefixOf "(" str = (SListBegin:(convertToASExpr xs))
-    | isPrefixOf ")" (reverse str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [SListEnd]
-    | isPrefixOf "{" str = (STupleBegin:(convertToASExpr xs))
-    | isPrefixOf "}" (reverse str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [STupleEnd]
-    | isPrefixOf "[" str = (SArrayBegin:(convertToASExpr xs))
-    | isPrefixOf "]" (reverse str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [SArrayEnd]
-    | isPrefixOf "<-" str = (SFunctionTypeBegin:(convertToASExpr (drop 2 str)))
-    | isPrefixOf ">-" (reverse str) && not (isPrefixOf "=" str) = convertToASExpr (reverse (drop 2 (reverse str))) ++ [SFunctionTypeEnd]
-    | head str == '\"' && last str == '\"' = [ASExpr (SString str)]
-    | isNothing (readMaybe str :: Maybe Int) = trace ("str: " ++ show (str)) $ [ASExpr (SSymbol str)]
-    | otherwise = [ASExpr (SNumber (fromJust $ readMaybe str))]
+    | isPrefixOf "(" str = case convertToASExpr xs of
+                                Value result -> Value (SListBegin : result)
+                                Error err -> Error err
 
-stringToASExpr :: [String] -> [AlmostSExpr] -> [AlmostSExpr]
-stringToASExpr [] result = result
-stringToASExpr (x:xs) result = stringToASExpr xs (result ++ (convertToASExpr x))
+    | isPrefixOf ")" (reverse str) = case convertToASExpr (reverse (drop 1 (reverse str))) of
+                                        Value result -> Value (result ++ [SListEnd])
+                                        Error err -> Error err
+
+    | isPrefixOf "{" str = case convertToASExpr xs of
+                                Value result -> Value (STupleBegin : result)
+                                Error err -> Error err
+
+    | isPrefixOf "}" (reverse str) = case convertToASExpr (reverse (drop 1 (reverse str))) of
+                                        Value result -> Value (result ++ [STupleEnd])
+                                        Error err -> Error err
+
+    | isPrefixOf "[" str = case convertToASExpr xs of
+                                Value result -> Value (SArrayBegin : result)
+                                Error err -> Error err
+
+    | isPrefixOf "]" (reverse str) = case convertToASExpr (reverse (drop 1 (reverse str))) of
+                                        Value result -> Value (result ++ [SArrayEnd])
+                                        Error err -> Error err
+
+    | isPrefixOf "<-" str = case convertToASExpr (drop 2 str) of
+                                Value result -> Value (SFunctionTypeBegin : result)
+                                Error err -> Error err
+
+    | isPrefixOf ">-" (reverse str) && not (isPrefixOf "=" str) =
+        case convertToASExpr (reverse (drop 2 (reverse str))) of
+            Value result -> Value (result ++ [SFunctionTypeEnd])
+            Error err -> Error err
+
+    | head str == '\"' && last str == '\"' = Value [ASExpr (SString str)]
+
+    | isNothing (readMaybe str :: Maybe Int) =
+        case processToken str of
+            Value result -> 
+                if result == str
+                    then Error ("SyntaxError: Invalid base number: (" ++ str ++ ")")
+                    else case readMaybe result of
+                            Just n  -> Value [ASExpr (SNumber n)]
+                            Nothing -> Error "SyntaxError: Invalid decimal number format"
+            Error "Basic String" -> Value [ASExpr (SSymbol str)]
+            Error _ -> Value [ASExpr (SSymbol str)]
+
+    | otherwise = case readMaybe str of
+                    Just n  -> Value [ASExpr (SNumber n)]
+                    Nothing -> Error "Invalid number format"
+
+stringToASExpr :: [String] -> [AlmostSExpr] -> Safe [AlmostSExpr]
+stringToASExpr [] result = Value result
+stringToASExpr (x:xs) result = case convertToASExpr x of
+    Value newExpr -> stringToASExpr xs (result ++ newExpr)
+    Error err -> Error err
 
 -- list [] 0
 -- (le reste de la liste, la liste des paranthèses)
@@ -401,7 +441,10 @@ removeCommas (Value list) = Value (map removeCommasFromExpr list)
 
 parse :: String -> Safe [SExpr]
 parse str =
-    let result = verifyASExpr Nothing 0 (stringToASExpr (customWords str) [])
-            in case result of
+    let result = stringToASExpr (customWords str) []
+    in case result of
+        Value asExprList -> 
+            case verifyASExpr Nothing 0 asExprList of
                 Value (_, list) -> removeCommas (aSExprToSExpr list (Value []))
                 Error err -> Error err
+        Error err -> Error err
