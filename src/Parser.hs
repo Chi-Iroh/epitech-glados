@@ -61,6 +61,11 @@ convertToASExpr str@(_:xs)
 
     | head str == '\"' && last str == '\"' = Value [ASExpr (SString str)]
 
+    | isValidFloat str =
+        case readMaybe str of
+            Just f -> Value [ASExpr (SFloat f)]
+            Nothing -> Error "error while converting to float"
+
     | isNothing (readMaybe str :: Maybe Int) =
         case processToken str of
             Value result -> 
@@ -75,6 +80,11 @@ convertToASExpr str@(_:xs)
     | otherwise = case readMaybe str of
                     Just n  -> Value [ASExpr (SNumber n)]
                     Nothing -> Error "Invalid number format"
+
+isValidFloat :: String -> Bool
+isValidFloat str = case readMaybe str :: Maybe Float of
+                    Just _  -> True
+                    Nothing -> False
 
 stringToASExpr :: [String] -> [AlmostSExpr] -> Safe [AlmostSExpr]
 stringToASExpr [] result = Value result
@@ -224,10 +234,10 @@ verifyTuple :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExp
 verifyTuple (Value (rList, pList)) list =
     let tuple = checkValidTuple pList
     in case tuple of
-        Value validTuple -> 
+        Value validTuple ->
             aSExprToSExpr rList (concatSafe (fromSafeTuple (aSExprToSExpr validTuple (Value []))) list)
-        Error err -> 
-            Error err 
+        Error err ->
+            Error err
 verifyTuple (Error err) _ = Error err
 
 verifyArray :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
@@ -253,7 +263,7 @@ aSExprToSExpr (SArrayEnd:_) _ = Error "GLaDOS: SyntaxError: unexpected ']' while
 aSExprToSExpr (SFunctionTypeBegin:xs) list = verifyFunctionType (parseFunctionType xs [] 0) list
 aSExprToSExpr (SFunctionTypeEnd:_) _ = Error "GLaDOS: SyntaxError: unexpected '>' while parsing\n"
 
--- recursive function for check if array, tuple, etc.. are not interlocked    
+-- recursive function for check if array, tuple, etc.. are not interlocked
 verifyASExpr :: Maybe Char -> Int -> [AlmostSExpr] -> Safe (Int, [AlmostSExpr])
 verifyASExpr char index list
     | index > length list - 1 = Value (index, list)

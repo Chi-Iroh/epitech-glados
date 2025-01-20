@@ -11,6 +11,7 @@ import System.Exit (die, exitWith, ExitCode(ExitFailure))
 import System.Environment
 import Utils
 
+
 getFileName :: [String] -> Maybe String
 getFileName [a] = Just a
 getFileName _ = Nothing

@@ -107,6 +107,9 @@ sexprSListHandling [] = Error "GLaDOS: ConverterError: Expected a list of at lea
 -- number
 sexprSListHandling [SNumber a] = Value $ ASTInt a
 
+--float
+sexprSListHandling [SFloat a] = Value $ ASTFloat a
+
 -- boolean
 sexprSListHandling [SSymbol "#t"] = Value $ ASTBool True
 sexprSListHandling [SSymbol "#f"] = Value $ ASTBool False
