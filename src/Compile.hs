@@ -214,6 +214,9 @@ compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\a
           pushArgs = argsToAny <&> (map (\(name, any) -> alternativeMap PushValue (Call name) any))
           functionCode = compileFunction ast params status
 
+compileAST1 status (ASTFunction name params ast returnType) isNested = compileAST1 status (ASTDefine name functionType (ASTLambda params ast returnType)) isNested
+    where functionType = T_Function (map snd params) returnType
+
 compileAST1 _ a _ = Error ("Compiling " ++ show a ++ " isn't not implemented for now !")
 
 -- astArithmeticOp' :: String -> (Int -> Int -> Int) -> [AST] -> Safe AST
