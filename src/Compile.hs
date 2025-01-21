@@ -109,6 +109,7 @@ compileFunction ast params status = compileAST1 statusWithParams ast False <&> p
     where statusWithParams = pushParams params status
 
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
+compileAST1 status (ASTChar c) isNested = compileValue T_Char c isNested >>= (status +++)
 compileAST1 status (ASTInt n) isNested = compileValue T_Int n isNested >>= (status +++)
 compileAST1 status (ASTUInt n) isNested = compileValue T_UInt n isNested >>= (status +++)
 compileAST1 status (ASTFloat n) isNested = compileValue T_Float n isNested >>= (status +++)
