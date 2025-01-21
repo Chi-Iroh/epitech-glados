@@ -25,7 +25,7 @@ verifParamAST (ASTChar _) _ = True
 verifParamAST (ASTFloat _) _ = True
 verifParamAST (ASTBool _) _ = True
 verifParamAST (ASTTuple _) _ = True
-verifParamAST (ASTArray _) _ = True
+verifParamAST (ASTArray list) tt = (verifyTypeList $ map (\x -> getTypeAST x tt) list) /= T_Undefined
 verifParamAST (ASTString _) _ = True
 verifParamAST (ASTProcedure _) _ = True
 verifParamAST (ASTDefine _ t ast) tt = verifArgAST ast t tt

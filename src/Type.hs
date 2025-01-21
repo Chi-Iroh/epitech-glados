@@ -72,9 +72,13 @@ typeAny = T_Combination [T_Int, T_UInt, T_Char, T_Float, T_Bool, T_Tuple (T_Temp
 
 verifyTypeList :: [Type] -> Type
 verifyTypeList [] = T_EmptyList
+verifyTypeList [T_NULL] = T_EmptyList
+verifyTypeList [T_Undefined] = T_Undefined
 verifyTypeList [x] = T_List x
+verifyTypeList (T_Undefined:_) = T_Undefined
+verifyTypeList (T_NULL:xs) = verifyTypeList xs
 verifyTypeList (x:xs)
-    | all (== x) xs = T_List x
+    | all (\a -> a == x || a == T_NULL) xs = T_List x
     | otherwise = T_Undefined
 
 -------------------------------------------------------------------------------
