@@ -11,6 +11,7 @@ tests = TestList [
     TestLabel "Parser" testParser,
     TestLabel "Type" testType,
     TestLabel "Converter" testConverter,
+    TestLabel "ASTVerification" testASTVerification,
     TestLabel "SymbolTable" testSymbolTable,
     TestLabel "Serialize" testSerialize
     ]

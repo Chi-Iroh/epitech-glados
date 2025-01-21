@@ -3,7 +3,7 @@ module Parser (
     convertToASExpr,
     stringToASExpr,
     parseParanthese,
-    fromSafe,
+    fromSafeSExpr,
     concatSafe,
     verifyParanthese,
     aSExprToSExpr,
@@ -70,6 +70,11 @@ convertToASExpr str@(_:xs)
             2 -> Error "SyntaxError: litteral can't be empty"
             _ -> Error "SyntaxError: string is not a char"
 
+    | isValidInt str =
+        case readMaybe str of
+            Just f -> Value [ASExpr (SNumber f)]
+            Nothing -> Error "error while converting to float"
+
     | isValidFloat str =
         case readMaybe str of
             Just f -> Value [ASExpr (SFloat f)]
@@ -114,13 +119,13 @@ convertToASExpr str@(_:xs)
                     Just n  -> Value [ASExpr (SNumber n)]
                     Nothing -> Error "Invalid number format"
 
-isValidFloat :: String -> Bool
-isValidFloat str = case readMaybe str :: Maybe Float of
+isValidInt :: String -> Bool
+isValidInt str = case readMaybe str :: Maybe Int of
                     Just _  -> True
                     Nothing -> False
 
-isValidInt :: String -> Bool
-isValidInt str = case readMaybe str :: Maybe Int of
+isValidFloat :: String -> Bool
+isValidFloat str = case readMaybe str :: Maybe Float of
                     Just _  -> True
                     Nothing -> False
 
@@ -162,9 +167,9 @@ parseFunctionType (SFunctionTypeEnd:rList) pList i = parseFunctionType rList (SF
 parseFunctionType (SFunctionTypeBegin:rList) pList i = parseFunctionType rList (SFunctionTypeBegin:pList) (i + 1)
 parseFunctionType (r:rList) pList i = parseFunctionType rList (r:pList) i
 
-fromSafe :: Safe [SExpr] -> Safe SExpr
-fromSafe (Value list) = Value (SList list)
-fromSafe (Error err) = Error err
+fromSafeSExpr :: Safe [SExpr] -> Safe SExpr
+fromSafeSExpr (Value list) = Value (SList list)
+fromSafeSExpr (Error err) = Error err
 
 fromSafeTuple :: Safe [SExpr] -> Safe SExpr
 fromSafeTuple (Value list) = Value (STuple list)
@@ -185,7 +190,7 @@ concatSafe (Error err) _ = Error err
 concatSafe _ (Error err) = Error err
 
 verifyParanthese :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
-verifyParanthese (Value (rList, pList)) list = aSExprToSExpr rList (concatSafe (fromSafe (aSExprToSExpr pList (Value []))) list)
+verifyParanthese (Value (rList, pList)) list = aSExprToSExpr rList (concatSafe (fromSafeSExpr (aSExprToSExpr pList (Value []))) list)
 verifyParanthese (Error err) _ = Error err
 
 -- return a list of AlmostSexpr trunc to the correct SListEnd (and trunc it)

@@ -1,4 +1,4 @@
-module Debug (debug, debug2) where
+module Debug (debug, debug2, traceVal) where
 
 import Data.Typeable (Typeable, typeOf)
 import Debug.Trace (trace, traceShow)

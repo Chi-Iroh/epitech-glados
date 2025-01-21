@@ -4,11 +4,24 @@
 module Serialize (
     Serializable,
     serialize,
+    serializeInt,
+    serializeUInt,
     serializeChar,
+    serializeFloat,
+    serializeBool,
+    serializeTuple,
+    serializeList,
     serializeType,
-    serializeTypeNull,
+    serializeTypeInt,
+    serializeTypeUInt,
+    serializeTypeChar,
+    serializeTypeFloat,
+    serializeTypeBool,
+    serializeTypeTuple,
+    serializeTypeList,
     serializeTypeEmptyList,
-    serializeUInt
+    serializeTypeCombination,
+    serializeTypeNull
 ) where
 
 import Data.Bits ((.<<.), Bits)
@@ -43,17 +56,6 @@ instance (Serializable a, Serializable b) => Serializable (a, b) where
 instance Serializable a => Serializable [a] where
     serialize = serializeList
 
-serializeBool :: Bool -> [Word8]
-serializeBool bool = [if bool then 0x01 else 0x00]
-
-serializeChar :: Char -> [Word8]
-serializeChar char = [c2w char]
-
-serializeUInt :: Int -> Safe [Word8]
-serializeUInt uint
-    | not (checkUInt uint) = Error "Negative uint !"
-    | otherwise = Value (serializeInt' (u32 uint))
-
 serializeInt' :: (Integral a, Bits a) => a -> [Word8]
 serializeInt' value =
     [ fromIntegral (value .<<. 24)
@@ -66,6 +68,14 @@ serializeInt int
     | not (checkInt int) = Error "Out of range int !"
     | otherwise = Value (serializeInt' (i32 int))
 
+serializeUInt :: Int -> Safe [Word8]
+serializeUInt uint
+    | not (checkUInt uint) = Error "Negative uint !"
+    | otherwise = Value (serializeInt' (u32 uint))
+
+serializeChar :: Char -> [Word8]
+serializeChar char = [c2w char]
+
 serializeFloat' :: Float -> [Word8]
 serializeFloat' float = splitWord32 (castFloatToWord32 float)
 
@@ -73,6 +83,9 @@ serializeFloat :: Float -> Safe [Word8]
 serializeFloat float
     | not (checkFloat float) = Error "Out of range float !"
     | otherwise = Value (serializeFloat' float)
+
+serializeBool :: Bool -> [Word8]
+serializeBool bool = [if bool then 0x01 else 0x00]
 
 serializeTuple :: (Serializable a, Serializable b) => (a, b) -> Safe [Word8]
 serializeTuple (x, y) = liftA2 (++) (serialize x) (serialize y)
@@ -86,7 +99,6 @@ serializeList xs = liftA2 (++) (serializeUInt (length xs)) (serializeList' xs)
 
 -- serializeCombination :: [Type] -> [Word8]
 -- serializeCombination list = serializeList list
-
 
 serializeType :: Type -> Safe [Word8]
 serializeType T_Int = Value serializeTypeInt
@@ -102,20 +114,20 @@ serializeType (T_List elemType) = serializeTypeList elemType
 serializeType (T_Combination types) = serializeTypeCombination types
 serializeType _type = Error ("Cannot serialize type " ++ show _type)
 
-serializeTypeBool :: [Word8]
-serializeTypeBool = [0x01]
-
 serializeTypeInt :: [Word8]
 serializeTypeInt = [0x02]
 
 serializeTypeUInt :: [Word8]
 serializeTypeUInt = [0x03]
 
+serializeTypeChar :: [Word8]
+serializeTypeChar = [0x05]
+
 serializeTypeFloat :: [Word8]
 serializeTypeFloat = [0x04]
 
-serializeTypeChar :: [Word8]
-serializeTypeChar = [0x05]
+serializeTypeBool :: [Word8]
+serializeTypeBool = [0x01]
 
 serializeTypeTuple :: (Type, Type) -> Safe [Word8]
 serializeTypeTuple (x, y) = liftA2 (++) (serializeType x) (serializeType y) <&> ([0x06] ++)

@@ -38,8 +38,8 @@ processToken token
             Right decimal -> show decimal
             Left _ -> token
 
-    processCustomBase token =
-        case span (/= '}') (drop 2 token) of
+    processCustomBase token' =
+        case span (/= '}') (drop 2 token') of
             (baseStr, '}' : numStr) ->
                 case reads baseStr of
                     [(base, "")] -> Value $ replaceWithDecimal base numStr

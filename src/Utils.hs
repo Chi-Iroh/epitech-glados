@@ -17,7 +17,8 @@ module Utils
     safeCast,
     errorIf,
     bind2,
-    concatMapM
+    concatMapM,
+    fromSafe
     ) where
 
 import Control.Applicative ((<|>), empty, Alternative)
