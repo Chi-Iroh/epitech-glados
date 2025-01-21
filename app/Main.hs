@@ -1,18 +1,15 @@
 module Main (main) where
 
 import Data.Maybe (isNothing, isJust, fromMaybe, fromJust)
-import Debug.Trace (traceShowId)
-
-    -- import Debug (debug, debug2)
-import AST (MainAST, isProcedureType)
-import BinaryIO (writeBinary)
-import Converter (convert)
-import Compile (compileAST)
-import Import (parseImport)
-import Comment (deleteComment)
-import Parser
-import System.Exit (die, exitSuccess)
 import System.Environment (getArgs)
+import System.Exit (die, exitSuccess)
+
+import BinaryIO (writeBinary)
+import Comment (deleteComment)
+import Compile (compileAST)
+import Converter (convert)
+import Import (parseImport)
+import Parser
 import Utils
 import VM (mainVM)
 
@@ -55,22 +52,9 @@ checkArgs :: Args -> Safe Args
 checkArgs args
     | [run args, compile args] == [Just True, Just True] = Error "Both compile and run mode are specified !"
     | [run args, compile args] == [Nothing, Nothing] = Error "Neither compile mode nor run mode is specified !"
-    | isNothing (file args) = Error "No file specified !"
+    | compile args == Just True && isNothing (file args) = Error "No file specified !"
     | isJust (run args) && isJust (output args) = Error "Output file is only relevant in compile mode !"
     | otherwise = Value args
-
-showAll' :: Show a => [a] -> String
-showAll' = unlines . filter (not . null) . map show
-
-showAll :: [MainAST] -> String
-showAll [] = ""
-showAll args
-    | length args == 1 && isProcedureType (head args) = "#\\<procedure\\>"
-    | otherwise = showAll' args
-
-putResult :: Safe String -> IO ()
-putResult (Value res) = putStr res
-putResult (Error err) = die err
 
 safeToIO :: Safe a -> IO a
 safeToIO (Error err) = die err
@@ -81,7 +65,7 @@ helpMessage =   "USAGE: ./glados [-c/--compile] | [-r/--run [-h/--help] <filenam
                 \\t-c/--compile : Compilation mode, turns a .pdp file into a binary file\n\
                 \\t-r/--run : Run mode, the VM reads the compiled binary file and executes it\n\
                 \\t-h/--help : Shows this screen\n\
-                \\t<filename> : Input file path for the compiler or the VM\n\
+                \\t<filename> : Input file path for the compiler or the VM (default if output.bin for the VM, no default for the compiler)\n\
                 \\t<output_filename> : Output file path, optional and only valid in compile mode (default is output.bin)"
 
 mainCompiler :: String -> String -> IO ()
@@ -90,7 +74,7 @@ mainCompiler filename outputFilename = do
     fileImport <- parseImport (deleteComment fileContent)
     case fileImport of
         Error err -> die err
-        Value content -> safeToIO ((traceShowId $ convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary (traceShowId outputFilename)
+        Value content -> safeToIO ((convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary outputFilename
 
 main :: IO ()
 main = do
@@ -104,4 +88,4 @@ main = do
                 Error err -> die err
                 Value args'' -> do
                     let filename = file args''
-                    if isJust (run args'') then mainVM (fromJust filename) else mainCompiler (fromJust filename) (fromMaybe "output.bin" (output args''))
+                    if isJust (run args'') then mainVM (fromMaybe "output.bin" filename) else mainCompiler (fromJust filename) (fromMaybe "output.bin" (output args''))

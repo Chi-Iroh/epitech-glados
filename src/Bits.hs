@@ -4,6 +4,7 @@ module Bits (
     splitWord32,
     u32,
     i32,
+    int,
     nthBit,
     setBit
 ) where
@@ -23,6 +24,9 @@ u32 = fromIntegral
 
 i32 :: Integral a => a -> Int32
 i32 = fromIntegral
+
+int :: Integral a => a -> Int
+int = fromIntegral
 
 combineWord32 :: [Word8] -> Word32
 combineWord32 [a, b, c, d] = (u32 a .<<. 24) .|. (u32 b .<<. 16) .|. (u32 c .<<. 8) .|. u32 d

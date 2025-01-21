@@ -176,14 +176,17 @@ Opcode : 0x7
 ```x86asm
 ret type value  ; addressing mode = 0x0
 ret register    ; addressing mode = 0x1
+ret             ; addressing mode = 0x2
 
 ; example
 func:
     ret int 4
     ret r0
+    ret
 ```
 
 This instruction pushes a value / register of a certain type onto the stack (exactly the same as `push type value` or `push reg`), then pops the top address of CS and jumps to it.  
+`ret` alone will cause the VM to pop the top value of the stack as a return value instead of deserializing a value or reading from a register.  
 If CS is empty, the VM will throw a runtime error.  
 
 ## Register manipulator
