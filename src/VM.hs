@@ -117,7 +117,7 @@ executeInstruction' (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) = jump
 executeInstruction' (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpFalse addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
 executeInstruction' (Call name) table (Vm reg cstack bf vstack pc)= case call name table of  
                                                                     Value _address -> Value (Vm (replicate 16 Nothing : reg) (pc:cstack) bf vstack _address, Nothing)
-                                                                    Error _ -> callBuiltins name vstack >>=(\_stack -> Value reg cstack bf _stack pc)
+                                                                    Error _ -> callBuiltins name vstack >>=(\_stack -> Value (Vm reg cstack bf _stack pc, Nothing))
 executeInstruction' (RetRegister registerID) _ (Vm (reg:rs) cstack bf vstack _) = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack _address, Nothing))
 executeInstruction' (RetValue value) _ (Vm (_:rs) cstack bf vstack _)= returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack _address, Nothing))
 executeInstruction' (MovRegister register1 register2) _ (Vm (reg:rs) cstack bf vstack pc) = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
