@@ -123,6 +123,7 @@ executeInstruction' (Call name) table (Vm reg cstack bf vstack pc)= case call na
                                                                     Error _ -> callBuiltins name vstack >>=(\_stack -> Value (Vm reg cstack bf _stack pc, Nothing))
 executeInstruction' (RetRegister registerID) _ (Vm (reg:rs) cstack bf vstack _) = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack _address, Nothing))
 executeInstruction' (RetValue value) _ (Vm (_:rs) cstack bf vstack _)= returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack _address, Nothing))
+executeInstruction' Ret _ (Vm (_:rs) (_address:_cstack) bf vstack _) = Value (Vm rs _cstack bf vstack _address, Nothing)
 executeInstruction' (MovRegister register1 register2) _ (Vm (reg:rs) cstack bf vstack pc) = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
 executeInstruction' (MovValue registerID value) _ (Vm (reg:rs) cstack bf vstack pc) =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
 executeInstruction' (OutRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) = Value (Vm (reg:rs) cstack bf vstack pc, reg !! fromIntegral registerID)
@@ -146,6 +147,7 @@ parseInstruction' (0x60 : xs) = name' <&> ((, length name + 2) . Call) -- +2 for
           name' = hasNullCharacter >>= boolToSafe "Empty function name in Call instruction !" (name /= []) >> Value name
 parseInstruction' (0x70 : xs) = mapFst RetValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
 parseInstruction' (0x71 : reg : _) = Value (RetRegister reg, 2)
+parseInstruction' (0x72 : reg : _) = Value (Ret, 1)
 parseInstruction' (0x80 : reg : xs) = mapFst (MovValue reg) <$> addBytesLen 2 <$> deserializeTypeAndValue xs
 parseInstruction' (0x81 : reg1 : reg2 : _) = Value (MovRegister reg1 reg2, 3)
 parseInstruction' (0x90 : xs) = mapFst OutValue <$> addBytesLen 1 <$> deserializeTypeAndValue (traceShowId xs)
