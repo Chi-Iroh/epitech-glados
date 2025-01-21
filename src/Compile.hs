@@ -89,6 +89,9 @@ data CompilationStatus = CompilationStatus {
     _params :: [[Parameter]]
 }
 
+instance Show CompilationStatus where
+    show = const "tkjgbreZ"
+
 emptyCompilationStatus :: CompilationStatus
 emptyCompilationStatus = CompilationStatus {
     _instructions = [],
@@ -258,7 +261,7 @@ compileAST' status (x : xs)
     where compiled = compileAST1 status x False
 
 makeSymbolTable' :: Address -> [(String, CompilationStatus)] -> SymbolTable
-makeSymbolTable' _ [] = []
+makeSymbolTable' offset [] = [("__main", offset)]
 makeSymbolTable' offset ((name, CompilationStatus instructions _ _) : xs) = (name, offset) : makeSymbolTable' (offset + fromIntegral (length instructions)) xs
 
 makeSymbolTable :: [(String, CompilationStatus)] -> SymbolTable
