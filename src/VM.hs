@@ -15,12 +15,11 @@ import Bits (combineWord32, u32)
 import Builtins (builtins)
 import Data.ByteString.Internal (w2c)
 import DataBuiltins (Symbols, BuiltinsSymbol(..))
-import Deserialize (deserializeTypeAndValue, deserializeList, deserializeType, deserializeInt, deserializeUInt, addBytesLen)
+import Deserialize (deserializeTypeAndValue, deserializeType, deserializeUInt, addBytesLen)
 import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
-import Utils (Safe(..), boolToSafe)
+import Utils (Safe(..), boolToSafe, errorIf)
 import VMData (Address, Vm(..), defaultVM)
-import Debug.Trace (traceShowId)
 
 pushRegister :: Maybe Any -> [Any] -> Safe [Any]
 pushRegister (Just a) stack = Value $ a:stack
@@ -148,7 +147,7 @@ parseInstruction' (0x30 : reg : _) = Value (Test reg, 2)
 parseInstruction' (0x40 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfTrue (combineWord32 [byte1, byte2, byte3, byte4]), 5)
 parseInstruction' (0x50 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfFalse (combineWord32 [byte1, byte2, byte3, byte4]), 5)
 parseInstruction' (0x60 : xs) = name' <&> ((, length name + 2) . Call) -- +2 for leading 0x60 and trailing 0x00
-    where hasNullCharacter = boolToSafe "Unterminated call function name !" (elem 0x00 xs) 0
+    where hasNullCharacter = errorIf (elem 0x00) "Unterminated call function name !" (Value xs)
           name = map w2c $ takeWhile (/= 0x00) xs
           name' = hasNullCharacter >>= boolToSafe "Empty function name in Call instruction !" (name /= []) >> Value name
 parseInstruction' (0x70 : xs) = mapFst RetValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs

@@ -1,0 +1,2 @@
+RETCODE: NonZero
+STDERR: 'Error when trying to define procedure m: nested procedures are forbidden !'

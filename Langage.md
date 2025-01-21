@@ -27,7 +27,7 @@ Chaque caractère ascii, noté entre `'`, est considéré comme un nombre entier
 - `{a, b}`: représente un tuple de deux valeurs (les deux valeurs peuvent avoir des types distincts). `a` et `b` sont des types template.
 - `[a]`: représente une liste de valeurs du même type (une liste s'initialise entre crochets `[]` et chaque élément de la liste doit être séparé d'une virgule `,`). `a` est un type template.
     - `string`: c'est un alias de `[char]`, représente une chaîne de caractères (une chaîne de caractère s'initialise entre guillemets `""`)
-- `procedure`: représente un symbole invocable (variable, fonction, etc.)
+- `procedure`: représente un symbole invocable (variable, fonction, etc.), doit forcément être créée à la racine (les procédures imbriquées sont interdites)
     - `<(parameters_types...) => return_type>`: représente une fonction ou une lambda. `parameter_type` et `return_type` doivent être un type valide du PDP. Il peut il y avoir 0, 1 ou plusieurs `parameter_type`. Par exemple voilà une formulation valide : `<({a, integer} [a]) => a>`. *(Un type n'est pas une procédure. Un mot clé n'est pas une procédure non plus.)*
 - `type`: représente un type ou une combinaison de types.
 

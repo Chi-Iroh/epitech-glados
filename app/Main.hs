@@ -1,18 +1,15 @@
 module Main (main) where
 
 import Data.Maybe (isNothing, isJust, fromMaybe, fromJust)
-import Debug.Trace (traceShowId)
-
-    -- import Debug (debug, debug2)
-import AST (MainAST, isProcedureType)
-import BinaryIO (writeBinary)
-import Converter (convert)
-import Compile (compileAST)
-import Import (parseImport)
-import Comment (deleteComment)
-import Parser
-import System.Exit (die, exitSuccess)
 import System.Environment (getArgs)
+import System.Exit (die, exitSuccess)
+
+import BinaryIO (writeBinary)
+import Comment (deleteComment)
+import Compile (compileAST)
+import Converter (convert)
+import Import (parseImport)
+import Parser
 import Utils
 import VM (mainVM)
 
@@ -59,19 +56,6 @@ checkArgs args
     | isJust (run args) && isJust (output args) = Error "Output file is only relevant in compile mode !"
     | otherwise = Value args
 
-showAll' :: Show a => [a] -> String
-showAll' = unlines . filter (not . null) . map show
-
-showAll :: [MainAST] -> String
-showAll [] = ""
-showAll args
-    | length args == 1 && isProcedureType (head args) = "#\\<procedure\\>"
-    | otherwise = showAll' args
-
-putResult :: Safe String -> IO ()
-putResult (Value res) = putStr res
-putResult (Error err) = die err
-
 safeToIO :: Safe a -> IO a
 safeToIO (Error err) = die err
 safeToIO (Value a) = pure a
@@ -90,7 +74,7 @@ mainCompiler filename outputFilename = do
     fileImport <- parseImport (deleteComment fileContent)
     case fileImport of
         Error err -> die err
-        Value content -> safeToIO ((traceShowId $ convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary (traceShowId outputFilename)
+        Value content -> safeToIO ((convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary outputFilename
 
 main :: IO ()
 main = do

@@ -1,0 +1,2 @@
+RETCODE: NonZero
+STDERR: 'Error when trying to define procedure bee: nested procedures are forbidden !'
