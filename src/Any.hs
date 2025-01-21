@@ -29,6 +29,7 @@ import Control.Applicative (liftA3)
 import Data.ByteString.Internal (c2w, w2c)
 import Data.Functor ((<&>))
 import qualified Data.Kind (Type)
+import Data.List (intersperse)
 import Data.Proxy
 import Data.Typeable
 import Data.Word (Word8)
@@ -59,7 +60,7 @@ instance Show Any where
     show (Float f) = "float " ++ show f
     show (Bool b) = "bool " ++ show b
     show EmptyArray = "[]"
-    show (Array xs) = "[" ++ concatMap show xs ++ "]"
+    show (Array xs) = "[" ++ (concat (intersperse ", " (map show xs))) ++ "]"
     show (Tuple (a, b)) = "{" ++ show a ++ ", " ++ show b ++ "}"
     show NULL = "NULL"
 
