@@ -7,7 +7,7 @@ import Data.Word (Word8)
 import Debug.Trace (traceShowId)
 
 import Any (Any(..), makeAny, anyType)
-import AST (AST(..), getTypeAST')
+import AST (AST(..))
 import Bits (u32)
 import Hex (showHex32)
 import Serialize
@@ -59,9 +59,7 @@ astToAny (ASTUInt n) = makeAny T_UInt n
 astToAny (ASTFloat f) = makeAny T_Float f
 astToAny (ASTString str) = makeAny T_String str
 astToAny (ASTArray xs) = mapM astToAny xs <&> Array
-astToAny (ASTTuple (a, b)) = liftA2 (curry Tuple) a' b'
-    where a' = astToAny a >>= makeAny (getTypeAST' a)
-          b' = astToAny b >>= makeAny (getTypeAST' b)
+astToAny (ASTTuple (a, b)) = liftA2 (curry Tuple) (astToAny a) (astToAny b)
 astToAny a = Error ("astToAny: Invalid argument : '" ++ show a ++ "'")
 
 toAssemblyValueInstruction :: (Any -> AssemblyInstruction) -> AST -> Safe AssemblyInstruction
