@@ -8,7 +8,7 @@ import Data.Word (Word8)
 import System.Exit (die, exitWith, ExitCode (ExitSuccess))
 import Unsafe.Coerce (unsafeCoerce)
 
-import Any (Any(..), makeAny, anyType)
+import Any (Any(..), AnyVM(..), makeAny, anyType)
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary)
 import Bits (combineWord32, u32)
@@ -38,8 +38,8 @@ popStack _ [] _ = Error "Stack empty"
 popStack _ _ [] = Error "Register out of bounds"
 
 constructList :: Int -> Type -> [Any] -> [Any] -> Safe [Any]
-constructList 0 _type stack newlist = makeAny (T_List _type) newlist <&> ((++ stack) . singleton)
-constructList x _type (a:as) newlist = constructList (x - 1) _type as $ a:newlist
+constructList n _type xs newlist = Value ((Array elems) : rest)
+    where (elems, rest) = genericSplitAt n xs
 constructList _ _type [] _ = Error "Not enough value in stack to perform construct"
 
 constructTuple :: [Any] -> Type -> Type -> Safe [Any]
@@ -53,6 +53,7 @@ constructTuple [_] _ _ = Error "Not enough value in stack to perform construct"
 constructTuple _ _ _ = Error "Not enough value in stack to perform construct"
 
 construct :: Type -> Int -> [Any] -> Safe [Any]
+construct _ 0 _ = Error "Can't construct from 0 values !"
 construct (T_List _type) size stack = constructList size _type stack []
 construct (T_Tuple (typeA, typeB)) 2 stack = constructTuple stack typeA typeB
 construct (T_Tuple (_, _)) size _ = Error $ "Tried to construct tuple of size" ++ show size ++ "but tuples can only be of size 2"
@@ -177,7 +178,7 @@ parseFile vm table bytes = case parseInstruction vm bytes table of
                         Error "Nothing left to do, closing VM." -> exitWith ExitSuccess
                         Error err -> die err
                         Value (_vm, Nothing) -> parseFile _vm table bytes
-                        Value (_vm, Just a) -> print a >> parseFile _vm table bytes
+                        Value (_vm, Just a) -> print (AnyVM a) >> parseFile _vm table bytes
 
 mainVM :: FilePath -> IO ()
 mainVM path = do

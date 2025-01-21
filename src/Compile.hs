@@ -161,9 +161,9 @@ makeSymbolTable' offset ((name, CompilationStatus instructions _ _) : xs) = asse
 makeSymbolTable :: [(String, CompilationStatus)] -> Safe (SymbolTable, [Word8])
 makeSymbolTable = makeSymbolTable' 0
 
-finishCompilation :: CompilationStatus -> Safe [Word8]
-finishCompilation (CompilationStatus instructions symbols _) = liftA2 (\(symtab', symbols') instructions' -> writeSymbolTable symtab' ++ symbols' ++ instructions') symtab (assemble instructions)
+finishCompilation :: CompilationStatus -> Safe ([AssemblyInstruction], [Word8])
+finishCompilation (CompilationStatus instructions symbols _) = liftA2 (\(symtab', symbols') instructions' -> (instructions, writeSymbolTable symtab' ++ symbols' ++ instructions')) symtab (assemble instructions)
     where symtab = makeSymbolTable symbols
 
-compileAST :: [AST] -> Safe [Word8]
+compileAST :: [AST] -> Safe ([AssemblyInstruction], [Word8])
 compileAST ast = compileAST' emptyCompilationStatus ast >>= finishCompilation
