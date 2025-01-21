@@ -1,6 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 
-module Deserialize (deserialize, deserializeTypeAndValue, deserializeType, deserializeList, deserializeInt, addBytesLen) where
+module Deserialize (deserialize, deserializeTypeAndValue, deserializeType, deserializeList, deserializeInt, addBytesLen, deserializeUInt) where
 
 import Data.Bits (Bits, (.<<.), (.|.))
 import Data.ByteString.Internal (w2c)
