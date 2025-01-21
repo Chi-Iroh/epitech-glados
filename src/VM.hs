@@ -42,15 +42,15 @@ constructList 0 _type stack newlist = makeAny (T_List _type) newlist <&> ((++ st
 constructList x _type (a:as) newlist = constructList (x - 1) _type as $ a:newlist
 constructList _ _type [] _ = Error "Not enough value in stack to perform construct"
 
-constructTupple :: [Any] -> Type -> Type -> Safe [Any]
-constructTupple (a : b : as) typeA typeB = makeAny (T_Tuple (typeA, typeB)) (a, b) <&> ((++ as) . singleton)
-constructTupple [_] _ _ = Error "Not enough value in stack to perform construct"
-constructTupple _ _ _ = Error "Not enough value in stack to perform construct"
+constructTuple :: [Any] -> Type -> Type -> Safe [Any]
+constructTuple (a : b : as) typeA typeB = makeAny (T_Tuple (typeA, typeB)) (a, b) <&> ((++ as) . singleton)
+constructTuple [_] _ _ = Error "Not enough value in stack to perform construct"
+constructTuple _ _ _ = Error "Not enough value in stack to perform construct"
 
 construct :: Type -> Int -> [Any] -> Safe [Any]
 construct (T_List _type) size stack = constructList size _type stack []
-construct (T_Tuple (typeA, typeB)) 2 stack = constructTupple stack typeA typeB
-construct (T_Tuple (_, _)) size _ = Error $ "Tried to construct tupple of size" ++ show size ++ "but tupples can only be of size 2"
+construct (T_Tuple (typeA, typeB)) 2 stack = constructTuple stack typeA typeB
+construct (T_Tuple (_, _)) size _ = Error $ "Tried to construct tuple of size" ++ show size ++ "but tuples can only be of size 2"
 construct _ _ _ = Error "Tried to use construct with wrong type"
 
 moveValue :: RegisterID -> [Maybe Any] -> Any -> Safe [Maybe Any]
