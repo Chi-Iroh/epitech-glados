@@ -7,7 +7,6 @@ module SExpression
     ) where
 
 import Utils
---import Type
 
 data SExpr = SNumber Int | SSymbol String | SList [SExpr] | STuple [SExpr] | SArray [SExpr] | SFunctionType [SExpr] | SString String | SFloat Float | SUint Int | SChar Char deriving (Eq, Show)
 

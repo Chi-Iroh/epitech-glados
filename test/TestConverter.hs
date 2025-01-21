@@ -74,8 +74,26 @@ testSexprSListHandling = TestList [
 
 -------------------------------------------------------------------------------
 
-testConvert1 :: Test
-testConvert1 = myAssertEqual "convert '0'" (Value [ASTInt 0]) (convert $ Value [SNumber 0])
+testConvert1a :: Test
+testConvert1a = myAssertEqual "convert '0'" (Value [ASTInt 0]) (convert $ Value [SNumber 0])
+
+testConvert1b :: Test
+testConvert1b = myAssertEqual "convert '0i'" (Value [ASTInt 0]) (convert $ Value [SNumber 0])
+
+testConvert1c :: Test
+testConvert1c = myAssertEqual "convert '0u'" (Value [ASTUInt 0]) (convert $ Value [SUint 0])
+
+testConvert1d :: Test
+testConvert1d = myAssertEqual "convert '0c'" (Value [ASTChar '0']) (convert $ Value [SChar '0'])
+
+testConvert1e :: Test
+testConvert1e = myAssertEqual "convert '0.0'" (Value [ASTFloat 0.0]) (convert $ Value [SFloat 0])
+
+testConvert1f :: Test
+testConvert1f = myAssertEqual "convert '\"x\"'" (Value [ASTString "x"]) (convert $ Value [SString "x"])
+
+testConvert1g :: Test
+testConvert1g = myAssertEqual "convert ''x''" (Value [ASTChar 'x']) (convert $ Value [SChar 'x'])
 
 testConvert2 :: Test
 testConvert2 = myAssertEqual "convert 'x'" (Value [ASTProcedure "x"]) (convert $ Value [SSymbol "x"])
@@ -118,7 +136,13 @@ testConvert10 = myAssertEqual "convert '(function add (a::int b::int) (+ a b) in
 
 testConvert :: Test
 testConvert = TestList [
-    TestLabel "convert" testConvert1,
+    TestLabel "convert" testConvert1a,
+    TestLabel "convert" testConvert1b,
+    TestLabel "convert" testConvert1c,
+    TestLabel "convert" testConvert1d,
+    TestLabel "convert" testConvert1e,
+    TestLabel "convert" testConvert1f,
+    TestLabel "convert" testConvert1g,
     TestLabel "convert" testConvert2,
     TestLabel "convert" testConvert3,
     TestLabel "convert" testConvert4,

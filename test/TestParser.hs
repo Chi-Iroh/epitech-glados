@@ -243,8 +243,29 @@ testASExprToSExpr = TestList [
 
 -------------------------------------------------------------------------------
 
-testParse1 :: Test
-testParse1 = myAssertEqual "parse '0'" (Value [SNumber 0]) (parse "0")
+testParse1a :: Test
+testParse1a = myAssertEqual "parse '0'" (Value [SNumber 0]) (parse "0")
+
+testParse1b :: Test
+testParse1b = myAssertEqual "parse '0i'" (Value [SNumber 0]) (parse "0i")
+
+testParse1c :: Test
+testParse1c = myAssertEqual "parse '0u'" (Value [SUint 0]) (parse "0u")
+
+testParse1d :: Test
+testParse1d = myAssertEqual "parse '0c'" (Value [SChar '\0']) (parse "0c")
+
+testParse1e :: Test
+testParse1e = myAssertEqual "parse '0.0'" (Value [SFloat 0.0]) (parse "0.0")
+
+testParse1f :: Test
+testParse1f = myAssertEqual "parse '0.5'" (Value [SFloat 0.5]) (parse "0.5")
+
+testParse1g :: Test
+testParse1g = myAssertEqual "parse '\"x\"'" (Value [SString "x"]) (parse "\"x\"")
+
+testParse1h :: Test
+testParse1h = myAssertEqual "parse ''x''" (Value [SChar 'x']) (parse "'x'")
 
 testParse2 :: Test
 testParse2 = myAssertEqual "parse 'x'" (Value [SSymbol "x"]) (parse "x")
@@ -287,7 +308,14 @@ testParse11 = myAssertEqual "parse '(define (< a b)\n    #t\n)'" (Value [SList [
 
 testParse :: Test
 testParse = TestList [
-    TestLabel "parse" testParse1,
+    TestLabel "parse" testParse1a,
+    TestLabel "parse" testParse1b,
+    TestLabel "parse" testParse1c,
+    TestLabel "parse" testParse1d,
+    TestLabel "parse" testParse1e,
+    TestLabel "parse" testParse1f,
+    TestLabel "parse" testParse1g,
+    TestLabel "parse" testParse1h,
     TestLabel "parse" testParse2,
     TestLabel "parse" testParse3,
     TestLabel "parse" testParse4,
