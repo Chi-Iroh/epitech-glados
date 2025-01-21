@@ -1,6 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE InstanceSigs #-}
-module AssemblyInstructions (RegisterID, AssemblyInstruction(..), astToAny, assemble, toAssemblyValueInstruction, concatMapM) where
+module AssemblyInstructions (RegisterID, AssemblyInstruction(..), astToAny, assemble, toAssemblyValueInstruction, concatMapM, OutputAssemblyInstruction(..)) where
 
 import Data.Functor ((<&>))
 import Data.Word (Word8)
@@ -32,6 +32,14 @@ data AssemblyInstruction =  PushRegister RegisterID             |
                             OutRegister RegisterID              |
                             OutValue Any                        |
                             Construct Type Int
+
+data OutputAssemblyInstruction = OutputAssemblyInstruction AssemblyInstruction |
+                                 Label String
+
+instance Show OutputAssemblyInstruction where
+    show :: OutputAssemblyInstruction -> String
+    show (Label str) = str ++ ":"
+    show (OutputAssemblyInstruction asm) = "\t" ++ show asm
 
 instance Show AssemblyInstruction where
     show :: AssemblyInstruction -> String
