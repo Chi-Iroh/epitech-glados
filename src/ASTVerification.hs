@@ -3,10 +3,9 @@ module ASTVerification (verifAST) where
 import Utils
 import Type
 import AST
-import Debug.Trace
 
 verifArgAST :: AST -> Type -> [AST] -> Bool
-verifArgAST ast@(ASTCall _ _) parameter tt = (verifyType parameter $ traceShowId $ getTypeAST ast tt) && (verifParamAST ast tt) --debug
+verifArgAST ast@(ASTCall _ _) parameter tt = (verifyType parameter $ getTypeAST ast tt) && (verifParamAST ast tt)
 verifArgAST ast@(ASTIf _ _ _) parameter tt = (verifyType parameter $ getTypeAST ast tt) && (verifParamAST ast tt)
 verifArgAST ast parameter tt = verifyType parameter $ getTypeAST ast tt
 

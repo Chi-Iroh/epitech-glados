@@ -334,9 +334,9 @@ testASTVerification62 = myAssertEqual "verifAST [(define \"res\" integer (if (#t
         a = Value [(ASTDefine "res" typeInteger (ASTIf (ASTBool True) (ASTInt 1) (ASTBool True)))]
 
 testASTVerification63 :: Test
-testASTVerification63 = myAssertEqual "verifAST [(define \"var1\" float 1.0),(define \"var2\" int (+ 2 var1))]" (err) (verifAST a)
+testASTVerification63 = myAssertEqual "verifAST [(define \"var1\" bool #t),(define \"var2\" int (+ 2 var1))]" (err) (verifAST a)
     where
-        a = Value [(ASTDefine "var1" T_Float (ASTFloat 1.0)), (ASTDefine "var2" T_Int (ASTCall (FunctionCall "+") [ASTInt 2, ASTProcedure "var1"]))]
+        a = Value [(ASTDefine "var1" T_Bool (ASTBool True)), (ASTDefine "var2" T_Int (ASTCall (FunctionCall "+") [ASTInt 2, ASTProcedure "var1"]))]
 
 -------------------------------------------------------------------------------
 

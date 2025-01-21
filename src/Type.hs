@@ -100,8 +100,9 @@ verifyType _ T_NULL = True
 verifyType T_String T_EmptyList = True
 verifyType (T_List _) T_EmptyList = True
 verifyType T_Procedure (T_Function _ _) = True
-verifyType (T_Combination ps) (T_Combination as) = foldr (&&) True $ map (\a -> foldr (\x y -> (x == a) || y) False ps) as
+verifyType p@(T_Combination ps) a@(T_Combination as) = (foldr (&&) True $ map (\a -> foldr (\x y -> (x == a) || y) False ps) as) || verifyType a p
 verifyType (T_Combination ps) a = foldr (\x y -> (x == a) || y) False ps
+verifyType a (T_Combination ps) = foldr (\x y -> (x == a) || y) False ps
 verifyType param arg
     | param == arg = True
     | otherwise = False
