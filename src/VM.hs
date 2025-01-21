@@ -8,7 +8,7 @@ import Data.Word (Word8)
 import System.Exit (die, exitWith, ExitCode (ExitSuccess))
 import Unsafe.Coerce (unsafeCoerce)
 
-import Any (Any(..), AnyVM(..), makeAny, anyType)
+import Any (Any(..), AnyVM(..), anyType)
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary)
 import Bits (combineWord32, u32)
@@ -90,7 +90,7 @@ jumpFalse _ (Just True) = Value 0
 jumpFalse addr (Just False) = Value addr
 
 searchBuiltins :: Symbols -> String -> Safe (Int, [Any] -> Safe Any)
-searchBuiltins [] name = Error $ "Can't find function " ++ name
+searchBuiltins [] name = Error $ "*** ERROR: variable " ++ name ++ " is not bound."
 searchBuiltins ((BackendBuiltins (str, nArgs, f)) : xs) name
                                 | str == name = Value (nArgs, f)
                                 | otherwise = searchBuiltins xs name
@@ -107,7 +107,7 @@ call :: String -> SymbolTable -> Safe Address
 call str ((str', address):ts)
                 | str == str' = Value address
                 | otherwise = call str ts
-call str [] = Error $ "Can't find function " ++ str
+call str [] = Error $ "*** ERROR: variable " ++ str ++ " is not bound."
 
 returnRegister :: [Address] -> Maybe Any -> [Any] -> Safe ([Address], [Any], Address)
 returnRegister (a:as) (Just val) stack = Value (as, val : stack, a)
