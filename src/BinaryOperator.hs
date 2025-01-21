@@ -4,8 +4,12 @@ import Data.Bits
 import Data.Char (ord, chr)
 
 import Any (Any(..))
+import Bits (word, int)
 import DataBuiltins (Symbols, BuiltinsSymbol(BackendBuiltins))
 import Utils (Safe(..))
+
+wordifyShift :: (Word -> Int -> Word) -> (Word -> Word -> Word)
+wordifyShift f = (\a b -> f a (int b))
 
 binaryBuiltins :: Symbols
 binaryBuiltins = [ BackendBuiltins ("&", 2, pdpBinaryOp "&" (.&.))
@@ -16,19 +20,19 @@ binaryBuiltins = [ BackendBuiltins ("&", 2, pdpBinaryOp "&" (.&.))
             ,   BackendBuiltins ("bnot", 1, pdpBNot)
             ,   BackendBuiltins ("^", 2, pdpBinaryOp "^" xor)
             ,   BackendBuiltins ("bxor", 2, pdpBinaryOp "bxor" xor)
-            ,   BackendBuiltins (">>", 2, pdpBinaryOp ">>" (.>>.))
-            ,   BackendBuiltins ("rshift", 2, pdpBinaryOp ">>" (.>>.))
-            ,   BackendBuiltins ("<<", 2, pdpBinaryOp "<<" (.<<.))
-            ,   BackendBuiltins ("lshift", 2, pdpBinaryOp "<<" (.<<.))]
+            ,   BackendBuiltins (">>", 2, pdpBinaryOp ">>" (wordifyShift (.>>.)))
+            ,   BackendBuiltins ("rshift", 2, pdpBinaryOp ">>" (wordifyShift (.>>.)))
+            ,   BackendBuiltins ("<<", 2, pdpBinaryOp "<<" (wordifyShift (.<<.)))
+            ,   BackendBuiltins ("lshift", 2, pdpBinaryOp "<<" (wordifyShift (.<<.)))]
 
 
-pdpBinaryOp :: String -> (Int -> Int -> Int) -> [Any] -> Safe Any
-pdpBinaryOp _ f [Int a, Int b] = Value $ Int $ f a b
-pdpBinaryOp _ f [Int a, UInt b] = Value $ Int $ f a b
-pdpBinaryOp _ f [Int a, Char b] = Value $ Int $ f a (ord b)
+pdpBinaryOp :: String -> (Word -> Word -> Word) -> [Any] -> Safe Any
+pdpBinaryOp _ f [Int a, Int b] = Value $ Int $ int $ f (word a) (word b)
+pdpBinaryOp _ f [Int a, UInt b] = Value $ UInt $ f (word a) b
+pdpBinaryOp _ f [Int a, Char b] = Value $ Int $ int $ f (word a) (word $ ord b)
 pdpBinaryOp _ f [UInt a, UInt b] = Value $ UInt $ f a b
-pdpBinaryOp _ f [Char a, UInt b] = Value $ UInt $ f (ord a) b
-pdpBinaryOp _ f [Char a, Char b] = Value $ Char $ chr $ f (ord a) (ord b)
+pdpBinaryOp _ f [Char a, UInt b] = Value $ UInt $ f (word $ ord a) b
+pdpBinaryOp _ f [Char a, Char b] = Value $ Char $ chr $ int $ f (word $ ord a) (word $ ord b)
 pdpBinaryOp name _ args = Error ("Bad arguments when attempting to call " ++ name ++ " ! Expected 2 integers but got " ++ show args ++ " !")
 
 pdpBNot :: [Any] -> Safe Any

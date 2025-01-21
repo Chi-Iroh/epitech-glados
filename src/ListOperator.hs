@@ -4,6 +4,7 @@ import Data.List (genericSplitAt)
 import Data.Maybe (fromMaybe)
 
 import Any
+import Bits (word, int)
 import DataBuiltins (Symbols, BuiltinsSymbol (BackendBuiltins))
 import Utils (Safe(..), mapTuple)
 
@@ -13,7 +14,7 @@ import Utils (Safe(..), mapTuple)
 (!?) (_ : xs) n = (!?) xs (n - 1)
 
 len :: [Any] -> Any
-len = UInt . length
+len = UInt . word . length
 
 first :: [Any] -> Any
 first [] = NULL
@@ -46,7 +47,7 @@ pushfront :: [Any] -> Any -> Safe Any
 pushfront xs x = Value (Array (x : xs))
 
 get :: [Any] -> Any -> Safe Any
-get xs (UInt n) = Value (fromMaybe NULL (xs !? n))
+get xs (UInt n) = Value (fromMaybe NULL (xs !? (int n)))
 get _ n = Error ("get index must be an uint, but got " ++ show n ++ " instead !")
 
 pdpListAndArgToValue :: String -> ([Any] -> Any -> Safe Any) -> [Any] -> Safe Any

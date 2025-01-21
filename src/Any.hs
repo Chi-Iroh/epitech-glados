@@ -27,7 +27,7 @@ module Any (
     (~/=)
 ) where
 
-import Control.Applicative (liftA3)
+import Control.Applicative (liftA3, (<|>))
 import Data.ByteString.Internal (c2w, w2c)
 import Data.Functor ((<&>))
 import qualified Data.Kind (Type)
@@ -38,14 +38,14 @@ import Data.Word (Word8)
 import Foreign.Marshal.Utils (fromBool)
 import GHC.Float (int2Float, float2Int, floorFloat)
 
-import Bits (u32, i32, int)
+import Bits (word, i32, int)
 import Hex (showHex8)
-import Serialize (Serializable(..), serializeUInt, serializeTypeNull, serializeTypeEmptyList)
+import Serialize (Serializable(..), serializeTypeNull, serializeTypeEmptyList)
 import Type (Type(..))
 import Utils (Safe(..), safeCast)
 
 data Any =  Int Int             |
-            UInt Int            |
+            UInt Word           |
             Char Char           |
             Float Float         |
             Bool Bool           |
@@ -92,7 +92,7 @@ instance Show AnyVM where
 instance Serializable Any where
     serialize :: Any -> Safe [Word8]
     serialize (Int n) = serialize n
-    serialize (UInt n) = serializeUInt n
+    serialize (UInt n) = serialize n
     serialize (Char c) = serialize c
     serialize (Float f) = serialize f
     serialize (Bool b) = serialize b
@@ -112,7 +112,7 @@ class SafeOrd a where
 
 toFloat :: Any -> Safe Float
 toFloat (Int n) = Value (int2Float n)
-toFloat (UInt n) = Value (int2Float n)
+toFloat (UInt n) = Value (int2Float (int n))
 toFloat (Char c) = Value (int2Float $ fromIntegral $ c2w c)
 toFloat (Float f) = Value f
 toFloat (Bool b) = Value (fromBool b)
@@ -121,8 +121,8 @@ toFloat any' = Error (show any' ++ " isn't convertible to Float !")
 commonType' :: Any -> Any -> (Float -> Any)
 commonType' (Float _) _ = Float
 commonType' _ (Float _) = Float
-commonType' (UInt _) _ = UInt . int . u32 . float2Int
-commonType' _ (UInt _) = UInt . int . u32 . float2Int
+commonType' (UInt _) _ = UInt . word . float2Int
+commonType' _ (UInt _) = UInt . word . float2Int
 commonType' (Int _) _ = Int . int . i32 . float2Int
 commonType' _ (Int _) = Int . int . i32 . float2Int
 commonType' (Char _) _ = Char . w2c . (floorFloat :: Float -> Word8)
@@ -207,7 +207,7 @@ instance Show Converter where
 
 haskellType :: Type -> Converter
 haskellType T_Int = Converter (Proxy :: Proxy Int)
-haskellType T_UInt = Converter (Proxy :: Proxy Int)
+haskellType T_UInt = Converter (Proxy :: Proxy Word)
 haskellType T_Char = Converter (Proxy :: Proxy Char)
 haskellType T_Float = Converter (Proxy :: Proxy Float)
 haskellType T_Bool = Converter (Proxy :: Proxy Bool)
@@ -237,7 +237,9 @@ anyType NULL = Value T_NULL
 
 makeAny :: forall a. (Typeable a, Show a) => Type -> a -> Safe Any
 makeAny T_Int a = Int <$> (safeCast a :: Safe Int)
-makeAny T_UInt a = UInt <$> (safeCast a :: Safe Int)
+-- Either Word or Int depending on how it was called, if a was extracted from an AST,
+-- it will be an Int (ASTUint holds an Int), but it it's from another Any, then UInt holds a Word
+makeAny T_UInt a = UInt <$> ((safeCast a :: Safe Word) <|> ((safeCast a :: Safe Int) <&> word))
 makeAny T_Char a = Char <$> (safeCast a :: Safe Char)
 makeAny T_Float a = Float <$> (safeCast a :: Safe Float)
 makeAny T_Bool a = Bool <$> (safeCast a :: Safe Bool)
