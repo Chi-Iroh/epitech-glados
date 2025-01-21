@@ -57,13 +57,14 @@ Thus, if the VM read the byte 0x41, it means that it must be execute the instruc
 
 # Instructions
 
-| Instructions family      | Instructions list      |
-|--------------------------|------------------------|
-| Stack manipulators       | push, pop, construct   |
-| Conditional control flow | test, jt, jf           |
-| Function control flow    | call, ret              |
-| Register manipulator     | mov                    |
-| VM output                | out                    |
+| Instructions family        | Instructions list      |
+|----------------------------|------------------------|
+| Stack manipulators         | push, pop, construct   |
+| Unconditional control flow | jmp                    |
+| Conditional control flow   | test, jt, jf           |
+| Function control flow      | call, ret              |
+| Register manipulator       | mov                    |
+| VM output                  | out                    |
 
 ## Stack manipulators
 
@@ -118,6 +119,17 @@ construct type n (int immediate)    ; addressing mode = 0x0
 This instruction constructs a value of the given type from the n first top values of the stack, then pushes it on top of the same stack.  
 Useful in cases like `(len [1, 2, (+ 1 4), 4, 5])` when lists or tuples are built from immediate values mixed with non-immediate values.  
 If the stack has strictly less than n values, the VM will throw a runtime error.  
+
+## Unconditional control flow
+
+## jmp
+
+Opcode : 0xA
+```x86asm
+jmp addr (int immediate)    ; addressing mode = 0x0
+```
+This instruction performs an unconditional jump to a relative address.  
+The address is a strictly positive offset, represented by an immediate 4 bytes unsigned integer.  
 
 ## Conditional control flow
 
