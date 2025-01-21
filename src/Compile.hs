@@ -138,7 +138,7 @@ compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\a
     where checkArgs = if (length args) > 16 then Error "Too many arguments (16 max) !" else Value args
           paramName :: Parameter -> Safe String
           paramName (ASTProcedure name, _) = Value name
-          paramName (ast, _) = Error ("Illegal parameter " ++ show ast ++ ", must be ASTProcedure ... !")
+          paramName (ast', _) = Error ("Illegal parameter " ++ show ast' ++ ", must be ASTProcedure ... !")
 
           argsToAny = liftA2 (\args' paramNames -> reverse $ zip paramNames (map astToAny args')) checkArgs (mapM paramName params)
           pushArgs = argsToAny <&> (map (\(name, any') -> alternativeMap PushValue (Call name) any'))
