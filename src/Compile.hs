@@ -89,9 +89,6 @@ data CompilationStatus = CompilationStatus {
     _params :: [[Parameter]]
 }
 
-instance Show CompilationStatus where
-    show = const "tkjgbreZ"
-
 emptyCompilationStatus :: CompilationStatus
 emptyCompilationStatus = CompilationStatus {
     _instructions = [],
