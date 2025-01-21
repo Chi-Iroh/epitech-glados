@@ -6,5 +6,5 @@ module DataBuiltins (
 import Any (Any)
 import Utils(Safe)
 
-data BuiltinsSymbol = BackendBuiltins (String, [Any] -> Safe Any)
+data BuiltinsSymbol = BackendBuiltins (String, Int, [Any] -> Safe Any)
 type Symbols = [BuiltinsSymbol]

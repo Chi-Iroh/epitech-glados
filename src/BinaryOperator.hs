@@ -8,18 +8,18 @@ import DataBuiltins (Symbols, BuiltinsSymbol(BackendBuiltins))
 import Utils (Safe(..))
 
 binaryBuiltins :: Symbols
-binaryBuiltins = [ BackendBuiltins ("&", pdpBinaryOp "&" (.&.))
-            ,   BackendBuiltins ("band", pdpBinaryOp "band" (.&.))
-            ,   BackendBuiltins ("|", pdpBinaryOp "|" (.|.))
-            ,   BackendBuiltins ("bor", pdpBinaryOp "bor" (.|.))
-            ,   BackendBuiltins ("~", pdpBNot)
-            ,   BackendBuiltins ("bnot", pdpBNot)
-            ,   BackendBuiltins ("^", pdpBinaryOp "^" xor)
-            ,   BackendBuiltins ("bxor", pdpBinaryOp "bxor" xor)
-            ,   BackendBuiltins (">>", pdpBinaryOp ">>" (.>>.))
-            ,   BackendBuiltins ("rshift", pdpBinaryOp ">>" (.>>.))
-            ,   BackendBuiltins ("<<", pdpBinaryOp "<<" (.<<.))
-            ,   BackendBuiltins ("lshift", pdpBinaryOp "<<" (.<<.))]
+binaryBuiltins = [ BackendBuiltins ("&", 2, pdpBinaryOp "&" (.&.))
+            ,   BackendBuiltins ("band", 2, pdpBinaryOp "band" (.&.))
+            ,   BackendBuiltins ("|", 2, pdpBinaryOp "|" (.|.))
+            ,   BackendBuiltins ("bor", 2, pdpBinaryOp "bor" (.|.))
+            ,   BackendBuiltins ("~", 1, pdpBNot)
+            ,   BackendBuiltins ("bnot", 1, pdpBNot)
+            ,   BackendBuiltins ("^", 2, pdpBinaryOp "^" xor)
+            ,   BackendBuiltins ("bxor", 2, pdpBinaryOp "bxor" xor)
+            ,   BackendBuiltins (">>", 2, pdpBinaryOp ">>" (.>>.))
+            ,   BackendBuiltins ("rshift", 2, pdpBinaryOp ">>" (.>>.))
+            ,   BackendBuiltins ("<<", 2, pdpBinaryOp "<<" (.<<.))
+            ,   BackendBuiltins ("lshift", 2, pdpBinaryOp "<<" (.<<.))]
 
 
 pdpBinaryOp :: String -> (Int -> Int -> Int) -> [Any] -> Safe Any

@@ -3,7 +3,7 @@
 module VM (mainVM) where
 
 import Data.Functor ((<&>))
-import Data.List (singleton)
+import Data.List (singleton, genericSplitAt)
 import Data.Word (Word8)
 import Debug.Trace (traceShowId)
 import System.Exit (die)
@@ -81,16 +81,19 @@ jumpFalse _ Nothing = Error "BF not set, please use test before conditional jump
 jumpFalse _ (Just True) = Value 0
 jumpFalse addr (Just False) = Value addr
 
-searchBuiltins :: Symbols -> String -> Safe ([Any] -> Safe Any)
+searchBuiltins :: Symbols -> String -> Safe (Int, [Any] -> Safe Any)
 searchBuiltins [] name = Error $ "Can't find function " ++ name
-searchBuiltins ((BackendBuiltins (str, f)) : xs) name
-                                | str == name = Value f
+searchBuiltins ((BackendBuiltins (str, nArgs, f)) : xs) name
+                                | str == name = Value (nArgs, f)
                                 | otherwise = searchBuiltins xs name
 
 callBuiltins :: String -> [Any] -> Safe [Any]
-callBuiltins name (fst : snd : rest) = case searchBuiltins builtins name of
-                                    Value f -> f [fst, snd] <&> ((++ rest) . singleton)
-                                    Error err -> Error err
+callBuiltins name stack = case searchBuiltins builtins name of
+    Error err -> Error err
+    Value (nArgs, f)
+        | length stack < nArgs -> Error ("Builtin " ++ name ++ " expects " ++ show nArgs ++ " arguments, but stack only has " ++ show (length stack) ++ " !")
+        | otherwise -> f args <&> ((++ rest) . singleton)
+            where (args, rest) = genericSplitAt nArgs stack
 
 call :: String -> SymbolTable -> Safe Address
 call str ((str', address):ts)
