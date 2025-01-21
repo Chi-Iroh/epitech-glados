@@ -185,6 +185,8 @@ compileFunction ast params status = compileAST1 statusWithParams ast False <&> p
 
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
 compileAST1 status (ASTInt n) isNested = compileValue T_Int n isNested >>= (status +++)
+compileAST1 status (ASTUInt n) isNested = compileValue T_UInt n isNested >>= (status +++)
+compileAST1 status (ASTFloat n) isNested = compileValue T_Float n isNested >>= (status +++)
 compileAST1 status (ASTBool b) isNested = compileValue T_Bool b isNested >>= (status +++)
 compileAST1 status (ASTCall (FunctionCall f) args) isNested = compileCall f args isNested status >>= (status +++)
 compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
