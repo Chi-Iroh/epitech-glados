@@ -18,7 +18,7 @@ data Vm = Vm {
     _bf :: Maybe Bool,      -- boolean flag for branching
     _valueStack :: [Any],   -- value stack (where args are pushed)
     _pc :: Address          -- position of current opcode
-}
+} deriving Show
 
 defaultVM :: Vm
 defaultVM = Vm {

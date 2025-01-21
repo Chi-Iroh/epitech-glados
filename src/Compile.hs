@@ -189,7 +189,7 @@ compileAST1 status (ASTUInt n) isNested = compileValue T_UInt n isNested >>= (st
 compileAST1 status (ASTFloat n) isNested = compileValue T_Float n isNested >>= (status +++)
 compileAST1 status (ASTBool b) isNested = compileValue T_Bool b isNested >>= (status +++)
 compileAST1 status (ASTCall (FunctionCall f) args) isNested = compileCall f args isNested status >>= (status +++)
-compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
+compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= (+++ statusFromInstructions [Ret]) >>= addSymbol status s
 compileAST1 status (ASTArray []) isNested = compileValue T_EmptyList ([] :: [Int]) isNested >>= (status +++)
 compileAST1 status (ASTProcedure name) isNested = status +++ (statusFromInstructions $ singleton $ alternativeMap (PushRegister) (Call name) index)
     where index = findParamIndex name status
