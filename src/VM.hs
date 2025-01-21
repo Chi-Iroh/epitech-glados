@@ -177,5 +177,7 @@ mainVM path = do
     file <- readBinary path
     case readSymbolTable file of
         Error err -> die err
-        Value (table, rest) -> parseFile defaultVM table rest
+        Value (table, rest) -> case call "__main" table of 
+                Value _address -> parseFile (defaultVM _address) table rest
+                Error err -> die err
             -- writeBinary "output.txt"
