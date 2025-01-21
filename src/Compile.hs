@@ -132,7 +132,7 @@ compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothVal
           conditionCompiled = compileAST1 status condition True <&> _instructions <&> (++ [Pop 0, Test 0])
           trueValueCompiled = compileAST1 status trueValue isNested <&> _instructions
           falseValueCompiled = compileAST1 status falseValue isNested <&> _instructions
-          concatInstructions = liftA3 (\conditionCode trueCode falseCode -> conditionCode ++ [JumpIfFalse (u32 $ length trueCode)] ++ trueCode ++ falseCode)
+          concatInstructions = liftA3 (\conditionCode trueCode falseCode -> conditionCode ++ [JumpIfFalse (u32 $ length trueCode)] ++ trueCode ++ [Jump (u32 $ length falseCode)] ++ falseCode)
 
 compileAST1 status (ASTLambda params ast _) isNested = if isNested then compileFunction ast params status >>= (status +++) else Value status -- don't execute lambda if not used
 compileAST1 status (ASTCall (LambdaCall params ast _) args) _ = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)

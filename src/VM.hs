@@ -15,7 +15,7 @@ import Bits (combineWord32, u32)
 import Builtins (builtins)
 import Data.ByteString.Internal (w2c)
 import DataBuiltins (Symbols, BuiltinsSymbol(..))
-import Deserialize (deserializeTypeAndValue, deserializeType, deserializeUInt, addBytesLen)
+import Deserialize (deserializeTypeAndValue, deserializeType, deserializeUInt, addBytesLen, deserialize)
 import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
 import Utils (Safe(..), boolToSafe, errorIf, bind2)
@@ -127,6 +127,7 @@ executeInstruction' (PushValue value) _ (Vm (reg:rs) cstack bf vstack pc) = push
 executeInstruction' (Pop registerID) _ (Vm (reg:rs) cstack bf vstack pc) = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm (_reg:rs) cstack bf _stack pc, Nothing))
 executeInstruction' (Construct _type _size) _ (Vm (reg:rs) cstack bf vstack pc) = construct _type _size vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
 executeInstruction' (Test registerID) _ (Vm (reg:rs) cstack _ vstack pc) = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc, Nothing))
+executeInstruction' (Jump addr) _ (Vm reg cstack bf vstack pc) = Value (Vm reg cstack bf vstack (pc + addr), Nothing) 
 executeInstruction' (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpTrue addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
 executeInstruction' (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpFalse addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
 executeInstruction' (Call name) table (Vm reg cstack bf vstack pc)= case call name table of  
@@ -163,6 +164,7 @@ parseInstruction' (0x80 : reg : xs) = mapFst (MovValue reg) <$> addBytesLen 2 <$
 parseInstruction' (0x81 : reg1 : reg2 : _) = Value (MovRegister reg1 reg2, 3)
 parseInstruction' (0x90 : xs) = mapFst OutValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
 parseInstruction' (0x91 : reg : _) = Value (OutRegister reg, 2)
+parseInstruction' (0xA : byte1 : byte2 : byte3 : byte4 : xs) = Value (Jump (combineWord32 [byte1, byte2, byte3, byte4]), 5)
 parseInstruction' _ = Error endOfFile
 
 movePc :: Int -> Vm -> Vm
