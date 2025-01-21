@@ -3,7 +3,6 @@ module Type (
     typeInteger,
     typeNumber,
     typeAny,
-    verifyTypeTuple,
     verifyTypeList,
     combinateTypes,
     verifyType
@@ -69,20 +68,12 @@ typeAny = T_Combination [T_Int, T_UInt, T_Char, T_Float, T_Bool, T_Tuple (T_Temp
 
 -------------------------------------------------------------------------------
 
-verifyTypeTuple :: (Safe Type, Safe Type) -> Safe Type
-verifyTypeTuple ((Error err1), (Error err2)) = Error ("2 Errors encountered at the same time: " ++ err1 ++ " ; " ++ err2)
-verifyTypeTuple ((Error err), _) = Error err
-verifyTypeTuple (_, (Error err)) = Error err
-verifyTypeTuple ((Value a), (Value b)) = Value $ T_Tuple (a, b)
-
-verifyTypeList :: [Safe Type] -> Safe Type
-verifyTypeList [] = Value T_EmptyList
-verifyTypeList [(Error err)] = Error err
-verifyTypeList [(Value x)] = Value $ T_List x
-verifyTypeList ((Error err):_) = Error err
-verifyTypeList (x@(Value t):xs)
-    | all (== x) xs = Value $ T_List t
-    | otherwise = Error "Glados: TypeError: This expression do not return anything."
+verifyTypeList :: [Type] -> Type
+verifyTypeList [] = T_EmptyList
+verifyTypeList [x] = T_List x
+verifyTypeList (x:xs)
+    | all (== x) xs = T_List x
+    | otherwise = T_Undefined
 
 -------------------------------------------------------------------------------
 

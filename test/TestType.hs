@@ -179,58 +179,24 @@ testShowType = TestList [
 
 -------------------------------------------------------------------------------
 
-testVerifyTypeTuple1 :: Test
-testVerifyTypeTuple1 = myAssertEqual "verifyTypeTuple (Value T_Int, Value T_Int)" (Value $ T_Tuple (T_Int, T_Int)) (verifyTypeTuple ((Value T_Int), (Value T_Int)))
-
-testVerifyTypeTuple2 :: Test
-testVerifyTypeTuple2 = myAssertEqual "verifyTypeTuple (Error test, Value T_Int)" (Error "test") (verifyTypeTuple ((Error "test"), (Value T_Int)))
-
-testVerifyTypeTuple3 :: Test
-testVerifyTypeTuple3 = myAssertEqual "verifyTypeTuple (Value T_Int, Error test)" (Error "test") (verifyTypeTuple ((Value T_Int), (Error "test")))
-
-testVerifyTypeTuple4 :: Test
-testVerifyTypeTuple4 = myAssertEqual "verifyTypeTuple (Error A, Error B)" (Error "2 Errors encountered at the same time: A ; B") (verifyTypeTuple ((Error "A"), (Error "B")))
-
-testVerifyTypeTuple :: Test
-testVerifyTypeTuple = TestList [
-    TestLabel "verifyTypeTuple" testVerifyTypeTuple1,
-    TestLabel "verifyTypeTuple" testVerifyTypeTuple2,
-    TestLabel "verifyTypeTuple" testVerifyTypeTuple3,
-    TestLabel "verifyTypeTuple" testVerifyTypeTuple4
-    ]
-
--------------------------------------------------------------------------------
-
 testVerifyTypeList1 :: Test
-testVerifyTypeList1 = myAssertEqual "verifyTypeList []" (Value T_EmptyList) (verifyTypeList [])
+testVerifyTypeList1 = myAssertEqual "verifyTypeList []" (T_EmptyList) (verifyTypeList [])
 
 testVerifyTypeList2 :: Test
-testVerifyTypeList2 = myAssertEqual "verifyTypeList [Error test]" (Error "test") (verifyTypeList [Error "test"])
+testVerifyTypeList2 = myAssertEqual "verifyTypeList [int]" (T_List T_Int) (verifyTypeList [T_Int])
 
 testVerifyTypeList3 :: Test
-testVerifyTypeList3 = myAssertEqual "verifyTypeList [Value int, Value int, Value int]" (Value $ T_List T_Int) (verifyTypeList [Value T_Int, Value T_Int, Value T_Int])
+testVerifyTypeList3 = myAssertEqual "verifyTypeList [int, int, int]" (T_List T_Int) (verifyTypeList [T_Int, T_Int, T_Int])
 
 testVerifyTypeList4 :: Test
-testVerifyTypeList4 = myAssertEqual "verifyTypeList [Error test, Value int, Value int]" (Error "test") (verifyTypeList [Error "test", Value T_Int, Value T_Int])
-
-testVerifyTypeList5 :: Test
-testVerifyTypeList5 = myAssertEqual "verifyTypeList [Value int, Value uint, Value int]" (Error "Glados: TypeError: This expression do not return anything.") (verifyTypeList [Value T_Int, Value T_UInt, Value T_Int])
-
-testVerifyTypeList6 :: Test
-testVerifyTypeList6 = myAssertEqual "verifyTypeList [Value int, Error test, Error int]" (Error "Glados: TypeError: This expression do not return anything.") (verifyTypeList [Value T_Int, Error "test", Value T_Int])
-
-testVerifyTypeList7 :: Test
-testVerifyTypeList7 = myAssertEqual "verifyTypeList [Value int, Value int, Value int]" (Value $ T_List T_Int) (verifyTypeList [Value T_Int])
+testVerifyTypeList4 = myAssertEqual "verifyTypeList [int, uint, int]" (T_Undefined) (verifyTypeList [T_Int, T_UInt, T_Int])
 
 testVerifyTypeList :: Test
 testVerifyTypeList = TestList [
     TestLabel "verifyTypeList" testVerifyTypeList1,
     TestLabel "verifyTypeList" testVerifyTypeList2,
     TestLabel "verifyTypeList" testVerifyTypeList3,
-    TestLabel "verifyTypeList" testVerifyTypeList4,
-    TestLabel "verifyTypeList" testVerifyTypeList5,
-    TestLabel "verifyTypeList" testVerifyTypeList6,
-    TestLabel "verifyTypeList" testVerifyTypeList7
+    TestLabel "verifyTypeList" testVerifyTypeList4
     ]
 
 -------------------------------------------------------------------------------
@@ -377,7 +343,6 @@ testType :: Test
 testType = TestList [
     TestLabel "Type deriving Eq" testEqType,
     TestLabel "Type deriving Show" testShowType,
-    TestLabel "verifyTypeTuple" testVerifyTypeTuple,
     TestLabel "verifyTypeList" testVerifyTypeList,
     TestLabel "combinateTypes" testCombinateTypes,
     TestLabel "verifyType" testVerifyType
