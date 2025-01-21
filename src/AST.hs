@@ -72,10 +72,15 @@ getTypeFunctionCall "pow=" _ = T_Function [T_String, typeNumber] T_Bool
 getTypeFunctionCall "==" _ = T_Function [typeAny, typeAny] T_Bool
 getTypeFunctionCall "eq" _ = T_Function [typeAny, typeAny] T_Bool
 getTypeFunctionCall "!=" _ = T_Function [typeAny, typeAny] T_Bool
+getTypeFunctionCall "neq" _ = T_Function [typeAny, typeAny] T_Bool
 getTypeFunctionCall "<" _ = T_Function [typeNumber, typeNumber] T_Bool
+getTypeFunctionCall "lw" _ = T_Function [typeNumber, typeNumber] T_Bool
 getTypeFunctionCall ">" _ = T_Function [typeNumber, typeNumber] T_Bool
+getTypeFunctionCall "gt" _ = T_Function [typeNumber, typeNumber] T_Bool
 getTypeFunctionCall "<=" _ = T_Function [typeNumber, typeNumber] T_Bool
+getTypeFunctionCall "lweq" _ = T_Function [typeNumber, typeNumber] T_Bool
 getTypeFunctionCall ">=" _ = T_Function [typeNumber, typeNumber] T_Bool
+getTypeFunctionCall "gteq" _ = T_Function [typeNumber, typeNumber] T_Bool
 getTypeFunctionCall "!" _ = T_Function [T_Bool] T_Bool
 getTypeFunctionCall "not" _ = T_Function [T_Bool] T_Bool
 getTypeFunctionCall "&&" _ = T_Function [T_Bool, T_Bool] T_Bool
@@ -91,11 +96,47 @@ getTypeFunctionCall "xor" _ = T_Function [T_Bool, T_Bool] T_Bool
 getTypeFunctionCall "!:" _ = T_Function [T_Bool, T_Bool] T_Bool
 getTypeFunctionCall "xnor" _ = T_Function [T_Bool, T_Bool] T_Bool
 getTypeFunctionCall "&" _ = T_Function [typeInteger, typeInteger] typeInteger
+getTypeFunctionCall "band" _ = T_Function [typeInteger, typeInteger] typeInteger
 getTypeFunctionCall "|" _ = T_Function [typeInteger, typeInteger] typeInteger
+getTypeFunctionCall "bor" _ = T_Function [typeInteger, typeInteger] typeInteger
 getTypeFunctionCall "~" _ = T_Function [typeInteger, typeInteger] typeInteger
+getTypeFunctionCall "bnot" _ = T_Function [typeInteger, typeInteger] typeInteger
 getTypeFunctionCall "^" _ = T_Function [typeInteger, typeInteger] typeInteger
+getTypeFunctionCall "bxor" _ = T_Function [typeInteger, typeInteger] typeInteger
 getTypeFunctionCall "<<" _ = T_Function [typeInteger, typeInteger] typeInteger
+getTypeFunctionCall "lshift" _ = T_Function [typeInteger, typeInteger] typeInteger
 getTypeFunctionCall ">>" _ = T_Function [typeInteger, typeInteger] typeInteger
+getTypeFunctionCall "rshift" _ = T_Function [typeInteger, typeInteger] typeInteger
+getTypeFunctionCall "left" _ = T_Function [T_Tuple (T_Template, T_Template)] T_Template
+getTypeFunctionCall "right" _ = T_Function [T_Tuple (T_Template, T_Template)] T_Template
+getTypeFunctionCall "swap" _ = T_Function [T_Tuple (T_Template, T_Template)] (T_Tuple (T_Template, T_Template))
+getTypeFunctionCall "len" _ = T_Function [T_List T_Template] T_UInt
+getTypeFunctionCall "length" _ = T_Function [T_List T_Template] T_UInt
+getTypeFunctionCall "concat" _ = T_Function [T_List T_Template, T_List T_Template] (T_List T_Template)
+getTypeFunctionCall "split" _ = T_Function [T_List T_Template, T_UInt] (T_Tuple (T_List T_Template, T_List T_Template))
+getTypeFunctionCall "first" _ = T_Function [T_List T_Template] T_Template
+getTypeFunctionCall "last" _ = T_Function [T_List T_Template] T_Template
+getTypeFunctionCall "pushback" _ = T_Function [T_List T_Template, T_Template] (T_List T_Template)
+getTypeFunctionCall "pushfront" _ = T_Function [T_List T_Template, T_Template] (T_List T_Template)
+getTypeFunctionCall "get" _ = T_Function [T_List T_Template, T_UInt] T_Template
+getTypeFunctionCall "reverse" _ = T_Function [T_List T_Template] (T_List T_Template)
+getTypeFunctionCall "exp" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "ln" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "max" _ = T_Function [typeNumber, typeNumber] typeNumber
+getTypeFunctionCall "min" _ = T_Function [typeNumber, typeNumber] typeNumber
+getTypeFunctionCall "cos" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "acos" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "cosh" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "sin" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "asin" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "sinh" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "tan" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "atan" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "tanh" _ = T_Function [typeNumber] T_Float
+getTypeFunctionCall "ceil" _ = T_Function [T_Float] T_Float
+getTypeFunctionCall "round" _ = T_Function [T_Float] T_Float
+getTypeFunctionCall "trunc" _ = T_Function [T_Float] T_Float
+getTypeFunctionCall "floor" _ = T_Function [T_Float] T_Float
 getTypeFunctionCall _ [] = T_Undefined
 getTypeFunctionCall procedure (ASTDefine name t@(T_Function _ _) _:rest)
     | procedure == name = t
