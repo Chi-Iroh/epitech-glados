@@ -145,7 +145,7 @@ compileCall symbol args isNested status = concatMapM compileArg (reverse args) <
           compileArg :: AST -> Safe [AssemblyInstruction]
           compileArg arg = case arg of
             ASTCall (FunctionCall symbol') args' -> compileCall symbol' args' True status <&> _instructions
-            ASTProcedure name -> (paramIndex name <&> (singleton . Pop)) <|> Value [Call name]
+            ASTProcedure name -> (paramIndex name <&> (\i -> [Pop i, PushRegister i])) <|> Value [Call name]
             _ -> singleton <$> toAssemblyValueInstruction PushValue arg
             where paramIndex name' = findParamIndex name' status
 
