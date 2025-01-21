@@ -8,7 +8,7 @@ import Data.Word (Word8)
 import System.Exit (die, exitWith, ExitCode (ExitSuccess))
 import Unsafe.Coerce (unsafeCoerce)
 
-import Any (Any(..), makeAny, anyType)
+import Any (Any(..), AnyVM(..), makeAny, anyType)
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary)
 import Bits (combineWord32, u32)
@@ -178,7 +178,7 @@ parseFile vm table bytes = case parseInstruction vm bytes table of
                         Error "Nothing left to do, closing VM." -> exitWith ExitSuccess
                         Error err -> die err
                         Value (_vm, Nothing) -> parseFile _vm table bytes
-                        Value (_vm, Just a) -> print a >> parseFile _vm table bytes
+                        Value (_vm, Just a) -> print (AnyVM a) >> parseFile _vm table bytes
 
 mainVM :: FilePath -> IO ()
 mainVM path = do
