@@ -4,7 +4,6 @@ module AssemblyInstructions (RegisterID, AssemblyInstruction(..), astToAny, asse
 
 import Data.Functor ((<&>))
 import Data.Word (Word8)
-import Debug.Trace (traceShowId)
 
 import Any (Any(..), AnyAssembly(..), makeAny, anyType)
 import AST (AST(..))
