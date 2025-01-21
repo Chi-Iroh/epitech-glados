@@ -8,6 +8,7 @@ import Data.Functor ((<&>))
 import Data.List (singleton)
 import Data.Word (Word8)
 import GHC.Float (castWord32ToFloat)
+import Debug.Trace
 
 import Any (Any(..))
 import Bits (u32, i32)
@@ -25,6 +26,7 @@ deserialize T_Int bytes = deserializeInt bytes <&> toAnyAndBytes Int
 deserialize T_NULL bytes = deserializeTypeNull bytes <&> toAnyAndBytes (const NULL)
 deserialize T_Float bytes = deserializeFloat bytes <&> toAnyAndBytes Float
 deserialize T_EmptyList bytes = deserializeTypeEmptyList bytes <&> toAnyAndBytes (const EmptyArray)
+deserialize _type@(T_List _) bytes = deserializeList _type bytes
 deserialize a _ = Error ("Deserializing " ++ show a ++ " isn't implemented for now !")
 
 deserializeBool :: [Word8] -> Safe (Bool, Int, [Word8])
@@ -40,7 +42,7 @@ deserializeChar [] = Error "Cannot deserialize a char, no byte to read !"
 deserializeInt' :: Bits a => (Word8 -> a) -> [Word8] -> Safe (a, Int, [Word8])
 deserializeInt' fromIntegral' (b1 : b2 : b3 : b4 : bytes) = Value (int, 4, bytes)
     where int = ((fromIntegral' b1) .<<. 24) .|. ((fromIntegral' b2) .<<. 16) .|. ((fromIntegral' b3) .<<. 8)  .|. (fromIntegral' b4)
-deserializeInt' _ bytes = error ("Cannot deserialize an int/uint, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes) !")
+deserializeInt' _ bytes = error ("Cannot deserialize an int/uint, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes : " ++ show bytes ++ ") !")
 
 deserializeInt :: [Word8] -> Safe (Int, Int, [Word8])
 deserializeInt bytes = deserializeInt' i32 bytes <&> (\(a, b, c) -> (fromIntegral a, b, c))
@@ -85,8 +87,8 @@ deserializeList' _type n bytes = foldl (\previous _ -> previous >>= \((Array lis
 
 deserializeList :: Type -> [Word8] -> Safe (Any, Int, [Word8])
 deserializeList _ [] = Error "Cannot deserialize a list, no byte to read !"
-deserializeList _type bytes = listLen >>= (\(len, bytesLen, rest) -> deserializeList' _type len rest <&> (\(list', bytesLen', rest'') -> (list', bytesLen + bytesLen', rest'')))
-    where listLen = errorIf (\(val, _, _) -> val == 0) "Use deserializeEmptyList for empty lists !" (deserializeUInt bytes)
+deserializeList (T_List _type) bytes = listLen >>= (\(len, bytesLen, rest) -> deserializeList' _type len rest <&> (\(list', bytesLen', rest'') -> (list', bytesLen + bytesLen', rest'')))
+    where listLen = errorIf (\(val, _, _) -> val /= 0) "Use deserializeEmptyList for empty lists !" (traceShowId $ deserializeUInt bytes)
 
 deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
 deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest <&> \(a, len', _) -> (a, len + len'))
