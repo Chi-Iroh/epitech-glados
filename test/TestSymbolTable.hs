@@ -38,8 +38,8 @@ testNoBytes :: Test
 testNoBytes = myAssertEqual "No symbol table when reading" (Error noSymbolTableErrorMessage) (readSymbolTable [])
 
 testSymbolTable :: Test
-testSymbolTable = TestList  [ {-TestLabel "testSymbolTable" testEmptySymbolTable
-                        --     , TestLabel "testSymbolTable" testHello0x37_SymbolTable
-                        --     , TestLabel "testSymbolTable" testMain0xA4E5FF8E_MaP00_0xAB417500_Qsort___0xEE41DCB9
-                        -}      TestLabel "testSymbolTable" testNoSymbolTable]
-                        --     , TestLabel "testSymbolTable" testNoBytes]
+testSymbolTable = TestList    [ TestLabel "testSymbolTable" testEmptySymbolTable
+                              , TestLabel "testSymbolTable" testHello0x37_SymbolTable
+                              , TestLabel "testSymbolTable" testMain0xA4E5FF8E_MaP00_0xAB417500_Qsort___0xEE41DCB9
+                              , TestLabel "testSymbolTable" testNoSymbolTable
+                              , TestLabel "testSymbolTable" testNoBytes ]
