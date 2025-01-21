@@ -121,7 +121,7 @@ compileAST1 status (ASTArray []) isNested = compileValue T_EmptyList ([] :: [Int
 compileAST1 status (ASTProcedure name) _ = status +++ (statusFromInstructions $ singleton $ alternativeMap (PushRegister) (Call name) index)
     where index = findParamIndex name status
 
-compileAST1 status astList@(ASTArray list) isNested = Value (getTypeAST astList []) >>= (\type' -> concatMapM compileElem list <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
+compileAST1 status astList@(ASTArray list) isNested = Value (getTypeAST astList []) >>= (\type' -> concatMapM compileElem (reverse list) <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
     where outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
 
 compileAST1 status astTuple@(ASTTuple (a, b)) isNested = Value (getTypeAST astTuple []) >>= (\type' -> liftA2 (\a' b' -> b' ++ a' ++ [Construct type' 2] ++ outputIfNotNested) (compileElem a) (compileElem b)) >>= ((status +++) . statusFromInstructions)
