@@ -63,15 +63,6 @@ astToAny a = Error ("astToAny: Invalid argument : '" ++ show a ++ "'")
 
 toAssemblyValueInstruction :: (Any -> AssemblyInstruction) -> AST -> Safe AssemblyInstruction
 toAssemblyValueInstruction instruction ast = fmap instruction (astToAny ast)
--- toAssemblyValueInstruction instruction (ASTBool b) = Value $ instruction (Any (T_Bool, b))
--- toAssemblyValueInstruction instruction (ASTChar c) = Value $ instruction (Any (T_Char, c))
--- toAssemblyValueInstruction instruction (ASTInt n) = Value $ instruction (Any (T_Int, n))
--- toAssemblyValueInstruction instruction (ASTUInt n) = Value $ instruction (Any (T_UInt, n))
--- toAssemblyValueInstruction instruction (ASTFloat f) = Value $ instruction (Any (T_Float, f))
--- toAssemblyValueInstruction instruction (ASTString str) = Value $ instruction (Any (T_String, str))
--- toAssemblyValueInstruction instruction (ASTTuple (a, b)) = liftA2 (getTypeAST tuple) (astToAny ) instruction . Any . (, tuple) <$> 
--- toAssemblyValueInstruction instruction (ASTList x) = instruction . Any . (, x) <$> getTypeAST x
--- toAssemblyValueInstruction _ _ = Error "Invalid argument !"
 
 assemble1 :: AssemblyInstruction -> Safe [Word8]
 assemble1 (PushValue val) = liftA2 (++) (anyType val >>= serializeType) (serialize val) <&> ([0x00] ++) -- 0x00 : 1st nibble = instruction ID, 2nd nibble = addressing mode
