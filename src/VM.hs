@@ -37,10 +37,10 @@ popStack x stack (r : rs) = popStack (x - 1) stack rs >>=(\(_reg, _stack) -> Val
 popStack _ [] _ = Error "Stack empty"
 popStack _ _ [] = Error "Register out of bounds"
 
-constructList :: Int -> Type -> [Any] -> [Any] -> Safe [Any]
-constructList n _type xs newlist = Value ((Array elems) : rest)
+constructList :: Int -> Type -> [Any] -> Safe [Any]
+constructList _ _type [] = Error "Not enough value in stack to perform construct"
+constructList n _type xs = Value ((Array elems) : rest)
     where (elems, rest) = genericSplitAt n xs
-constructList _ _type [] _ = Error "Not enough value in stack to perform construct"
 
 constructTuple :: [Any] -> Type -> Type -> Safe [Any]
 constructTuple (a : b : as) typeA typeB = checkTypes >> (Value $ (Tuple (a, b)) : as)
@@ -54,7 +54,7 @@ constructTuple _ _ _ = Error "Not enough value in stack to perform construct"
 
 construct :: Type -> Int -> [Any] -> Safe [Any]
 construct _ 0 _ = Error "Can't construct from 0 values !"
-construct (T_List _type) size stack = constructList size _type stack []
+construct (T_List _type) size stack = constructList size _type stack
 construct (T_Tuple (typeA, typeB)) 2 stack = constructTuple stack typeA typeB
 construct (T_Tuple (_, _)) size _ = Error $ "Tried to construct tuple of size" ++ show size ++ "but tuples can only be of size 2"
 construct _ _ _ = Error "Tried to use construct with wrong type"
