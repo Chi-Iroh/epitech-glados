@@ -121,7 +121,7 @@ compileAST1 status (ASTArray []) isNested = compileValue T_EmptyList ([] :: [Int
 compileAST1 status (ASTProcedure name) _ = status +++ (statusFromInstructions $ singleton $ alternativeMap (PushRegister) (Call name) index)
     where index = findParamIndex name status
 
-compileAST1 status astList@(ASTArray list) isNested = Value (getTypeAST astList []) >>= (\type' -> concatMapM compileElem list <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
+compileAST1 status astList@(ASTArray list) isNested = Value (getTypeAST astList []) >>= (\type' -> concatMapM compileElem (reverse list) <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
     where outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
 
 compileAST1 status astTuple@(ASTTuple (a, b)) isNested = Value (getTypeAST astTuple []) >>= (\type' -> liftA2 (\a' b' -> b' ++ a' ++ [Construct type' 2] ++ outputIfNotNested) (compileElem a) (compileElem b)) >>= ((status +++) . statusFromInstructions)
@@ -132,7 +132,7 @@ compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothVal
           conditionCompiled = compileAST1 status condition True <&> _instructions <&> (++ [Pop 0, Test 0])
           trueValueCompiled = compileAST1 status trueValue isNested <&> _instructions
           falseValueCompiled = compileAST1 status falseValue isNested <&> _instructions
-          concatInstructions = liftA3 (\conditionCode trueCode falseCode -> conditionCode ++ [JumpIfFalse (u32 $ length trueCode)] ++ trueCode ++ falseCode)
+          concatInstructions = liftA3 (\conditionCode trueCode falseCode -> conditionCode ++ [JumpIfFalse (u32 $ 1 + length trueCode)] ++ trueCode ++ [Jump (u32 $ length falseCode)] ++ falseCode) -- +1 for true code length because of the extra jmp
 
 compileAST1 status (ASTLambda params ast _) isNested = if isNested then compileFunction ast params status >>= (status +++) else Value status -- don't execute lambda if not used
 compileAST1 status (ASTCall (LambdaCall params ast _) args) _ = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)
