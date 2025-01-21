@@ -15,7 +15,22 @@ type Parameter = (AST, Type)
 data Call = LambdaCall [Parameter] AST Type | FunctionCall String deriving (Eq, Show)
 
 -- ASTBoolean devient ASTBool ; ASTSymbol devient ASTProcedure
-data AST = ASTInt Int | ASTUInt Int | ASTChar Char | ASTFloat Float | ASTBool Bool | ASTTuple (AST, AST) | ASTArray [AST] | ASTString String | ASTProcedure String | ASTDefine String Type AST | ASTFunction String [Parameter] AST Type | ASTLambda [Parameter] AST Type | ASTCall Call [AST] | ASTIf AST AST AST | ASTNULL deriving (Eq, Show)
+data AST =  ASTInt Int                              |
+            ASTUInt Int                             |
+            ASTChar Char                            |
+            ASTFloat Float                          |
+            ASTBool Bool                            |
+            ASTTuple (AST, AST)                     |
+            ASTArray [AST]                          |
+            -- ASTList [AST]                           |
+            ASTString String                        |
+            ASTProcedure String                     |
+            ASTDefine String Type AST               |
+            ASTFunction String [Parameter] AST Type |
+            ASTLambda [Parameter] AST Type          |
+            ASTCall Call [AST]                      |
+            ASTIf AST AST AST                       |
+            ASTNULL deriving (Eq, Show)
 
 data MainAST = MainAST AST
 
