@@ -1,5 +1,10 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Any (
     Any(..),
@@ -9,14 +14,15 @@ module Any (
 
 import Data.ByteString.Internal (c2w)
 import Data.Functor ((<&>))
-import Data.Typeable (Typeable)
+import qualified Data.Kind (Type)
+import Data.Proxy
+import Data.Typeable
 import Data.Word (Word8)
 
 import Hex (showHex8)
-import Serialize (Serializable(..), serializeUInt, serializeType, serializeTypeNull, serializeTypeEmptyList)
+import Serialize (Serializable(..), serializeUInt, serializeTypeNull, serializeTypeEmptyList)
 import Type (Type(..))
 import Utils (Safe(..), safeCast)
-
 
 data Any =  Int Int             |
             UInt Int            |
@@ -52,6 +58,27 @@ instance Serializable Any where
     serialize (Tuple tuple) = serialize tuple
     serialize NULL = Value serializeTypeNull
 
+data Converter where
+    Converter :: forall (a :: Data.Kind.Type). (Show a, Typeable a) => Proxy a -> Converter
+
+instance Show Converter where
+    show :: Converter -> String
+    show (Converter proxy) = show (typeOf proxy)
+
+haskellType :: Type -> Converter
+haskellType T_Int = Converter (Proxy :: Proxy Int)
+haskellType T_UInt = Converter (Proxy :: Proxy Int)
+haskellType T_Char = Converter (Proxy :: Proxy Char)
+haskellType T_Float = Converter (Proxy :: Proxy Float)
+haskellType T_Bool = Converter (Proxy :: Proxy Bool)
+haskellType (T_Tuple (a, b)) = case (haskellType a, haskellType b) of
+    (Converter (_ :: Proxy a'), Converter (_ :: Proxy b')) -> Converter (Proxy :: Proxy (a', b'))
+haskellType (T_List a) = case haskellType a of
+    (Converter (_ :: Proxy a')) -> Converter (Proxy :: Proxy [a'])
+haskellType T_EmptyList = Converter (Proxy :: Proxy [Int])
+haskellType T_String = haskellType (T_List T_Char)
+haskellType other = error ("Cannot convert from type " ++ show other ++ " !")
+
 reduceList :: Eq a => String -> String -> [a] -> Safe a
 reduceList emptyListError _ [] = Error emptyListError
 reduceList _ valuesNotEqualError list@(a : _) = if all (== a) list then Value a else Error valuesNotEqualError
@@ -67,14 +94,22 @@ anyType (Array xs) = mapM anyType xs >>= reduceList "Array must have at least 1 
 anyType (Tuple (a, b)) = liftA2 (\a' b' -> T_Tuple (a', b')) (anyType a) (anyType b)
 anyType NULL = Value T_NULL
 
-makeAny :: Typeable a => Type -> a -> Safe Any
+makeAny :: forall a. (Typeable a, Show a) => Type -> a -> Safe Any
 makeAny T_Int a = Int <$> (safeCast a :: Safe Int)
 makeAny T_UInt a = UInt <$> (safeCast a :: Safe Int)
 makeAny T_Char a = Char <$> (safeCast a :: Safe Char)
 makeAny T_Float a = Float <$> (safeCast a :: Safe Float)
 makeAny T_Bool a = Bool <$> (safeCast a :: Safe Bool)
-makeAny (T_List _type) a = Array <$> mapM (makeAny _type) a
-makeAny (T_Tuple (t1, t2)) (a, b) = liftA2 (\a' b' -> Tuple (a', b')) (makeAny t1 a) (makeAny t2 b)
 makeAny T_NULL _ = Value NULL
 makeAny T_EmptyList _ = Value EmptyArray
+makeAny _type@(T_List elemType) list =
+    case haskellType elemType of
+        (Converter (_ :: Proxy a')) ->
+            case haskellType _type of
+                converter@(Converter (_ :: Proxy t)) ->
+                    case eqT @t @[a'] of
+                        Just _ -> (safeCast list :: Safe [a']) >>= mapM (makeAny elemType) <&> Array
+                        Nothing -> Error ("'" ++ show list ++ "' of type " ++ show converter ++ " isn't a list !")
+
+-- makeAny (T_Tuple (t1, t2)) (a, b) = liftA2 (\a' b' -> Tuple (a', b')) (makeAny t1 a) (makeAny t2 b)
 makeAny _type _ = Error ("Type " ++ show _type ++ " cannot be converted to Any value !")

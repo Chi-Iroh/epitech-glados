@@ -7,6 +7,7 @@ import Debug.Trace (traceShowId)
 import System.Exit (die)
 import Unsafe.Coerce (unsafeCoerce)
 
+import Any (Any(..), makeAny)
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary)
 import Bits (combineWord32, u32)
@@ -14,7 +15,7 @@ import Deserialize (deserializeTypeAndValue, deserializeList, deserializeType, d
 import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
 import Utils (Safe(..))
-import VMData (Address, Vm(..), defaultVM, Any(..), makeAny)
+import VMData (Address, Vm(..), defaultVM)
 
 pushRegister :: Maybe Any -> [Any] -> Safe [Any]
 pushRegister (Just a) stack = Value $ a:stack
