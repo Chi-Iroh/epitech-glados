@@ -11,7 +11,7 @@ import Data.Word (Word8)
 import Any (Any(..), makeAny)
 import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, astToAny, RegisterID, OutputAssemblyInstruction(..))
 import AST (AST(..), Call(..), getTypeAST, Parameter)
-import Bits (u32)
+import Bits (u32, word)
 import SymbolTable (SymbolTable, writeSymbolTable)
 import Type
 import Utils (Safe(..), maybeToSafe, alternativeMap, bind2, concatMapM, tupleConcat)
@@ -110,7 +110,7 @@ compileFunction ast params status = compileAST1 statusWithParams ast False <&> p
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
 compileAST1 status (ASTChar c) isNested = compileValue T_Char c isNested >>= (status +++)
 compileAST1 status (ASTInt n) isNested = compileValue T_Int n isNested >>= (status +++)
-compileAST1 status (ASTUInt n) isNested = compileValue T_UInt n isNested >>= (status +++)
+compileAST1 status (ASTUInt n) isNested = compileValue T_UInt (word n) isNested >>= (status +++)
 compileAST1 status (ASTFloat n) isNested = compileValue T_Float n isNested >>= (status +++)
 compileAST1 status (ASTBool b) isNested = compileValue T_Bool b isNested >>= (status +++)
 compileAST1 status (ASTString str) isNested = compileValue T_String str isNested >>= (status +++)
