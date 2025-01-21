@@ -84,10 +84,10 @@ assemble1 a = Error ("assemble1: Instruction " ++ show a ++ " not implemented !"
 
 assemble :: [AssemblyInstruction] -> Safe [Word8]
 assemble (JumpIfTrue size : xs) = liftA2 (\falseCode' rest' -> [0x40] ++ addrToBytes (u32 $ length falseCode') ++ falseCode' ++ rest') falseCode (assemble rest)
-    where (falseCode, rest) = mapFst (concatMapM assemble1) $ splitAt (fromIntegral size) xs
+    where (falseCode, rest) = mapFst assemble $ splitAt (fromIntegral size) xs
 assemble (JumpIfFalse size : xs) = liftA2 (\trueCode' rest' -> [0x50] ++ addrToBytes (u32 $ length trueCode') ++ trueCode' ++ rest') trueCode (assemble rest)
-    where (trueCode, rest) = mapFst (concatMapM assemble1) $ splitAt (fromIntegral size) xs
+    where (trueCode, rest) = mapFst assemble $ splitAt (fromIntegral size) xs
 assemble (Jump size : xs) = liftA2 (\code' rest' -> [0xA0] ++ addrToBytes (u32 $ length code') ++ code' ++ rest') code (assemble rest)
-    where (code, rest) = mapFst (concatMapM assemble1) $ splitAt (fromIntegral size) xs
+    where (code, rest) = mapFst assemble $ splitAt (fromIntegral size) xs
 assemble (x : xs) = liftA2 (++) (assemble1 x) (assemble xs)
 assemble [] = Value []
