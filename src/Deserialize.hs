@@ -8,7 +8,6 @@ import Data.Functor ((<&>))
 import Data.List (singleton)
 import Data.Word (Word8)
 import GHC.Float (castWord32ToFloat)
-import Debug.Trace
 
 import Any (Any(..))
 import Bits (u32, i32)
@@ -89,7 +88,7 @@ deserializeList' _type n bytes = foldl (\previous _ -> previous >>= \((Array lis
 deserializeList :: Type -> [Word8] -> Safe (Any, Int, [Word8])
 deserializeList _ [] = Error "Cannot deserialize a list, no byte to read !"
 deserializeList (T_List _type) bytes = listLen >>= (\(len, bytesLen, rest) -> deserializeList' _type len rest <&> (\(list', bytesLen', rest'') -> (list', bytesLen + bytesLen', rest'')))
-    where listLen = errorIf (\(val, _, _) -> val /= 0) "Use deserializeEmptyList for empty lists !" (traceShowId $ deserializeUInt bytes)
+    where listLen = errorIf (\(val, _, _) -> val /= 0) "Use deserializeEmptyList for empty lists !" (deserializeUInt bytes)
 
 deserializeTuple :: Type -> [Word8] -> Safe (Any, Int, [Word8])
 deserializeTuple _ [] = Error "Cannot deserialize a tuple, no byte to read !"
