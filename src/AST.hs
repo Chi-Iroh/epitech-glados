@@ -5,6 +5,7 @@ module AST (
     MainAST(..),
     getTypeFunctionCall,
     getTypeAST,
+    getTypeAST',
     isProcedureType
     ) where
 
@@ -128,6 +129,9 @@ getTypeAST (ASTCall (FunctionCall a) _) tt = getReturnType $ getTypeFunctionCall
 getTypeAST (ASTIf _ a b) tt = T_Combination ((getTypeAST a tt):(getTypeAST b tt):[])
 getTypeAST (ASTArray list) tt = verifyTypeList $ map (\x -> getTypeAST x tt) list
 getTypeAST ASTNULL _ = T_NULL
+
+getTypeAST' :: AST -> Type
+getTypeAST' ast = getTypeAST ast []
 
 isProcedureType :: MainAST -> Bool
 isProcedureType (MainAST (ASTLambda _ _ _)) = True

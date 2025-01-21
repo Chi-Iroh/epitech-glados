@@ -1,8 +1,4 @@
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE InstanceSigs #-}
-
 module VMData (
-    Any(..),
     Address,
     Vm(..),
     addrToBytes,
@@ -10,20 +6,11 @@ module VMData (
 ) where
 
 import Data.Word (Word8, Word32)
-import Text.Printf (printf)
+
+import Any (Any)
 import Bits (splitWord32)
-import Serialize (Serializable(..))
-import Type (Type(..))
 
-data Any = forall a. (Serializable a, Show a) => Any (Type, a)
 type Address = Word32
-
-instance Serializable Any where
-    serialize (Any (_, a)) = serialize a
-
-instance Show Any where
-    show :: Any -> String
-    show (Any (type', val)) = printf "Any (%s, %s)" (show type') (show val)
 
 data Vm = Vm {
     _registers :: [[Maybe Any]],    -- 16 registers
@@ -31,15 +18,15 @@ data Vm = Vm {
     _bf :: Maybe Bool,      -- boolean flag for branching
     _valueStack :: [Any],   -- value stack (where args are pushed)
     _pc :: Address          -- position of current opcode
-}
+} deriving Show
 
-defaultVM :: Vm
-defaultVM = Vm {
+defaultVM :: Address -> Vm
+defaultVM pc = Vm {
     _registers = [replicate 16 Nothing],
     _callStack = [],
     _bf = Nothing,
     _valueStack = [],
-    _pc = 0
+    _pc = pc
 }
 
 addrToBytes :: Address -> [Word8]
