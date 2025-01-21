@@ -7,37 +7,37 @@ import SExpression
 import Parser
 
 testConvertToASExpr1 :: Test
-testConvertToASExpr1 = myAssertEqual "convertToASExpr '0'" [(ASExpr $ SNumber 0)] (convertToASExpr "0")
+testConvertToASExpr1 = myAssertEqual "convertToASExpr '0'" (Value $ [(ASExpr $ SNumber 0)]) (convertToASExpr "0")
 
 testConvertToASExpr2 :: Test
-testConvertToASExpr2 = myAssertEqual "convertToASExpr 'x'" [(ASExpr $ SSymbol "x")] (convertToASExpr "x")
+testConvertToASExpr2 = myAssertEqual "convertToASExpr 'x'" (Value $ [(ASExpr $ SSymbol "x")]) (convertToASExpr "x")
 
 testConvertToASExpr3 :: Test
-testConvertToASExpr3 = myAssertEqual "convertToASExpr '(define x 0)'" [SListBegin, (ASExpr $ SSymbol "define x 0"), SListEnd] (convertToASExpr "(define x 0)")
+testConvertToASExpr3 = myAssertEqual "convertToASExpr '(define x 0)'" (Value $ [SListBegin, (ASExpr $ SSymbol "define x 0"), SListEnd]) (convertToASExpr "(define x 0)")
 
 testConvertToASExpr4 :: Test
-testConvertToASExpr4 = myAssertEqual "convertToASExpr '()'" [SListBegin, SListEnd] (convertToASExpr "()")
+testConvertToASExpr4 = myAssertEqual "convertToASExpr '()'" (Value $ [SListBegin, SListEnd]) (convertToASExpr "()")
 
 testConvertToASExpr5 :: Test
-testConvertToASExpr5 = myAssertEqual "convertToASExpr '('" [SListBegin] (convertToASExpr "(")
+testConvertToASExpr5 = myAssertEqual "convertToASExpr '('" (Value $ [SListBegin]) (convertToASExpr "(")
 
 testConvertToASExpr6 :: Test
-testConvertToASExpr6 = myAssertEqual "convertToASExpr ')'" [SListEnd] (convertToASExpr ")")
+testConvertToASExpr6 = myAssertEqual "convertToASExpr ')'" (Value $ [SListEnd]) (convertToASExpr ")")
 
 testConvertToASExpr7 :: Test
-testConvertToASExpr7 = myAssertEqual "convertToASExpr ''" [] (convertToASExpr "")
+testConvertToASExpr7 = myAssertEqual "convertToASExpr ''" (Value $ []) (convertToASExpr "")
 
 testConvertToASExpr8 :: Test
-testConvertToASExpr8 = myAssertEqual "convertToASExpr '(+ (* (- 10 2) (mod 19 3)) (div 10 2))'" [SListBegin, (ASExpr $ SSymbol "+ (* (- 10 2) (mod 19 3)) (div 10 2"), SListEnd, SListEnd] (convertToASExpr "(+ (* (- 10 2) (mod 19 3)) (div 10 2))")
+testConvertToASExpr8 = myAssertEqual "convertToASExpr '(+ (* (- 10 2) (mod 19 3)) (div 10 2))'" (Value $ [SListBegin, (ASExpr $ SSymbol "+ (* (- 10 2) (mod 19 3)) (div 10 2"), SListEnd, SListEnd]) (convertToASExpr "(+ (* (- 10 2) (mod 19 3)) (div 10 2))")
 
 testConvertToASExpr9 :: Test
-testConvertToASExpr9 = myAssertEqual "convertToASExpr '(if #f 4 #f)'" [SListBegin, (ASExpr $ SSymbol "if #f 4 #f"), SListEnd] (convertToASExpr "(if #f 4 #f)")
+testConvertToASExpr9 = myAssertEqual "convertToASExpr '(if #f 4 #f)'" (Value $ [SListBegin, (ASExpr $ SSymbol "if #f 4 #f"), SListEnd]) (convertToASExpr "(if #f 4 #f)")
 
 testConvertToASExpr10 :: Test
-testConvertToASExpr10 = myAssertEqual "convertToASExpr '((lambda (a b) (+ a b)) 1 2)'" [SListBegin, SListBegin, (ASExpr $ SSymbol "lambda (a b) (+ a b)) 1 2"), SListEnd] (convertToASExpr "((lambda (a b) (+ a b)) 1 2)")
+testConvertToASExpr10 = myAssertEqual "convertToASExpr '((lambda (a b) (+ a b)) 1 2)'" (Value $ [SListBegin, SListBegin, (ASExpr $ SSymbol "lambda (a b) (+ a b)) 1 2"), SListEnd]) (convertToASExpr "((lambda (a b) (+ a b)) 1 2)")
 
 testConvertToASExpr11 :: Test
-testConvertToASExpr11 = myAssertEqual "convertToASExpr '(define (< a b)\n    #t\n)'" [SListBegin, (ASExpr $ SSymbol "define (< a b)\n    #t\n"), SListEnd] (convertToASExpr "(define (< a b)\n    #t\n)")
+testConvertToASExpr11 = myAssertEqual "convertToASExpr '(define (< a b)\n    #t\n)'" (Value $ [SListBegin, (ASExpr $ SSymbol "define (< a b)\n    #t\n"), SListEnd]) (convertToASExpr "(define (< a b)\n    #t\n)")
 
 testConvertToASExpr :: Test
 testConvertToASExpr = TestList [
@@ -57,44 +57,44 @@ testConvertToASExpr = TestList [
 -------------------------------------------------------------------------------
 
 testStringToASExpr1 :: Test
-testStringToASExpr1 = myAssertEqual "stringToASExpr '0'" [(ASExpr $ SNumber 0)] (stringToASExpr (words "0") [])
+testStringToASExpr1 = myAssertEqual "stringToASExpr '0'" (Value $ [(ASExpr $ SNumber 0)]) (stringToASExpr (words "0") [])
 
 testStringToASExpr2 :: Test
-testStringToASExpr2 = myAssertEqual "stringToASExpr 'x'" [(ASExpr $ SSymbol "x")] (stringToASExpr (words "x") [])
+testStringToASExpr2 = myAssertEqual "stringToASExpr 'x'" (Value $ [(ASExpr $ SSymbol "x")]) (stringToASExpr (words "x") [])
 
 testStringToASExpr3 :: Test
-testStringToASExpr3 = myAssertEqual "stringToASExpr '(define x 0)'" [SListBegin, (ASExpr $ SSymbol "define"), (ASExpr $ SSymbol "x"), (ASExpr $ SNumber 0), SListEnd] (stringToASExpr (words "(define x 0)") [])
+testStringToASExpr3 = myAssertEqual "stringToASExpr '(define x 0)'" (Value $ [SListBegin, (ASExpr $ SSymbol "define"), (ASExpr $ SSymbol "x"), (ASExpr $ SNumber 0), SListEnd]) (stringToASExpr (words "(define x 0)") [])
 
 testStringToASExpr4 :: Test
-testStringToASExpr4 = myAssertEqual "stringToASExpr '()'" [SListBegin, SListEnd] (stringToASExpr (words "()") [])
+testStringToASExpr4 = myAssertEqual "stringToASExpr '()'" (Value $ [SListBegin, SListEnd]) (stringToASExpr (words "()") [])
 
 testStringToASExpr5 :: Test
-testStringToASExpr5 = myAssertEqual "stringToASExpr '('" [SListBegin] (stringToASExpr (words "(") [])
+testStringToASExpr5 = myAssertEqual "stringToASExpr '('" (Value $ [SListBegin]) (stringToASExpr (words "(") [])
 
 testStringToASExpr6 :: Test
-testStringToASExpr6 = myAssertEqual "stringToASExpr ')'" [SListEnd] (stringToASExpr (words ")") [])
+testStringToASExpr6 = myAssertEqual "stringToASExpr ')'" (Value $ [SListEnd]) (stringToASExpr (words ")") [])
 
 testStringToASExpr7 :: Test
-testStringToASExpr7 = myAssertEqual "stringToASExpr ''" [] (stringToASExpr (words "") [])
+testStringToASExpr7 = myAssertEqual "stringToASExpr ''" (Value $ []) (stringToASExpr (words "") [])
 
 testStringToASExpr8 :: Test
-testStringToASExpr8 = myAssertEqual "stringToASExpr '(+ (* (- 10 2) (mod 19 3)) (div 10 2))'" ([SListBegin, (ASExpr $ SSymbol "+"), SListBegin, (ASExpr $ SSymbol "*")] ++ a ++ b ++ [SListEnd] ++ c ++ [SListEnd]) (stringToASExpr (words "(+ (* (- 10 2) (mod 19 3)) (div 10 2))") [])
+testStringToASExpr8 = myAssertEqual "stringToASExpr '(+ (* (- 10 2) (mod 19 3)) (div 10 2))'" (Value $ [SListBegin, (ASExpr $ SSymbol "+"), SListBegin, (ASExpr $ SSymbol "*")] ++ a ++ b ++ [SListEnd] ++ c ++ [SListEnd]) (stringToASExpr (words "(+ (* (- 10 2) (mod 19 3)) (div 10 2))") [])
     where
         a = [SListBegin, (ASExpr $ SSymbol "-"), (ASExpr $ SNumber 10), (ASExpr $ SNumber 2), SListEnd]
         b = [SListBegin, (ASExpr $ SSymbol "mod"), (ASExpr $ SNumber 19), (ASExpr $ SNumber 3), SListEnd]
         c = [SListBegin, (ASExpr $ SSymbol "div"), (ASExpr $ SNumber 10), (ASExpr $ SNumber 2), SListEnd]
 
 testStringToASExpr9 :: Test
-testStringToASExpr9 = myAssertEqual "stringToASExpr '(if #f 4 #f)'" [SListBegin, (ASExpr $ SSymbol "if"), (ASExpr $ SSymbol "#f"), (ASExpr $ SNumber 4), (ASExpr $ SSymbol "#f"), SListEnd] (stringToASExpr (words "(if #f 4 #f)") [])
+testStringToASExpr9 = myAssertEqual "stringToASExpr '(if #f 4 #f)'" (Value $ [SListBegin, (ASExpr $ SSymbol "if"), (ASExpr $ SSymbol "#f"), (ASExpr $ SNumber 4), (ASExpr $ SSymbol "#f"), SListEnd]) (stringToASExpr (words "(if #f 4 #f)") [])
 
 testStringToASExpr10 :: Test
-testStringToASExpr10 = myAssertEqual "stringToASExpr '((lambda (a b) (+ a b)) 1 2)'" ([SListBegin, SListBegin, (ASExpr $ SSymbol "lambda")] ++ a ++ b ++ [SListEnd, (ASExpr $ SNumber 1), (ASExpr $ SNumber 2), SListEnd]) (stringToASExpr (words "((lambda (a b) (+ a b)) 1 2)") [])
+testStringToASExpr10 = myAssertEqual "stringToASExpr '((lambda (a b) (+ a b)) 1 2)'" (Value $ [SListBegin, SListBegin, (ASExpr $ SSymbol "lambda")] ++ a ++ b ++ [SListEnd, (ASExpr $ SNumber 1), (ASExpr $ SNumber 2), SListEnd]) (stringToASExpr (words "((lambda (a b) (+ a b)) 1 2)") [])
     where
         a = [SListBegin, (ASExpr $ SSymbol "a"), (ASExpr $ SSymbol "b"), SListEnd]
         b = [SListBegin, (ASExpr $ SSymbol "+"), (ASExpr $ SSymbol "a"), (ASExpr $ SSymbol "b"), SListEnd]
 
 testStringToASExpr11 :: Test
-testStringToASExpr11 = myAssertEqual "stringToASExpr '(define (< a b)\n    #t\n)'" ([SListBegin, (ASExpr $ SSymbol "define")] ++ a ++ [(ASExpr $ SSymbol "#t"), SListEnd]) (stringToASExpr (words "(define (< a b)\n    #t\n)") [])
+testStringToASExpr11 = myAssertEqual "stringToASExpr '(define (< a b)\n    #t\n)'" (Value $ [SListBegin, (ASExpr $ SSymbol "define")] ++ a ++ [(ASExpr $ SSymbol "#t"), SListEnd]) (stringToASExpr (words "(define (< a b)\n    #t\n)") [])
     where
         a = [SListBegin, (ASExpr $ SSymbol "<"), (ASExpr $ SSymbol "a"), (ASExpr $ SSymbol "b"), SListEnd]
 
@@ -157,24 +157,24 @@ testParseParanthese = TestList [
 
 -------------------------------------------------------------------------------
 
-testFromSafe1 :: Test
-testFromSafe1 = myAssertEqual "fromSafe $ Value [(SSymbol 'x'), (SNumber 0)]" (Value $ SList [(SSymbol "x"), (SNumber 0)]) (fromSafe $ Value [(SSymbol "x"), (SNumber 0)])
+testFromSafeSExpr1 :: Test
+testFromSafeSExpr1 = myAssertEqual "fromSafeSExpr $ Value [(SSymbol 'x'), (SNumber 0)]" (Value $ SList [(SSymbol "x"), (SNumber 0)]) (fromSafeSExpr $ Value [(SSymbol "x"), (SNumber 0)])
 
-testFromSafe2 :: Test
-testFromSafe2 = myAssertEqual "fromSafe $ Value [(SSymbol 'x')]" (Value $ SList [(SSymbol "x")]) (fromSafe $ Value [(SSymbol "x")])
+testFromSafeSExpr2 :: Test
+testFromSafeSExpr2 = myAssertEqual "fromSafeSExpr $ Value [(SSymbol 'x')]" (Value $ SList [(SSymbol "x")]) (fromSafeSExpr $ Value [(SSymbol "x")])
 
-testFromSafe3 :: Test
-testFromSafe3 = myAssertEqual "fromSafe $ Value []" (Value $ SList []) (fromSafe $ Value [])
+testFromSafeSExpr3 :: Test
+testFromSafeSExpr3 = myAssertEqual "fromSafeSExpr $ Value []" (Value $ SList []) (fromSafeSExpr $ Value [])
 
-testFromSafe4 :: Test
-testFromSafe4 = myAssertEqual "fromSafe $ Value []" (Error "pikachu I choose you") (fromSafe $ Error "pikachu I choose you")
+testFromSafeSExpr4 :: Test
+testFromSafeSExpr4 = myAssertEqual "fromSafeSExpr $ Value []" (Error "pikachu I choose you") (fromSafeSExpr $ Error "pikachu I choose you")
 
-testFromSafe :: Test
-testFromSafe = TestList [
-    TestLabel "fromSafe" testFromSafe1,
-    TestLabel "fromSafe" testFromSafe2,
-    TestLabel "fromSafe" testFromSafe3,
-    TestLabel "fromSafe" testFromSafe4
+testFromSafeSExpr :: Test
+testFromSafeSExpr = TestList [
+    TestLabel "fromSafeSExpr" testFromSafeSExpr1,
+    TestLabel "fromSafeSExpr" testFromSafeSExpr2,
+    TestLabel "fromSafeSExpr" testFromSafeSExpr3,
+    TestLabel "fromSafeSExpr" testFromSafeSExpr4
     ]
 
 -------------------------------------------------------------------------------
@@ -243,8 +243,29 @@ testASExprToSExpr = TestList [
 
 -------------------------------------------------------------------------------
 
-testParse1 :: Test
-testParse1 = myAssertEqual "parse '0'" (Value [SNumber 0]) (parse "0")
+testParse1a :: Test
+testParse1a = myAssertEqual "parse '0'" (Value [SNumber 0]) (parse "0")
+
+testParse1b :: Test
+testParse1b = myAssertEqual "parse '0i'" (Value [SNumber 0]) (parse "0i")
+
+testParse1c :: Test
+testParse1c = myAssertEqual "parse '0u'" (Value [SUint 0]) (parse "0u")
+
+testParse1d :: Test
+testParse1d = myAssertEqual "parse '0c'" (Value [SChar '\0']) (parse "0c")
+
+testParse1e :: Test
+testParse1e = myAssertEqual "parse '0.0'" (Value [SFloat 0.0]) (parse "0.0")
+
+testParse1f :: Test
+testParse1f = myAssertEqual "parse '0.5'" (Value [SFloat 0.5]) (parse "0.5")
+
+testParse1g :: Test
+testParse1g = myAssertEqual "parse '\"x\"'" (Value [SString "x"]) (parse "\"x\"")
+
+testParse1h :: Test
+testParse1h = myAssertEqual "parse ''x''" (Value [SChar 'x']) (parse "'x'")
 
 testParse2 :: Test
 testParse2 = myAssertEqual "parse 'x'" (Value [SSymbol "x"]) (parse "x")
@@ -259,7 +280,7 @@ testParse5 :: Test
 testParse5 = myAssertEqual "parse '('" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ')' expected\n") (parse "(")
 
 testParse6 :: Test
-testParse6 = myAssertEqual "parse ')'" (Error "GLaDOS: SyntaxError: unexpected ')' while parsing\n") (parse ")")
+testParse6 = myAssertEqual "parse ')'" (Error "SyntaxError: Unexpecting closing paranthese found") (parse ")")
 
 testParse7 :: Test
 testParse7 = myAssertEqual "parse ''" (Value []) (parse "")
@@ -285,9 +306,112 @@ testParse11 = myAssertEqual "parse '(define (< a b)\n    #t\n)'" (Value [SList [
     where
         a = SList [(SSymbol "<"), (SSymbol "a"), (SSymbol "b")]
 
+testParse12 :: Test
+testParse12 = myAssertEqual "parse '{}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{}")
+
+testParse13 :: Test
+testParse13 = myAssertEqual "parse '{'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, '}' expected\n") (parse "{")
+
+testParse14 :: Test
+testParse14 = myAssertEqual "parse '}'" (Error "SyntaxError: Unexpecting closing curly bracket found") (parse "}")
+
+testParse15 :: Test
+testParse15 = myAssertEqual "parse '{0, 0}'" (Value [STuple (SNumber 0:SNumber 0:[])]) (parse "{0, 0}")
+
+testParse16 :: Test
+testParse16 = myAssertEqual "parse '{0 0}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{0 0}")
+
+testParse17 :: Test
+testParse17 = myAssertEqual "parse '{0, 0'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, '}' expected\n") (parse "{0, 0")
+
+testParse18 :: Test
+testParse18 = myAssertEqual "parse '0, 0}'" (Error "SyntaxError: Unexpecting closing curly bracket found") (parse "0, 0}")
+
+testParse19 :: Test
+testParse19 = myAssertEqual "parse '{{\"a\", 0}, 1}'" (Value [STuple (STuple (SSymbol "a":SNumber 0:[]):SNumber 1:[])]) (parse "{{\"a\", 0}, 1}")
+
+testParse20 :: Test
+testParse20 = myAssertEqual "parse '{0, {\"b\", 1}}'" (Value [STuple (SNumber 0:STuple (SSymbol "b":SNumber 1:[]):[])]) (parse "{0, {\"b\", 1}}")
+
+testParse21 :: Test
+testParse21 = myAssertEqual "parse '{{\"a\", 0}, {\"b\", 1}}'" (Value [STuple (STuple (SSymbol "a":SNumber 0:[]):STuple (SSymbol "b":SNumber 1:[]):[])]) (parse "{{\"a\", 0}, {\"b\", 1}}")
+
+testParse22 :: Test
+testParse22 = myAssertEqual "parse '{{\"a\", 0}, {\"b\", 1}'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, '}' expected\n") (parse "{{\"a\", 0}, {\"b\", 1}")
+
+testParse23 :: Test
+testParse23 = myAssertEqual "parse '{\"a\", 0}, {\"b\", 1}}'" (Error "SyntaxError: Unexpecting closing curly bracket found") (parse "{\"a\", 0}, {\"b\", 1}}")
+
+testParse24 :: Test
+testParse24 = myAssertEqual "parse '{{\"a\", 0} {\"b\", 1}}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{{\"a\", 0} {\"b\", 1}}")
+
+testParse25 :: Test
+testParse25 = myAssertEqual "parse '{{\"a\" 0}, {\"b\", 1}}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{{\"a\" 0}, {\"b\", 1}}")
+
+testParse26 :: Test
+testParse26 = myAssertEqual "parse '[]'" (Value [SArray []]) (parse "[]")
+
+testParse27 :: Test
+testParse27 = myAssertEqual "parse '['" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ']' expected\n") (parse "[")
+
+testParse28 :: Test
+testParse28 = myAssertEqual "parse ']'" (Error "SyntaxError: Unexpecting closing bracket found") (parse "]")
+
+testParse29 :: Test
+testParse29 = myAssertEqual "parse '[0]'" (Value [SArray [SNumber 0]]) (parse "[0]")
+
+testParse30 :: Test
+testParse30 = myAssertEqual "parse '[0, 1, 2, 3]'" (Value [SArray [SNumber 0, SNumber 1, SNumber 2, SNumber 3]]) (parse "[0, 1, 2, 3]")
+
+testParse31 :: Test
+testParse31 = myAssertEqual "parse '[0 1 2 3]'" (Error "GLaDOS: SyntaxError: Missing delimiter in list.") (parse "[0 1 2 3]")
+
+testParse32 :: Test
+testParse32 = myAssertEqual "parse '[[], [0], [1, 2], 3, []]'" (Value [SArray [SArray [], SArray [SNumber 0], SArray [SNumber 1, SNumber 2], SNumber 3, SArray []]]) (parse "[[], [0], [1, 2], 3, []]")
+
+testParse33 :: Test
+testParse33 = myAssertEqual "parse '[[], [0], [1 2], 3, []]'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "[[], [0], [1 2], 3, []]")
+
+testParse34 :: Test
+testParse34 = myAssertEqual "parse '[], [0], [1, 2], 3, []]'" (Error "SyntaxError: Unexpecting closing bracket found") (parse "[], [0], [1, 2], 3, []]")
+
+testParse35 :: Test
+testParse35 = myAssertEqual "parse '[[, [0], [1, 2], 3, []]'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ']' expected\n") (parse "[[, [0], [1, 2], 3, []]")
+
+testParse36 :: Test
+testParse36 = myAssertEqual "parse '[[], [0], [1, 2], 3, []'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ']' expected\n") (parse "[[], [0], [1, 2], 3, []]")
+
+testParse37 :: Test
+testParse37 = myAssertEqual "parse '<-(a::int b::int) => int->'" (Value [SFunctionType [SList [SSymbol "a::int", SSymbol "b::int"], SSymbol "=>", SSymbol "int"]]) (parse "<-(a::int b::int) => int->")
+
+testParse38 :: Test
+testParse38 = myAssertEqual "parse '\"test with spaces\"'" (Value [SString "test with spaces"]) (parse "\"test with spaces\"")
+
+testParse39 :: Test
+testParse39 = myAssertEqual "parse '([{({0, []}), 0}])'" (Value [SList [SArray [STuple [SList [STuple [SNumber 0, SArray []]], SNumber 0]]]]) (parse "([{({0, []}), 0}])")
+
+testParse40 :: Test
+testParse40 = myAssertEqual "parse '([{({0, [}]), 0}])'" (Error "SyntaxError: Interlocked [] in Tuple") (parse "([{({0, []}), 0}])")
+
+testParse41 :: Test
+testParse41 = myAssertEqual "parse '{([({0, []}), 0}])'" (Error "SyntaxError: Interlocked {} in Array") (parse "([{({0, []}), 0}])")
+
+testParse42 :: Test
+testParse42 = myAssertEqual "parse '([{({0, []}, )}])'" (Error "SyntaxError: Interlocked () in Tuple") (parse "([{({0, []}), 0}])")
+
+testParse43 :: Test
+testParse43 = myAssertEqual "parse '{(0, [}, 0])'" (Error "SyntaxError: Interlocked {} in Array") (parse "([{({0, []}), 0}])")
+
 testParse :: Test
 testParse = TestList [
-    TestLabel "parse" testParse1,
+    TestLabel "parse" testParse1a,
+    TestLabel "parse" testParse1b,
+    TestLabel "parse" testParse1c,
+    TestLabel "parse" testParse1d,
+    TestLabel "parse" testParse1e,
+    TestLabel "parse" testParse1f,
+    TestLabel "parse" testParse1g,
+    TestLabel "parse" testParse1h,
     TestLabel "parse" testParse2,
     TestLabel "parse" testParse3,
     TestLabel "parse" testParse4,
@@ -297,7 +421,39 @@ testParse = TestList [
     TestLabel "parse" testParse8,
     TestLabel "parse" testParse9,
     TestLabel "parse" testParse10,
-    TestLabel "parse" testParse11
+    TestLabel "parse" testParse11,
+    TestLabel "parse" testParse12,
+    TestLabel "parse" testParse13,
+    TestLabel "parse" testParse14,
+    TestLabel "parse" testParse15,
+    TestLabel "parse" testParse16,
+    TestLabel "parse" testParse17,
+    TestLabel "parse" testParse18,
+    TestLabel "parse" testParse19,
+    TestLabel "parse" testParse20,
+    TestLabel "parse" testParse21,
+    TestLabel "parse" testParse22,
+    TestLabel "parse" testParse23,
+    TestLabel "parse" testParse24,
+    TestLabel "parse" testParse25,
+    TestLabel "parse" testParse26,
+    TestLabel "parse" testParse27,
+    TestLabel "parse" testParse28,
+    TestLabel "parse" testParse29,
+    TestLabel "parse" testParse30,
+    TestLabel "parse" testParse31,
+    TestLabel "parse" testParse32,
+    TestLabel "parse" testParse33,
+    TestLabel "parse" testParse34,
+    TestLabel "parse" testParse35,
+    TestLabel "parse" testParse36,
+    TestLabel "parse" testParse37,
+    TestLabel "parse" testParse38,
+    TestLabel "parse" testParse39,
+    TestLabel "parse" testParse40,
+    TestLabel "parse" testParse41,
+    TestLabel "parse" testParse42,
+    TestLabel "parse" testParse43
     ]
 
 -------------------------------------------------------------------------------
@@ -307,7 +463,7 @@ testParser = TestList [
     TestLabel "convertToASExpr" testConvertToASExpr,
     TestLabel "stringToASExpr" testStringToASExpr,
     TestLabel "testParseParanthese" testParseParanthese,
-    TestLabel "fromSafe" testFromSafe,
+    TestLabel "fromSafeSExpr" testFromSafeSExpr,
     TestLabel "concatSafe" testConcatSafe,
     TestLabel "aSExprToSExpr" testASExprToSExpr,
     TestLabel "parse" testParse

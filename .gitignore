@@ -10,6 +10,8 @@ glados
 *.hi
 .stack-work/
 lambdananas
+output.bin
+.compiled.bin
 
 ## Unused files
 *~
@@ -17,6 +19,7 @@ lambdananas
 **/*gdb*
 *.pdf
 *.log
+*to_do*
 
 # Stack
 *.cabal
