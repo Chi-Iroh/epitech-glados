@@ -83,16 +83,26 @@ deserializeTypeEmptyList (a : _) = Error ("Cannot deserialize an empty list, bad
 
 deserializeList' :: Type -> Int -> [Word8] -> Safe (Any, Int, [Word8])
 deserializeList' _ 0 _ = Error "deserializeList' : no element to deserialize !"
-deserializeList' _type n bytes = foldl (\previous _ -> previous >>= \((Array list), len, rest) -> deserialize _type rest <&> (\(elem', len', rest') -> (Array (list ++ [elem']), len + len', rest'))) (deserialize _type bytes <&> mapFst3 (Array . singleton)) [2..n]
+deserializeList' _type n bytes = foldl (\previous _ -> previous >>= deserializeNext) firstElem [2..n]
+    where firstElem = deserialize _type bytes <&> mapFst3 (Array . singleton)
+
+          combine :: Int -> [Any] -> (Any, Int, [Word8]) -> (Any, Int, [Word8])
+          combine len list (newElem, len', rest) = (Array (list ++ [newElem]), len + len', rest)
+
+          deserializeNext :: (Any, Int, [Word8]) -> Safe (Any, Int, [Word8])
+          deserializeNext ((Array list), len, rest) = deserialize _type rest <&> combine len list
+          deserializeNext (any', _, _) = Error ("Unexpectedly deserialized a " ++ show any' ++ " instead of an array !")
 
 deserializeList :: Type -> [Word8] -> Safe (Any, Int, [Word8])
 deserializeList _ [] = Error "Cannot deserialize a list, no byte to read !"
 deserializeList (T_List _type) bytes = listLen >>= (\(len, bytesLen, rest) -> deserializeList' _type len rest <&> (\(list', bytesLen', rest'') -> (list', bytesLen + bytesLen', rest'')))
     where listLen = errorIf (\(val, _, _) -> val /= 0) "Use deserializeEmptyList for empty lists !" (deserializeUInt bytes)
+deserializeList _type _ = Error ("Cannot deserialize a list of type " ++ show _type ++ ", T_List ... was expected.")
 
 deserializeTuple :: Type -> [Word8] -> Safe (Any, Int, [Word8])
 deserializeTuple _ [] = Error "Cannot deserialize a tuple, no byte to read !"
 deserializeTuple (T_Tuple (a, b)) bytes = deserialize a bytes >>= (\(a', len, bytes') -> deserialize b bytes' <&> \(b', len', bytes'') -> (Tuple (a', b'), len + len', bytes''))
+deserializeTuple _type _ = Error ("Cannot deserialize a tuple of type " ++ show _type ++ ", T_Tuple (..., ...) was expected.")
 
 deserializeTypeAndValue :: [Word8] -> Safe (Any, Int)
 deserializeTypeAndValue bytes = deserializeType bytes >>= (\(_type, len, rest) -> deserialize _type rest <&> \(a, len', _) -> (a, len + len'))

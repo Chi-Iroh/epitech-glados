@@ -1,1 +1,1 @@
-STDOUT: '#\<procedure\>'
+STDOUT: '<-(number number) => number->'

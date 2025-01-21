@@ -8,7 +8,7 @@ import Data.Word (Word8)
 import System.Exit (die, exitWith, ExitCode (ExitSuccess))
 import Unsafe.Coerce (unsafeCoerce)
 
-import Any (Any(..), AnyVM(..), makeAny, anyType)
+import Any (Any(..), AnyVM(..), anyType)
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary)
 import Bits (combineWord32, u32)
@@ -37,10 +37,10 @@ popStack x stack (r : rs) = popStack (x - 1) stack rs >>=(\(_reg, _stack) -> Val
 popStack _ [] _ = Error "Stack empty"
 popStack _ _ [] = Error "Register out of bounds"
 
-constructList :: Int -> Type -> [Any] -> [Any] -> Safe [Any]
-constructList n _type xs newlist = Value ((Array elems) : rest)
+constructList :: Int -> Type -> [Any] -> Safe [Any]
+constructList _ _type [] = Error "Not enough value in stack to perform construct"
+constructList n _type xs = Value ((Array elems) : rest)
     where (elems, rest) = genericSplitAt n xs
-constructList _ _type [] _ = Error "Not enough value in stack to perform construct"
 
 constructTuple :: [Any] -> Type -> Type -> Safe [Any]
 constructTuple (a : b : as) typeA typeB = checkTypes >> (Value $ (Tuple (a, b)) : as)
@@ -54,7 +54,7 @@ constructTuple _ _ _ = Error "Not enough value in stack to perform construct"
 
 construct :: Type -> Int -> [Any] -> Safe [Any]
 construct _ 0 _ = Error "Can't construct from 0 values !"
-construct (T_List _type) size stack = constructList size _type stack []
+construct (T_List _type) size stack = constructList size _type stack
 construct (T_Tuple (typeA, typeB)) 2 stack = constructTuple stack typeA typeB
 construct (T_Tuple (_, _)) size _ = Error $ "Tried to construct tuple of size" ++ show size ++ "but tuples can only be of size 2"
 construct _ _ _ = Error "Tried to use construct with wrong type"
@@ -90,7 +90,7 @@ jumpFalse _ (Just True) = Value 0
 jumpFalse addr (Just False) = Value addr
 
 searchBuiltins :: Symbols -> String -> Safe (Int, [Any] -> Safe Any)
-searchBuiltins [] name = Error $ "Can't find function " ++ name
+searchBuiltins [] name = Error $ "*** ERROR: variable " ++ name ++ " is not bound."
 searchBuiltins ((BackendBuiltins (str, nArgs, f)) : xs) name
                                 | str == name = Value (nArgs, f)
                                 | otherwise = searchBuiltins xs name
@@ -107,7 +107,7 @@ call :: String -> SymbolTable -> Safe Address
 call str ((str', address):ts)
                 | str == str' = Value address
                 | otherwise = call str ts
-call str [] = Error $ "Can't find function " ++ str
+call str [] = Error $ "*** ERROR: variable " ++ str ++ " is not bound."
 
 returnRegister :: [Address] -> Maybe Any -> [Any] -> Safe ([Address], [Any], Address)
 returnRegister (a:as) (Just val) stack = Value (as, val : stack, a)
