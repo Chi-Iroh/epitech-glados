@@ -40,7 +40,7 @@ deserializeChar [] = Error "Cannot deserialize a char, no byte to read !"
 deserializeInt' :: Bits a => (Word8 -> a) -> [Word8] -> Safe (a, Int, [Word8])
 deserializeInt' fromIntegral' (b1 : b2 : b3 : b4 : bytes) = Value (int, 4, bytes)
     where int = ((fromIntegral' b1) .<<. 24) .|. ((fromIntegral' b2) .<<. 16) .|. ((fromIntegral' b3) .<<. 8)  .|. (fromIntegral' b4)
-deserializeInt' _ bytes = Error ("Cannot deserialize an int/uint, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes) !")
+deserializeInt' _ bytes = error ("Cannot deserialize an int/uint, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes) !")
 
 deserializeInt :: [Word8] -> Safe (Int, Int, [Word8])
 deserializeInt bytes = deserializeInt' i32 bytes <&> (\(a, b, c) -> (fromIntegral a, b, c))
