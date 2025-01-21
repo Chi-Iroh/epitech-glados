@@ -79,7 +79,7 @@ instance Show AnyVM where
     show (AnyVM (Bool b)) = if b then "#t" else "#f"
     show (AnyVM EmptyArray) = "[]"
     show (AnyVM (Array xs)) = "[" ++ (concat (intersperse ", " (map show (map AnyVM xs)))) ++ "]"
-    show (AnyVM (Tuple (a, b))) = "{ " ++ show (AnyVM a) ++ ", " ++ show (AnyVM b) ++ " }"
+    show (AnyVM (Tuple (a, b))) = "{" ++ show (AnyVM a) ++ ", " ++ show (AnyVM b) ++ "}"
     show (AnyVM NULL) = "NULL"
 
 instance Serializable Any where
