@@ -30,7 +30,7 @@ import Data.Functor ((<&>))
 import Data.Word (Word8)
 import GHC.Float (castFloatToWord32)
 
-import Bits (splitWord32, i32, u32)
+import Bits (splitWord32, i32, u32, word)
 import Limits (checkInt, checkUInt, checkFloat)
 import Type (Type(..))
 import Utils (Safe(..))
@@ -43,6 +43,9 @@ instance Serializable Bool where
 
 instance Serializable Int where
     serialize = serializeInt
+
+instance Serializable Word where
+    serialize = serializeUInt
 
 instance Serializable Float where
     serialize = serializeFloat
@@ -68,7 +71,7 @@ serializeInt int
     | not (checkInt int) = Error "Out of range int !"
     | otherwise = Value (serializeInt' (i32 int))
 
-serializeUInt :: Int -> Safe [Word8]
+serializeUInt :: Word -> Safe [Word8]
 serializeUInt uint
     | not (checkUInt uint) = Error "Negative uint !"
     | otherwise = Value (serializeInt' (u32 uint))
@@ -95,7 +98,7 @@ serializeList' (x:xs) = liftA2 (++) (serialize x) (serializeList' xs)
 serializeList' [] = Value []
 
 serializeList :: (Serializable a) => [a] -> Safe [Word8]
-serializeList xs = liftA2 (++) (serializeUInt (length xs)) (serializeList' xs)
+serializeList xs = liftA2 (++) (serializeUInt (word $ length xs)) (serializeList' xs)
 
 -- serializeCombination :: [Type] -> [Word8]
 -- serializeCombination list = serializeList list

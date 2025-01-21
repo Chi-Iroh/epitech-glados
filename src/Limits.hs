@@ -5,7 +5,7 @@ module Limits (
     checkFloat
 ) where
 
-uintMax :: Int
+uintMax :: Word
 uintMax = 4_294_967_295
 
 intMin :: Int
@@ -23,7 +23,7 @@ isInRange low high val
 checkInt :: Int -> Bool
 checkInt int = isInRange intMin intMax int
 
-checkUInt :: Int -> Bool
+checkUInt :: Word -> Bool
 checkUInt uint = isInRange 0 uintMax uint
 
 floatMin :: Float
