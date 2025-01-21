@@ -1,6 +1,10 @@
-module DataBuiltins where
+module DataBuiltins (
+    BuiltinsSymbol(..),
+    Symbols
+) where
+
+import Any (Any)
 import Utils(Safe)
-import VMData ( Any ) 
 
 data BuiltinsSymbol = BackendBuiltins (String, [Any] -> Safe Any)
 type Symbols = [BuiltinsSymbol]

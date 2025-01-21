@@ -1,11 +1,13 @@
 module MathLib (mathBuiltins) where
-import Utils (Safe(..))
+
 import Data.Char(ord, chr)
-import VMData(Any(..))
+
+import Any (Any(..))
 import DataBuiltins (Symbols, BuiltinsSymbol(BackendBuiltins))
+import Utils (Safe(..))
 
 factorial :: Int -> Int
-factorial n = product [1..n] 
+factorial n = product [1..n]
 
 mathBuiltins :: Symbols
 mathBuiltins = [    BackendBuiltins ("*", pdpArithmeticOp "*" (*))

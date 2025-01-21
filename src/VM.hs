@@ -7,16 +7,17 @@ import Debug.Trace (traceShowId)
 import System.Exit (die)
 import Unsafe.Coerce (unsafeCoerce)
 
+import Any (Any(..), makeAny)
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary)
 import Bits (combineWord32, u32)
+import Builtins(builtins)
+import DataBuiltins (Symbols, BuiltinsSymbol(..))
 import Deserialize (deserializeTypeAndValue, deserializeList, deserializeType, deserializeInt, addBytesLen)
 import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
 import Utils (Safe(..))
-import VMData (Address, Vm(..), defaultVM, Any(..), makeAny)
-import Builtins(builtins)
-import DataBuiltins (Symbols)
+import VMData (Address, Vm(..), defaultVM)
 
 pushRegister :: Maybe Any -> [Any] -> Safe [Any]
 pushRegister (Just a) stack = Value $ a:stack
@@ -78,14 +79,14 @@ jumpFalse _ (Just True) = Value 0
 jumpFalse addr (Just False) = Value addr
 
 searchBuiltins :: Symbols -> String -> Safe ([Any] -> Safe Any)
-searchBuiltins [] name = Error $ "Can't find function " ++ str
-searchBuiltins ((str, f):xs) name
+searchBuiltins [] name = Error $ "Can't find function " ++ name
+searchBuiltins ((BackendBuiltins (str, f)) : xs) name
                                 | str == name = Value f
                                 | otherwise = searchBuiltins xs name
 
-callBuiltins :: String -> [Any] -> Safe Any
+callBuiltins :: String -> [Any] -> Safe [Any]
 callBuiltins name (fst : snd : rest) = case searchBuiltins builtins name of
-                                    Value f -> Value $ f [fst, snd] : rest
+                                    Value f -> f [fst, snd] <&> ((++ rest) . singleton)
                                     Error err -> Error err
 
 call :: String -> SymbolTable -> Safe Address
@@ -114,7 +115,7 @@ executeInstruction' (Construct _type _size) _ (Vm (reg:rs) cstack bf vstack pc) 
 executeInstruction' (Test registerID) _ (Vm (reg:rs) cstack _ vstack pc) = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc, Nothing))
 executeInstruction' (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpTrue addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
 executeInstruction' (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpFalse addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
-executeInstruction' (Call str) table (Vm reg cstack bf vstack pc)= case call str table of  
+executeInstruction' (Call name) table (Vm reg cstack bf vstack pc)= case call name table of  
                                                                     Value _address -> Value (Vm (replicate 16 Nothing : reg) (pc:cstack) bf vstack _address, Nothing)
                                                                     Error _ -> callBuiltins name vstack >>=(\_stack -> Value reg cstack bf _stack pc)
 executeInstruction' (RetRegister registerID) _ (Vm (reg:rs) cstack bf vstack _) = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack _address, Nothing))

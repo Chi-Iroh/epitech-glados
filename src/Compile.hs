@@ -9,14 +9,14 @@ import Data.Typeable (Typeable)
 import Data.Word (Word8)
 import Debug.Trace
 
+import Any (Any(..), makeAny)
 import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, astToAny, RegisterID)
 import AST (AST(..), Call(..), getTypeAST, Parameter)
 import Bits (u32)
-import Serialize (Serializable)
 import SymbolTable (SymbolTable, writeSymbolTable)
 import Type
 import Utils (Safe(..), maybeToSafe, alternativeMap, bind2, concatMapM)
-import VMData (Any(..), Address, makeAny)
+import VMData (Address)
 
 data Symbol = BackendSymbol (String, (Symbols -> [AST] -> Safe AST))
 type Symbols = [Symbol]
@@ -129,7 +129,7 @@ addSymbol status name status'
         _symbols = (_symbols status) ++ [(name, status')]
     }
 
-compileValue :: Typeable a => Type -> a -> Bool -> Safe CompilationStatus
+compileValue :: (Show a, Typeable a) => Type -> a -> Bool -> Safe CompilationStatus
 compileValue _type value isNested = makeAny _type value <&> (\val -> compileValueFromAny val isNested)
 
 compileValueFromAny :: Any -> Bool -> CompilationStatus

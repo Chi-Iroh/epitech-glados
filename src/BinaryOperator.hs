@@ -1,9 +1,11 @@
 module BinaryOperator(binaryBuiltins) where
-import Utils (Safe(..))
+
 import Data.Bits
-import Data.Char(ord, chr)
-import VMData(Any(..))
+import Data.Char (ord, chr)
+
+import Any (Any(..))
 import DataBuiltins (Symbols, BuiltinsSymbol(BackendBuiltins))
+import Utils (Safe(..))
 
 binaryBuiltins :: Symbols
 binaryBuiltins = [ BackendBuiltins ("&", pdpBinaryOp "&" (.&.))

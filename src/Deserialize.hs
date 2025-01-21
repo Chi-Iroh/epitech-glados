@@ -9,11 +9,11 @@ import Data.List (singleton)
 import Data.Word (Word8)
 import GHC.Float (castWord32ToFloat)
 
+import Any (Any(..))
 import Bits (u32, i32)
 import Hex (showHex8)
 import Type (Type(..))
 import Utils (Safe(..), errorIf, mapFst3)
-import VMData (Any(..), makeAny)
 
 toAnyAndBytes :: (a -> Any) -> (a, Int, [Word8]) -> (Any, Int, [Word8])
 toAnyAndBytes anyfy (val, len, bytes) = (anyfy val, len, bytes)

@@ -8,13 +8,14 @@ import Data.Word (Word8)
 import Debug.Trace (traceShow, traceShowId)
 import Unsafe.Coerce (unsafeCoerce)
 
+import Any (Any(..), makeAny, anyType)
 import AST (AST(..), getTypeAST)
 import Bits (u32)
 import Hex (showHex32)
 import Serialize
 import Type (Type(..))
 import Utils (Safe(..), mapFst, concatMapM, bind2)
-import VMData (Any(..), Address, addrToBytes, makeAny, anyType)
+import VMData (Address, addrToBytes)
 
 type RegisterID = Word8
 
@@ -63,7 +64,7 @@ astToAny (ASTString str) = makeAny T_String str
 astToAny (ASTTuple (a, b)) = bind2 (\types' values' -> makeAny (T_Tuple types') values') types values
     where types = liftA2 (,) (getTypeAST a) (getTypeAST b)
           values = liftA2 (,) (astToAny a) (astToAny b)
-astToAny list@(ASTArray xs) = bind2 (\type' values' -> makeAny type' values') (getTypeAST list) values
+astToAny list@(ASTArray xs) = getTypeAST list >> (values <&> Array)
     where values = traceVal "values" (mapM astToAny xs)
 astToAny a = error ("astToAny: Invalid argument : '" ++ show a ++ "'")
 -- astToAny a = Error ("astToAny: Invalid argument : '" ++ show a ++ "'")
