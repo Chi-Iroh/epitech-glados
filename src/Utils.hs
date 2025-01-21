@@ -111,8 +111,8 @@ mapFst3 f (a, b, c) = (f a, b, c)
 mapTuple :: (a -> b) -> (a, a) -> (b, b)
 mapTuple f (a, b) = (f a, f b)
 
-tupleConcat :: ([a], [b]) -> ([a], [b]) -> ([a], [b])
-tupleConcat (a, b) (a', b') = (a ++ a', b ++ b')
+tupleConcat :: ([a], [b], [c]) -> ([a], [b], [c]) -> ([a], [b], [c])
+tupleConcat (a, b, c) (a', b', c') = (a ++ a', b ++ b', c ++ c')
 
 alternativeMap :: (a -> b) -> b -> Safe a -> b
 alternativeMap f _default a = fromSafe ((f <$> a) <|> (Value _default))

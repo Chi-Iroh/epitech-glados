@@ -9,7 +9,7 @@ import Data.Typeable (Typeable)
 import Data.Word (Word8)
 
 import Any (Any(..), makeAny)
-import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, astToAny, RegisterID)
+import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, astToAny, RegisterID, OutputAssemblyInstruction(..))
 import AST (AST(..), Call(..), getTypeAST, Parameter)
 import Bits (u32)
 import SymbolTable (SymbolTable, writeSymbolTable)
@@ -157,17 +157,17 @@ compileAST' status (x : xs)
     | otherwise = compiled >>= (\status' -> compileAST' status' xs)
     where compiled = compileAST1 status x False
 
-makeSymbolTable' :: Address -> [(String, CompilationStatus)] -> Safe (SymbolTable, [Word8])
-makeSymbolTable' offset [] = Value ([("__main", offset)], [])
-makeSymbolTable' offset ((name, CompilationStatus instructions _ _) : xs) = assemble instructions >>= (\instructions' -> next instructions' <&> (tupleConcat ([(name, offset)], instructions')))
+makeSymbolTable' :: Address -> [(String, CompilationStatus)] -> Safe (SymbolTable, [OutputAssemblyInstruction], [Word8])
+makeSymbolTable' offset [] = Value ([("__main", offset)], [Label "__main"], [])
+makeSymbolTable' offset ((name, CompilationStatus instructions _ _) : xs) = assemble instructions >>= (\instructions' -> next instructions' <&> (tupleConcat ([(name, offset)], (Label name) : map OutputAssemblyInstruction instructions, instructions')))
     where next instructions'' = makeSymbolTable' (offset + u32 (length instructions'')) xs
 
-makeSymbolTable :: [(String, CompilationStatus)] -> Safe (SymbolTable, [Word8])
+makeSymbolTable :: [(String, CompilationStatus)] -> Safe (SymbolTable, [OutputAssemblyInstruction], [Word8])
 makeSymbolTable = makeSymbolTable' 0
 
-finishCompilation :: CompilationStatus -> Safe ([AssemblyInstruction], [Word8])
-finishCompilation (CompilationStatus instructions symbols _) = liftA2 (\(symtab', symbols') instructions' -> (instructions, writeSymbolTable symtab' ++ symbols' ++ instructions')) symtab (assemble instructions)
+finishCompilation :: CompilationStatus -> Safe ([OutputAssemblyInstruction], [Word8])
+finishCompilation (CompilationStatus instructions symbols _) = liftA2 (\(symtab', symbolsInstructions, symbols') instructions' -> (symbolsInstructions ++ (map OutputAssemblyInstruction instructions), writeSymbolTable symtab' ++ symbols' ++ instructions')) symtab (assemble instructions)
     where symtab = makeSymbolTable symbols
 
-compileAST :: [AST] -> Safe ([AssemblyInstruction], [Word8])
+compileAST :: [AST] -> Safe ([OutputAssemblyInstruction], [Word8])
 compileAST ast = compileAST' emptyCompilationStatus ast >>= finishCompilation

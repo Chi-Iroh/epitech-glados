@@ -3,10 +3,11 @@ module MathLib (mathBuiltins) where
 import Data.Char(ord, chr)
 
 import Any (Any(..))
+import Bits (word)
 import DataBuiltins (Symbols, BuiltinsSymbol(BackendBuiltins))
 import Utils (Safe(..))
 
-factorial :: Int -> Int
+factorial :: (Enum a, Num a) => a -> a
 factorial n = product [1..n]
 
 mathBuiltins :: Symbols
@@ -60,19 +61,19 @@ pdpArithmeticOp name _ args = Error ("Bad arguments when attempting to call " ++
 
 pdpModulo :: [Any] -> Safe Any
 pdpModulo [Int a, Int b] = Value $ Int (mod a b)
-pdpModulo [Int a, UInt b] = Value $ Int (mod a b)
+pdpModulo [Int a, UInt b] = Value $ UInt (mod (word a) b)
 pdpModulo [Int a, Char b] = Value $ Int (mod a (ord b))
 pdpModulo [UInt a, UInt b] = Value $ UInt (mod a b)
-pdpModulo [UInt a, Char b] = Value $ UInt (mod a (ord b))
+pdpModulo [UInt a, Char b] = Value $ UInt (mod a (word $ ord b))
 pdpModulo [Char a, Char b] = Value $ Char $ chr $ mod (ord a) (ord b)
 pdpModulo args = Error ("Bad arguments when attempting to call '%'! expected an integer but got " ++ show args ++ " !")
 
 pdpFactorial :: [Any] -> Safe Any
 pdpFactorial [Int a]
-                        | a >= 0 = Value $ UInt (factorial a)
+                        | a >= 0 = Value $ UInt (word $ factorial a)
                         | otherwise = Error ("Bad arguments when attempting to call '!'! expected a positive integer but got " ++ show a ++ " !")
 pdpFactorial [UInt a] = Value $ UInt (factorial a)
-pdpFactorial [Char a] = Value $ UInt (factorial (ord a))
+pdpFactorial [Char a] = Value $ UInt (word $ factorial (ord a))
 pdpFactorial args = Error ("Bad arguments when attempting to call '!!'! expected an integer but got " ++ show args ++ " !")
 
 
