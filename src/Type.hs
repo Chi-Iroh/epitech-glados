@@ -1,16 +1,17 @@
+{-# LANGUAGE InstanceSigs #-}
+
 module Type (
     Type(..),
     typeInteger,
     typeNumber,
     typeAny,
-    verifyTypeTuple,
     verifyTypeList,
     combinateTypes,
     verifyType
     ) where
 
-import Utils
 import Data.List (intercalate)
+import Utils
 
 data Type = T_Int | T_UInt | T_Char | T_Float | T_Bool | T_Tuple (Type, Type) | T_List Type | T_EmptyList | T_String | T_Procedure | T_Function [Type] Type | T_Combination [Type] | T_NULL | T_Template | T_Type | T_Undefined
 
@@ -62,27 +63,19 @@ typeInteger :: Type
 typeInteger = T_Combination [T_Int, T_UInt, T_Char]
 
 typeNumber :: Type
-typeNumber = T_Combination [typeInteger, T_Float]
+typeNumber = T_Combination [T_Int, T_UInt, T_Char, T_Float]
 
 typeAny :: Type
-typeAny = T_Combination [typeNumber, T_Bool, T_Tuple (T_Template, T_Template), T_List T_Template, T_Procedure]
+typeAny = T_Combination [T_Int, T_UInt, T_Char, T_Float, T_Bool, T_Tuple (T_Template, T_Template), T_List T_Template, T_Procedure]
 
 -------------------------------------------------------------------------------
 
-verifyTypeTuple :: (Safe Type, Safe Type) -> Safe Type
-verifyTypeTuple ((Error err1), (Error err2)) = Error ("2 Errors encountered at the same time: " ++ err1 ++ " ; " ++ err2)
-verifyTypeTuple ((Error err), _) = Error err
-verifyTypeTuple (_, (Error err)) = Error err
-verifyTypeTuple ((Value a), (Value b)) = Value $ T_Tuple (a, b)
-
-verifyTypeList :: [Safe Type] -> Safe Type
-verifyTypeList [] = Value T_EmptyList
-verifyTypeList [(Error err)] = Error err
-verifyTypeList [(Value x)] = Value $ T_List x
-verifyTypeList ((Error err):_) = Error err
-verifyTypeList (x@(Value t):xs)
-    | all (== x) xs = Value $ T_List t
-    | otherwise = Error "Glados: TypeError: This expression do not return anything."
+verifyTypeList :: [Type] -> Type
+verifyTypeList [] = T_EmptyList
+verifyTypeList [x] = T_List x
+verifyTypeList (x:xs)
+    | all (== x) xs = T_List x
+    | otherwise = T_Undefined
 
 -------------------------------------------------------------------------------
 
@@ -102,12 +95,16 @@ verifyType T_EmptyList _ = False                                               -
 verifyType T_NULL _ = False                                                    -- invalid parameter type
 verifyType T_Undefined _ = False                                               -- invalid parameter type
 verifyType (T_Combination []) _ = False                                        -- invalid parameter type
+verifyType _ (T_Combination []) = False                                        -- invalid argument type
 verifyType _ T_Undefined = False                                               -- invalid argument type
+verifyType T_Template _ = True
 verifyType _ T_NULL = True
+verifyType T_String T_EmptyList = True
 verifyType (T_List _) T_EmptyList = True
 verifyType T_Procedure (T_Function _ _) = True
-verifyType (T_Combination ps) (T_Combination as) = foldr (&&) True $ map (\a -> foldr (\x y -> (x == a) || y) False ps) as
+verifyType p@(T_Combination ps) a@(T_Combination as) = (foldr (&&) True $ map (\a -> foldr (\x y -> (x == a) || y) False ps) as) || verifyType a p
 verifyType (T_Combination ps) a = foldr (\x y -> (x == a) || y) False ps
+verifyType a (T_Combination ps) = foldr (\x y -> (x == a) || y) False ps
 verifyType param arg
     | param == arg = True
     | otherwise = False

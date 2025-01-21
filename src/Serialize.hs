@@ -1,0 +1,138 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NumericUnderscores #-}
+
+module Serialize (
+    Serializable,
+    serialize,
+    serializeChar,
+    serializeType,
+    serializeTypeNull,
+    serializeTypeEmptyList,
+    serializeUInt
+) where
+
+import Data.Bits ((.<<.), Bits)
+import Data.ByteString.Internal (c2w)
+import Data.Functor ((<&>))
+import Data.Word (Word8)
+import GHC.Float (castFloatToWord32)
+
+import Bits (splitWord32, i32, u32)
+import Limits (checkInt, checkUInt, checkFloat)
+import Type (Type(..))
+import Utils (Safe(..))
+
+class Serializable a where
+    serialize :: a -> Safe [Word8]
+
+instance Serializable Bool where
+    serialize = Value . serializeBool
+
+instance Serializable Int where
+    serialize = serializeInt
+
+instance Serializable Float where
+    serialize = serializeFloat
+
+instance Serializable Char where
+    serialize = Value . serializeChar
+
+instance (Serializable a, Serializable b) => Serializable (a, b) where
+    serialize = serializeTuple
+
+instance Serializable a => Serializable [a] where
+    serialize = serializeList
+
+serializeBool :: Bool -> [Word8]
+serializeBool bool = [if bool then 0x01 else 0x00]
+
+serializeChar :: Char -> [Word8]
+serializeChar char = [c2w char]
+
+serializeUInt :: Int -> Safe [Word8]
+serializeUInt uint
+    | not (checkUInt uint) = Error "Negative uint !"
+    | otherwise = Value (serializeInt' (u32 uint))
+
+serializeInt' :: (Integral a, Bits a) => a -> [Word8]
+serializeInt' value =
+    [ fromIntegral (value .<<. 24)
+    , fromIntegral (value .<<. 16)
+    , fromIntegral (value .<<. 8)
+    , fromIntegral value ]
+
+serializeInt :: Int -> Safe [Word8]
+serializeInt int
+    | not (checkInt int) = Error "Out of range int !"
+    | otherwise = Value (serializeInt' (i32 int))
+
+serializeFloat' :: Float -> [Word8]
+serializeFloat' float = splitWord32 (castFloatToWord32 float)
+
+serializeFloat :: Float -> Safe [Word8]
+serializeFloat float
+    | not (checkFloat float) = Error "Out of range float !"
+    | otherwise = Value (serializeFloat' float)
+
+serializeTuple :: (Serializable a, Serializable b) => (a, b) -> Safe [Word8]
+serializeTuple (x, y) = liftA2 (++) (serialize x) (serialize y)
+
+serializeList' :: (Serializable a) => [a] -> Safe [Word8]
+serializeList' (x:xs) = liftA2 (++) (serialize x) (serializeList' xs)
+serializeList' [] = Value []
+
+serializeList :: (Serializable a) => [a] -> Safe [Word8]
+serializeList xs = liftA2 (++) (serializeUInt (length xs)) (serializeList' xs)
+
+-- serializeCombination :: [Type] -> [Word8]
+-- serializeCombination list = serializeList list
+
+
+serializeType :: Type -> Safe [Word8]
+serializeType T_Int = Value serializeTypeInt
+serializeType T_UInt = Value serializeTypeUInt
+serializeType T_Float = Value serializeTypeFloat
+serializeType T_Bool = Value serializeTypeBool
+serializeType T_Char = Value serializeTypeChar
+serializeType T_EmptyList = Value serializeTypeEmptyList
+serializeType T_String = serializeTypeList T_Char
+serializeType T_NULL = Value serializeTypeNull
+serializeType (T_Tuple types) = serializeTypeTuple types
+serializeType (T_List elemType) = serializeTypeList elemType
+serializeType (T_Combination types) = serializeTypeCombination types
+serializeType _type = Error ("Cannot serialize type " ++ show _type)
+
+serializeTypeBool :: [Word8]
+serializeTypeBool = [0x01]
+
+serializeTypeInt :: [Word8]
+serializeTypeInt = [0x02]
+
+serializeTypeUInt :: [Word8]
+serializeTypeUInt = [0x03]
+
+serializeTypeFloat :: [Word8]
+serializeTypeFloat = [0x04]
+
+serializeTypeChar :: [Word8]
+serializeTypeChar = [0x05]
+
+serializeTypeTuple :: (Type, Type) -> Safe [Word8]
+serializeTypeTuple (x, y) = liftA2 (++) (serializeType x) (serializeType y) <&> ([0x06] ++)
+
+serializeTypeList :: Type -> Safe [Word8]
+serializeTypeList t = serializeType t <&> ([0x07] ++)
+
+serializeTypeEmptyList :: [Word8]
+serializeTypeEmptyList = [0x0A]
+
+serializeTypeCombination' :: [Type] -> Safe [Word8]
+serializeTypeCombination' (x:xs) = liftA2 (++) (serializeType x) (serializeTypeCombination' xs)
+serializeTypeCombination' [] = Value []
+
+serializeTypeCombination :: [Type] -> Safe [Word8]
+serializeTypeCombination [] = Error "Empty Combination !"
+serializeTypeCombination list = liftA2 (++) (serializeInt (length list)) (serializeTypeCombination' list) <&> ([0x08] ++)
+
+serializeTypeNull :: [Word8]
+serializeTypeNull = [0x09]

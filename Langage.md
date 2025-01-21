@@ -27,7 +27,7 @@ Chaque caractère ascii, noté entre `'`, est considéré comme un nombre entier
 - `{a, b}`: représente un tuple de deux valeurs (les deux valeurs peuvent avoir des types distincts). `a` et `b` sont des types template.
 - `[a]`: représente une liste de valeurs du même type (une liste s'initialise entre crochets `[]` et chaque élément de la liste doit être séparé d'une virgule `,`). `a` est un type template.
     - `string`: c'est un alias de `[char]`, représente une chaîne de caractères (une chaîne de caractère s'initialise entre guillemets `""`)
-- `procedure`: représente un symbole invocable (variable, fonction, etc.)
+- `procedure`: représente un symbole invocable (variable, fonction, etc.), doit forcément être créée à la racine (les procédures imbriquées sont interdites)
     - `<(parameters_types...) => return_type>`: représente une fonction ou une lambda. `parameter_type` et `return_type` doivent être un type valide du PDP. Il peut il y avoir 0, 1 ou plusieurs `parameter_type`. Par exemple voilà une formulation valide : `<({a, integer} [a]) => a>`. *(Un type n'est pas une procédure. Un mot clé n'est pas une procédure non plus.)*
 - `type`: représente un type ou une combinaison de types.
 
@@ -178,10 +178,10 @@ Un "mot clé" en PDP est une "fonction" qui est traitée (au moins en partie) au
 | `-`   | `sub (a::number b::number) number` | Performe $a - b$.      |
 | `*`   | `mul (a::number b::number) number` | Performe $a \times b$. |
 | `/`   | `div (a::number b::number) number` | Performe $a / b$. Si $b=0$ renvoie `NULL`.     |
-| `%`   | `mod (a::number b::number) number` | Performe $a\:mod\:b$. Si $b=0$ renvoie `NULL`. |
+| `%`   | `mod (a::integer b::integer) integer` | Performe $a\:mod\:b$. Si $b=0$ renvoie `NULL`. |
 | `**`  | `pow (a::number b::number) number` | Performe $a^b$.        |
 | `v-`  | `sqrt (a::number) float`           | Performe $\sqrt{a}$. Si $a<0$ renvoie `NULL`.  |
-| `!`   | `factorial (a::integer) uint`      | Performe $a!$. Si $a<0$ renvoie `NULL`.        |
+| `!!`   | `factorial (a::integer) uint`      | Performe $a!$. Si $a<0$ renvoie `NULL`.        |
 | `+=`  | `add= (a::string b::number) bool`  | Applique la fonction `add` à `a` et `b` pour stocker le résultat dans `a`. Renvoie `#t` si l'action réussie, `#f` autrement. |
 | `-=`  | `sub= (a::string b::number) bool`  | Applique la fonction `sub` à `a` et `b` pour stocker le résultat dans `a`. Renvoie `#t` si l'action réussie, `#f` autrement. |
 | `*=`  | `mul= (a::string b::number) bool`  | Applique la fonction `mul` à `a` et `b` pour stocker le résultat dans `a`. Renvoie `#t` si l'action réussie, `#f` autrement. |
@@ -250,8 +250,8 @@ Un "mot clé" en PDP est une "fonction" qui est traitée (au moins en partie) au
 
 | Prototype | Action |
 | --------- | ------ |
-| `exp (a::number) number`           | Performe $e^a$.              |
-| `ln (a::number) number`            | Performe $ln(a)$.            |
+| `exp (a::number) float`           | Performe $e^a$.              |
+| `ln (a::number) float`            | Performe $ln(a)$.            |
 | `max (a::number b::number) number` | Renvoie le plus grand parmi `a` et `b`. |
 | `min (a::number b::number) number` | Renvoie le plus petit parmi `a` et `b`. |
 | `cos (a::number) float`            | Performe $cos(a)$.           |
