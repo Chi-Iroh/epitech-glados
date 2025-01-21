@@ -5,7 +5,7 @@ module VM (mainVM) where
 import Data.Functor ((<&>))
 import Data.List (singleton, genericSplitAt)
 import Data.Word (Word8)
-import System.Exit (die)
+import System.Exit (die, exitWith, ExitCode (ExitSuccess))
 import Unsafe.Coerce (unsafeCoerce)
 
 import Any (Any(..), makeAny)
@@ -157,7 +157,7 @@ parseInstruction' (0x80 : reg : xs) = mapFst (MovValue reg) <$> addBytesLen 2 <$
 parseInstruction' (0x81 : reg1 : reg2 : _) = Value (MovRegister reg1 reg2, 3)
 parseInstruction' (0x90 : xs) = mapFst OutValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
 parseInstruction' (0x91 : reg : _) = Value (OutRegister reg, 2)
-parseInstruction' _ = Error "No instruction to parse"
+parseInstruction' _ = Error endOfFile
 
 movePc :: Int -> Vm -> Vm
 movePc increment vm = vm {
@@ -169,7 +169,7 @@ parseInstruction vm bytes table = parseInstruction' (drop (fromIntegral $ _pc vm
 
 parseFile :: Vm -> SymbolTable -> [Word8] -> IO ()
 parseFile vm table bytes = case parseInstruction vm bytes table of
-                        Error "No instruction to parse" -> putStrLn endOfFile
+                        Error "Nothing left to do, closing VM." -> exitWith ExitSuccess
                         Error err -> die err
                         Value (_vm, Nothing) -> parseFile _vm table bytes
                         Value (_vm, Just a) -> print a >> parseFile _vm table bytes
