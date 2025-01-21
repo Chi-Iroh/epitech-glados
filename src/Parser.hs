@@ -255,6 +255,7 @@ toSFunctionTypeEnd (x:xs) nbStructure
 
 -- bollean for checkValidTuple
 isValidTuple :: Int -> [AlmostSExpr] -> Bool
+isValidTuple 1 [] = False
 isValidTuple _ [] = True
 isValidTuple nbElement (x:xs)
     | nbElement > 2 = False
@@ -271,7 +272,7 @@ isValidTuple nbElement (x:xs)
 checkValidTuple :: [AlmostSExpr] -> Safe [AlmostSExpr]
 checkValidTuple list
     | isValidTuple 1 list = Value list
-    | otherwise = Error "Invalid tuple detected"
+    | otherwise = Error "GLaDOS: SyntaxError: Invalid tuple detected"
 
 verifyTuple :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
 verifyTuple (Value (rList, pList)) list =
@@ -284,9 +285,32 @@ verifyTuple (Value (rList, pList)) list =
 verifyTuple (Error err) _ = Error err
 
 verifyArray :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
-verifyArray (Value (rList, pList)) list =
-    aSExprToSExpr rList (concatSafe (fromSafeArray (aSExprToSExpr pList (Value []))) list)
+verifyArray (Value (rList, pList)) list = 
+    let processedList = aSExprToSExpr rList (concatSafe (fromSafeArray (aSExprToSExpr pList (Value []))) list)
+    in case processedList of
+        Error err -> Error err
+        Value exprs ->
+            if anyMissingDelimiter (exprs !! 0)
+                then Error "GLaDOS: SyntaxError: Invalid list detected"
+            else Value exprs
 verifyArray (Error err) _ = Error err
+
+-- Check if there are consecutive elements without a comma
+anyMissingDelimiter :: SExpr -> Bool
+anyMissingDelimiter (SArray elems) = checkDelimiters elems
+    where
+    checkDelimiters :: [SExpr] -> Bool
+    checkDelimiters [] = False
+    checkDelimiters [_] = False
+    checkDelimiters (x:y:xs) =
+        if not (isSComma x) && not (isSComma y) then True
+        else checkDelimiters (y:xs)
+anyMissingDelimiter _ = True
+
+-- Check if the element is a comma
+isSComma :: SExpr -> Bool
+isSComma (SSymbol ",") = True
+isSComma _ = False
 
 verifyFunctionType :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
 verifyFunctionType (Value (rList, pList)) list =
@@ -499,8 +523,9 @@ parse :: String -> Safe [SExpr]
 parse str =
     let result = stringToASExpr (customWords str) []
     in case result of
-        Value asExprList -> 
+        Value asExprList ->
             case verifyASExpr Nothing 0 asExprList of
-                Value (_, list) -> removeCommas (aSExprToSExpr list (Value []))
+                Value (_, list) ->
+                    removeCommas (aSExprToSExpr list (Value []))
                 Error err -> Error err
         Error err -> Error err
