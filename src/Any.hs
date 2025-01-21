@@ -49,6 +49,7 @@ data Any =  Int Int             |
             Char Char           |
             Float Float         |
             Bool Bool           |
+            String String       |
             EmptyArray          |
             Array [Any]         |
             Tuple (Any, Any)    |
@@ -63,6 +64,7 @@ instance Show AnyAssembly where
     show (AnyAssembly (Char c)) = "char " ++ showHex8 (c2w c) ++ " (" ++ show c ++ ")"
     show (AnyAssembly (Float f)) = "float " ++ show f
     show (AnyAssembly (Bool b)) = "bool " ++ show b
+    show (AnyAssembly (String str)) = "string " ++ show str
     show (AnyAssembly EmptyArray) = "[]"
     show (AnyAssembly (Array xs)) = "[" ++ (concat (intersperse ", " (map show xs))) ++ "]"
     show (AnyAssembly (Tuple (a, b))) = "{" ++ show a ++ ", " ++ show b ++ "}"
@@ -77,7 +79,12 @@ instance Show AnyVM where
     show (AnyVM (Char c)) = show c
     show (AnyVM (Float f)) = show f
     show (AnyVM (Bool b)) = if b then "#t" else "#f"
+    show (AnyVM (String str)) = show str
     show (AnyVM EmptyArray) = "[]"
+    show (AnyVM (Array xs@((Char _) : _))) = "\"" ++ (concatMap toChar xs) ++ "\""
+        where toChar :: Any -> String
+              toChar (Char c) = [c]
+              toChar _ = ""
     show (AnyVM (Array xs)) = "[" ++ (concat (intersperse ", " (map show (map AnyVM xs)))) ++ "]"
     show (AnyVM (Tuple (a, b))) = "{" ++ show (AnyVM a) ++ ", " ++ show (AnyVM b) ++ "}"
     show (AnyVM NULL) = "NULL"
@@ -89,6 +96,7 @@ instance Serializable Any where
     serialize (Char c) = serialize c
     serialize (Float f) = serialize f
     serialize (Bool b) = serialize b
+    serialize (String str) = serialize str
     serialize EmptyArray = Value serializeTypeEmptyList
     serialize (Array xs) = serialize xs
     serialize (Tuple tuple) = serialize tuple
@@ -221,6 +229,7 @@ anyType (UInt _) = Value T_UInt
 anyType (Char _) = Value T_Char
 anyType (Float _) = Value T_Float
 anyType (Bool _) = Value T_Bool
+anyType (String _) = Value T_String
 anyType EmptyArray = Value T_EmptyList
 anyType (Array xs) = mapM anyType xs >>= reduceList "Array must have at least 1 value, use EmptyArray instead !" "Array are homogeneous !" <&> T_List
 anyType (Tuple (a, b)) = liftA2 (\a' b' -> T_Tuple (a', b')) (anyType a) (anyType b)
@@ -233,6 +242,7 @@ makeAny T_Char a = Char <$> (safeCast a :: Safe Char)
 makeAny T_Float a = Float <$> (safeCast a :: Safe Float)
 makeAny T_Bool a = Bool <$> (safeCast a :: Safe Bool)
 makeAny T_NULL _ = Value NULL
+makeAny T_String str = String <$> (safeCast str :: Safe String)
 makeAny T_EmptyList _ = Value EmptyArray
 makeAny _type@(T_List elemType) list =
     case haskellType elemType of

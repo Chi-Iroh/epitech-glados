@@ -113,6 +113,7 @@ compileAST1 status (ASTInt n) isNested = compileValue T_Int n isNested >>= (stat
 compileAST1 status (ASTUInt n) isNested = compileValue T_UInt n isNested >>= (status +++)
 compileAST1 status (ASTFloat n) isNested = compileValue T_Float n isNested >>= (status +++)
 compileAST1 status (ASTBool b) isNested = compileValue T_Bool b isNested >>= (status +++)
+compileAST1 status (ASTString str) isNested = compileValue T_String str isNested >>= (status +++)
 compileAST1 status (ASTCall (FunctionCall f) args) isNested = compileCall f args isNested status >>= (status +++)
 compileAST1 _ (ASTDefine s _ _) True = Error ("Error when trying to define procedure " ++ s ++ ": nested procedures are forbidden !")
 compileAST1 status (ASTDefine s _type ast) False = compileAST1 emptyCompilationStatus ast True >>= (+++ statusFromInstructions [Ret]) >>= addSymbol status s
