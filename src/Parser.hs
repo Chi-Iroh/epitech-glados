@@ -15,8 +15,6 @@ import Data.Maybe
 import Data.List (isPrefixOf, isSuffixOf)
 import Data.Char (isSpace, chr)
 
-import Debug.Trace (trace)
-
 import SExpression
 import Utils
 
@@ -337,7 +335,6 @@ verifyASExpr :: Maybe Char -> Int -> [AlmostSExpr] -> Safe (Int, [AlmostSExpr])
 verifyASExpr char index list
     | index > length list - 1 = Value (index, list)
     | otherwise =
-        -- trace ("char: " ++ show char ++ "index: " ++ show index ++ "\n" ++ "list: " ++ show list ++ "\n\n") $
         if charNothing
             then
                 let currentElement = list !! index
@@ -528,7 +525,7 @@ parse str =
     in case result of
         Value asExprList ->
             case verifyASExpr Nothing 0 asExprList of
-                Value (_, list) -> trace ("result: " ++ show (removeCommas (aSExprToSExpr list (Value [])))) $
+                Value (_, list) ->
                     removeCommas (aSExprToSExpr list (Value []))
                 Error err -> Error err
         Error err -> Error err
