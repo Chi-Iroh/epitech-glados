@@ -22,6 +22,7 @@ deserialize :: Type -> [Word8] -> Safe (Any, Int, [Word8])
 deserialize T_Bool bytes = deserializeBool bytes <&> toAnyAndBytes Bool
 deserialize T_Char bytes = deserializeChar bytes <&> toAnyAndBytes Char
 deserialize T_Int bytes = deserializeInt bytes <&> toAnyAndBytes Int
+deserialize T_UInt bytes = deserializeUInt bytes <&> toAnyAndBytes Int
 deserialize T_NULL bytes = deserializeTypeNull bytes <&> toAnyAndBytes (const NULL)
 deserialize T_Float bytes = deserializeFloat bytes <&> toAnyAndBytes Float
 deserialize T_EmptyList bytes = deserializeTypeEmptyList bytes <&> toAnyAndBytes (const EmptyArray)
