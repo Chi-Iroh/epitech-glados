@@ -156,7 +156,7 @@ allEqual [] = True
 allEqual (x : xs) = null (filter (/= x) xs)
 
 haveSameType :: [AST] -> Safe Bool
-haveSameType list = mapM getTypeAST list <&> allEqual
+haveSameType list = mapM (\x -> Value $ getTypeAST x []) list <&> allEqual
 
 findParamIndex :: String -> CompilationStatus -> Safe RegisterID
 findParamIndex name (CompilationStatus _ _ params) = maybeToSafe (show name ++ " isn't a function parameter !") foundIndex
@@ -189,10 +189,10 @@ compileAST1 status (ASTArray []) isNested = status +++ compileValue T_EmptyList 
 compileAST1 status (ASTProcedure name) isNested = status +++ (statusFromInstructions $ singleton $ alternativeMap (PushRegister) (Call name) index)
     where index = findParamIndex name status
 
-compileAST1 status astList@(ASTArray list) isNested = getTypeAST astList >>= (\type' -> concatMapM compileElem list <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
+compileAST1 status astList@(ASTArray list) isNested = Value (getTypeAST astList []) >>= (\type' -> concatMapM compileElem list <&> (++ [Construct type' (length list)] ++ outputIfNotNested) >>= ((status +++) . statusFromInstructions))
     where outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
 
-compileAST1 status astTuple@(ASTTuple (a, b)) isNested = getTypeAST astTuple >>= (\type' -> liftA2 (\a' b' -> b' ++ a' ++ [Construct type' 2] ++ outputIfNotNested) (compileElem a) (compileElem b)) >>= ((status +++) . statusFromInstructions)
+compileAST1 status astTuple@(ASTTuple (a, b)) isNested = Value (getTypeAST astTuple []) >>= (\type' -> liftA2 (\a' b' -> b' ++ a' ++ [Construct type' 2] ++ outputIfNotNested) (compileElem a) (compileElem b)) >>= ((status +++) . statusFromInstructions)
     where outputIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
 
 compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothValuesTheSameType >> concatInstructions conditionCompiled trueValueCompiled falseValueCompiled >>= ((status +++) . statusFromInstructions)

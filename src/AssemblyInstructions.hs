@@ -64,9 +64,9 @@ toAny (ASTUInt n) = Value (Any (T_UInt, n))
 toAny (ASTFloat f) = Value (Any (T_Float, f))
 toAny (ASTString str) = Value (Any (T_String, str))
 toAny (ASTTuple (a, b)) = liftA2 (\types' values' -> Any (T_Tuple types', values')) types values
-    where types = liftA2 (,) (getTypeAST a) (getTypeAST b)
+    where types = liftA2 (,) (Value $ getTypeAST a []) (Value $ getTypeAST b [])
           values = liftA2 (,) (toAny a) (toAny b)
-toAny list@(ASTArray xs) = liftA2 (\type' values' -> Any (type', map fromAny values')) (getTypeAST list) values
+toAny list@(ASTArray xs) = liftA2 (\type' values' -> Any (type', map fromAny values')) (Value $ getTypeAST list []) values
     where values = traceVal "values" (mapM toAny xs)
 toAny a = Error ("toAny: Invalid argument : '" ++ show a ++ "'")
 
