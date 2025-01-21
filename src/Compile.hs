@@ -139,11 +139,12 @@ compileValueFromAny val isNested = CompilationStatus {
     _params = []
 }
 
-compileCall :: String -> [AST] -> CompilationStatus -> Safe CompilationStatus
-compileCall symbol args status = concatMapM compileArg (reverse args) <&> (statusFromInstructions . (++ [Call symbol]))
-    where compileArg :: AST -> Safe [AssemblyInstruction]
+compileCall :: String -> [AST] -> Bool -> CompilationStatus -> Safe CompilationStatus
+compileCall symbol args isNested status = concatMapM compileArg (reverse args) <&> (statusFromInstructions . (++ outIfNotNested) . (++ [Call symbol]))
+    where outIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
+          compileArg :: AST -> Safe [AssemblyInstruction]
           compileArg arg = case arg of
-            ASTCall (FunctionCall symbol') args' -> compileCall symbol' args' status <&> _instructions
+            ASTCall (FunctionCall symbol') args' -> compileCall symbol' args' True status <&> _instructions
             ASTProcedure name -> (paramIndex name <&> (singleton . Pop)) <|> Value [Call name]
             _ -> singleton <$> toAssemblyValueInstruction PushValue arg
             where paramIndex name' = findParamIndex name' status
@@ -185,7 +186,7 @@ compileFunction ast params status = compileAST1 statusWithParams ast False <&> p
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
 compileAST1 status (ASTInt n) isNested = compileValue T_Int n isNested >>= (status +++)
 compileAST1 status (ASTBool b) isNested = compileValue T_Bool b isNested >>= (status +++)
-compileAST1 status (ASTCall (FunctionCall f) args) _ = compileCall f args status >>= (status +++)
+compileAST1 status (ASTCall (FunctionCall f) args) isNested = compileCall f args isNested status >>= (status +++)
 compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
 compileAST1 status (ASTArray []) isNested = compileValue T_EmptyList ([] :: [Int]) isNested >>= (status +++)
 compileAST1 status (ASTProcedure name) isNested = status +++ (statusFromInstructions $ singleton $ alternativeMap (PushRegister) (Call name) index)
