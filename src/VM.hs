@@ -15,11 +15,12 @@ import Bits (combineWord32, u32)
 import Builtins (builtins)
 import Data.ByteString.Internal (w2c)
 import DataBuiltins (Symbols, BuiltinsSymbol(..))
-import Deserialize (deserializeTypeAndValue, deserializeList, deserializeType, deserializeInt, addBytesLen)
+import Deserialize (deserializeTypeAndValue, deserializeList, deserializeType, deserializeInt, deserializeUInt, addBytesLen)
 import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
 import Utils (Safe(..), boolToSafe)
 import VMData (Address, Vm(..), defaultVM)
+import Debug.Trace (traceShowId)
 
 pushRegister :: Maybe Any -> [Any] -> Safe [Any]
 pushRegister (Just a) stack = Value $ a:stack
@@ -142,7 +143,7 @@ parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
 parseInstruction' (0x00 : xs) = mapFst PushValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
 parseInstruction' (0x01 : reg : _) = Value (PushRegister reg, 2)
 parseInstruction' (0x10 : reg : _) = Value (Pop reg, 2)
-parseInstruction' (0x20 : xs) = deserializeType xs >>=(\(_type, len, _) -> deserializeInt xs >>= \(a, len', _) -> Value (Construct _type a, len + len'))
+parseInstruction' (0x20 : xs) = deserializeType xs >>=(\(_type, len, rest) -> deserializeUInt rest >>= \(a, len', _) -> Value (Construct _type a, len + len'))
 parseInstruction' (0x30 : reg : _) = Value (Test reg, 2)
 parseInstruction' (0x40 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfTrue (combineWord32 [byte1, byte2, byte3, byte4]), 5)
 parseInstruction' (0x50 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfFalse (combineWord32 [byte1, byte2, byte3, byte4]), 5)
