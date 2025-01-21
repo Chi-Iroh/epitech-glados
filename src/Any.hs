@@ -7,6 +7,8 @@
 
 module Any (
     Any(..),
+    AnyAssembly(..),
+    AnyVM(..),
     makeAny,
     anyType,
     (~<=),
@@ -29,6 +31,7 @@ import Control.Applicative (liftA3)
 import Data.ByteString.Internal (c2w, w2c)
 import Data.Functor ((<&>))
 import qualified Data.Kind (Type)
+import Data.List (intersperse)
 import Data.Proxy
 import Data.Typeable
 import Data.Word (Word8)
@@ -49,19 +52,35 @@ data Any =  Int Int             |
             EmptyArray          |
             Array [Any]         |
             Tuple (Any, Any)    |
-            NULL                deriving (Eq, Typeable)
+            NULL                deriving (Eq, Show, Typeable)
 
-instance Show Any where
-    show :: Any -> String
-    show (Int n) = "int " ++ show n
-    show (UInt n) = "uint " ++ show n
-    show (Char c) = "char " ++ showHex8 (c2w c) ++ " (" ++ show c ++ ")"
-    show (Float f) = "float " ++ show f
-    show (Bool b) = "bool " ++ show b
-    show EmptyArray = "[]"
-    show (Array xs) = "[" ++ concatMap show xs ++ "]"
-    show (Tuple (a, b)) = "{" ++ show a ++ ", " ++ show b ++ "}"
-    show NULL = "NULL"
+data AnyAssembly = AnyAssembly Any
+
+instance Show AnyAssembly where
+    show :: AnyAssembly -> String
+    show (AnyAssembly (Int n)) = "int " ++ show n
+    show (AnyAssembly (UInt n)) = "uint " ++ show n
+    show (AnyAssembly (Char c)) = "char " ++ showHex8 (c2w c) ++ " (" ++ show c ++ ")"
+    show (AnyAssembly (Float f)) = "float " ++ show f
+    show (AnyAssembly (Bool b)) = "bool " ++ show b
+    show (AnyAssembly EmptyArray) = "[]"
+    show (AnyAssembly (Array xs)) = "[" ++ (concat (intersperse ", " (map show xs))) ++ "]"
+    show (AnyAssembly (Tuple (a, b))) = "{" ++ show a ++ ", " ++ show b ++ "}"
+    show (AnyAssembly NULL) = "NULL"
+
+data AnyVM = AnyVM Any
+
+instance Show AnyVM where
+    show :: AnyVM -> String
+    show (AnyVM (Int n)) = show n
+    show (AnyVM (UInt n)) = show n
+    show (AnyVM (Char c)) = show c
+    show (AnyVM (Float f)) = show f
+    show (AnyVM (Bool b)) = if b then "#t" else "#f"
+    show (AnyVM EmptyArray) = "[]"
+    show (AnyVM (Array xs)) = "[" ++ (concat (intersperse ", " (map show (map AnyVM xs)))) ++ "]"
+    show (AnyVM (Tuple (a, b))) = "{ " ++ show (AnyVM a) ++ ", " ++ show (AnyVM b) ++ " }"
+    show (AnyVM NULL) = "NULL"
 
 instance Serializable Any where
     serialize :: Any -> Safe [Word8]

@@ -74,7 +74,7 @@ mainCompiler filename outputFilename = do
     fileImport <- parseImport (deleteComment fileContent)
     case fileImport of
         Error err -> die err
-        Value content -> safeToIO ((convert $ parse (deleteComment content)) >>= compileAST) >>= writeBinary outputFilename
+        Value content -> safeToIO ((convert $ parse (deleteComment content)) >>= compileAST) >>= (\(instructions, bytes) -> mapM print instructions >> pure bytes) >>= writeBinary outputFilename
 
 main :: IO ()
 main = do

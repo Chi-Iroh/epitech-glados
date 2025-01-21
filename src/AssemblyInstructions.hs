@@ -6,8 +6,8 @@ import Data.Functor ((<&>))
 import Data.Word (Word8)
 import Debug.Trace (traceShowId)
 
-import Any (Any(..), makeAny, anyType)
-import AST (AST(..), getTypeAST')
+import Any (Any(..), AnyAssembly(..), makeAny, anyType)
+import AST (AST(..))
 import Bits (u32)
 import Hex (showHex32)
 import Serialize
@@ -36,7 +36,7 @@ data AssemblyInstruction =  PushRegister RegisterID             |
 instance Show AssemblyInstruction where
     show :: AssemblyInstruction -> String
     show (PushRegister reg) = "push r" ++ show reg
-    show (PushValue val) = "push " ++ show val
+    show (PushValue val) = "push " ++ show (AnyAssembly val)
     show (Pop reg) = "pop r" ++ show reg
     show (Construct _type n) = "construct " ++ show _type ++ " " ++ show n
     show (Test reg) = "test r" ++ show reg
@@ -44,12 +44,12 @@ instance Show AssemblyInstruction where
     show (JumpIfFalse addr) = "jf " ++ showHex32 addr ++ " (number of instructions, not actual assembled bytes)"
     show (Call symbol) = "call " ++ symbol
     show (RetRegister reg) = "ret r" ++ show reg
-    show (RetValue val) = "ret " ++ show val
-    show Ret = "ret "
+    show (RetValue val) = "ret " ++ show (AnyAssembly val)
+    show Ret = "ret"
     show (MovRegister dest src) = "mov r" ++ show dest ++ ", " ++ show src
-    show (MovValue dest val) = "mov r" ++ show dest ++ ", " ++ show val
+    show (MovValue dest val) = "mov r" ++ show dest ++ ", " ++ show (AnyAssembly val)
     show (OutRegister reg) = "out r" ++ show reg
-    show (OutValue val) = "out " ++ show val
+    show (OutValue val) = "out " ++ show (AnyAssembly val)
 
 astToAny :: AST -> Safe Any
 astToAny (ASTBool b) = makeAny T_Bool b
@@ -59,9 +59,7 @@ astToAny (ASTUInt n) = makeAny T_UInt n
 astToAny (ASTFloat f) = makeAny T_Float f
 astToAny (ASTString str) = makeAny T_String str
 astToAny (ASTArray xs) = mapM astToAny xs <&> Array
-astToAny (ASTTuple (a, b)) = liftA2 (curry Tuple) a' b'
-    where a' = astToAny a >>= makeAny (getTypeAST' a)
-          b' = astToAny b >>= makeAny (getTypeAST' b)
+astToAny (ASTTuple (a, b)) = liftA2 (curry Tuple) (astToAny a) (astToAny b)
 astToAny a = Error ("astToAny: Invalid argument : '" ++ show a ++ "'")
 
 toAssemblyValueInstruction :: (Any -> AssemblyInstruction) -> AST -> Safe AssemblyInstruction
@@ -92,13 +90,10 @@ assemble1 (OutValue val) = liftA2 (++) (anyType val >>= serializeType) (serializ
 assemble1 (OutRegister reg) = Value [0x91, reg]
 assemble1 a = Error ("assemble1: Instruction " ++ show a ++ " not implemented !")
 
-assemble' :: [AssemblyInstruction] -> Safe [Word8]
-assemble' (JumpIfTrue size : xs) = liftA2 (\falseCode' rest' -> [0x40] ++ addrToBytes (u32 $ length falseCode') ++ falseCode' ++ rest') falseCode (assemble' rest)
-    where (falseCode, rest) = mapFst (concatMapM assemble1) $ splitAt (fromIntegral size) xs
-assemble' (JumpIfFalse size : xs) = liftA2 (\trueCode' rest' -> [0x50] ++ addrToBytes (u32 $ length trueCode') ++ trueCode' ++ rest') trueCode (assemble' rest)
-    where (trueCode, rest) = mapFst (concatMapM assemble1) $ splitAt (fromIntegral size) xs
-assemble' (x : xs) = liftA2 (++) (assemble1 x) (assemble' xs)
-assemble' [] = Value []
-
 assemble :: [AssemblyInstruction] -> Safe [Word8]
-assemble = assemble' . (map traceShowId)
+assemble (JumpIfTrue size : xs) = liftA2 (\falseCode' rest' -> [0x40] ++ addrToBytes (u32 $ length falseCode') ++ falseCode' ++ rest') falseCode (assemble rest)
+    where (falseCode, rest) = mapFst (concatMapM assemble1) $ splitAt (fromIntegral size) xs
+assemble (JumpIfFalse size : xs) = liftA2 (\trueCode' rest' -> [0x50] ++ addrToBytes (u32 $ length trueCode') ++ trueCode' ++ rest') trueCode (assemble rest)
+    where (trueCode, rest) = mapFst (concatMapM assemble1) $ splitAt (fromIntegral size) xs
+assemble (x : xs) = liftA2 (++) (assemble1 x) (assemble xs)
+assemble [] = Value []
