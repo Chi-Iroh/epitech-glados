@@ -5,7 +5,6 @@ module VM (mainVM) where
 import Data.Functor ((<&>))
 import Data.List (singleton, genericSplitAt)
 import Data.Word (Word8)
-import Debug.Trace (traceShowId)
 import System.Exit (die)
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -25,6 +24,9 @@ import VMData (Address, Vm(..), defaultVM)
 pushRegister :: Maybe Any -> [Any] -> Safe [Any]
 pushRegister (Just a) stack = Value $ a:stack
 pushRegister Nothing _ = Error "Register empty"
+
+endOfFile :: String
+endOfFile = "Nothing left to do, closing VM."
 
 pushValue :: Any -> [Any] -> Safe [Any]
 pushValue a stack = Value $ a:stack
@@ -134,7 +136,7 @@ executeInstruction' (OutValue value) _ vm = Value (vm, Just value)
 executeInstruction' _ _ vm = Error ("Instruction not recognized " ++ show vm)
 
 executeInstruction :: AssemblyInstruction -> SymbolTable -> Vm -> Safe (Vm, Maybe Any)
-executeInstruction instruction = executeInstruction' (traceShowId instruction)
+executeInstruction instruction = executeInstruction' instruction
 
 parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
 parseInstruction' (0x00 : xs) = mapFst PushValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
@@ -153,7 +155,7 @@ parseInstruction' (0x71 : reg : _) = Value (RetRegister reg, 2)
 parseInstruction' (0x72 : reg : _) = Value (Ret, 1)
 parseInstruction' (0x80 : reg : xs) = mapFst (MovValue reg) <$> addBytesLen 2 <$> deserializeTypeAndValue xs
 parseInstruction' (0x81 : reg1 : reg2 : _) = Value (MovRegister reg1 reg2, 3)
-parseInstruction' (0x90 : xs) = mapFst OutValue <$> addBytesLen 1 <$> deserializeTypeAndValue (traceShowId xs)
+parseInstruction' (0x90 : xs) = mapFst OutValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
 parseInstruction' (0x91 : reg : _) = Value (OutRegister reg, 2)
 parseInstruction' _ = Error "No instruction to parse"
 
@@ -163,11 +165,11 @@ movePc increment vm = vm {
 }
 
 parseInstruction :: Vm -> [Word8] -> SymbolTable -> Safe (Vm, Maybe Any)
-parseInstruction vm bytes table = parseInstruction' (traceShowId $ drop (fromIntegral $ _pc vm) bytes) >>=(\(instruction, movement) -> executeInstruction instruction table (movePc movement vm))
+parseInstruction vm bytes table = parseInstruction' (drop (fromIntegral $ _pc vm) bytes) >>=(\(instruction, movement) -> executeInstruction instruction table (movePc movement vm))
 
 parseFile :: Vm -> SymbolTable -> [Word8] -> IO ()
-parseFile _ _ [] = print "End of file. VM closing now."
 parseFile vm table bytes = case parseInstruction vm bytes table of
+                        Error "No instruction to parse" -> putStrLn endOfFile
                         Error err -> die err
                         Value (_vm, Nothing) -> parseFile _vm table bytes
                         Value (_vm, Just a) -> print a >> parseFile _vm table bytes
