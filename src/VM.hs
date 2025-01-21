@@ -15,6 +15,8 @@ import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
 import Utils (Safe(..))
 import VMData (Address, Vm(..), defaultVM, Any(..), makeAny)
+import Builtins(builtins)
+import DataBuiltins (Symbols)
 
 pushRegister :: Maybe Any -> [Any] -> Safe [Any]
 pushRegister (Just a) stack = Value $ a:stack
@@ -75,6 +77,17 @@ jumpFalse _ Nothing = Error "BF not set, please use test before conditional jump
 jumpFalse _ (Just True) = Value 0
 jumpFalse addr (Just False) = Value addr
 
+searchBuiltins :: Symbols -> String -> Safe ([Any] -> Safe Any)
+searchBuiltins [] name = Error $ "Can't find function " ++ str
+searchBuiltins ((str, f):xs) name
+                                | str == name = Value f
+                                | otherwise = searchBuiltins xs name
+
+callBuiltins :: String -> [Any] -> Safe Any
+callBuiltins name (fst : snd : rest) = case searchBuiltins builtins name of
+                                    Value f -> Value $ f [fst, snd] : rest
+                                    Error err -> Error err
+
 call :: String -> SymbolTable -> Safe Address
 call str ((str', address):ts)
                 | str == str' = Value address
@@ -101,7 +114,9 @@ executeInstruction' (Construct _type _size) _ (Vm (reg:rs) cstack bf vstack pc) 
 executeInstruction' (Test registerID) _ (Vm (reg:rs) cstack _ vstack pc) = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc, Nothing))
 executeInstruction' (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpTrue addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
 executeInstruction' (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpFalse addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
-executeInstruction' (Call str) table (Vm reg cstack bf vstack pc)= call str table >>=(\_address -> Value (Vm (replicate 16 Nothing : reg) (pc:cstack) bf vstack _address, Nothing))
+executeInstruction' (Call str) table (Vm reg cstack bf vstack pc)= case call str table of  
+                                                                    Value _address -> Value (Vm (replicate 16 Nothing : reg) (pc:cstack) bf vstack _address, Nothing)
+                                                                    Error _ -> callBuiltins name vstack >>=(\_stack -> Value reg cstack bf _stack pc)
 executeInstruction' (RetRegister registerID) _ (Vm (reg:rs) cstack bf vstack _) = returnRegister cstack (reg !! fromIntegral registerID) vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack _address, Nothing))
 executeInstruction' (RetValue value) _ (Vm (_:rs) cstack bf vstack _)= returnValue cstack value vstack >>=(\(_cstack, _vstack, _address) -> Value (Vm rs _cstack bf _vstack _address, Nothing))
 executeInstruction' (MovRegister register1 register2) _ (Vm (reg:rs) cstack bf vstack pc) = moveRegister register1 register2 reg reg >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
