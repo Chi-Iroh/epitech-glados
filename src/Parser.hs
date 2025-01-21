@@ -289,28 +289,8 @@ verifyArray (Value (rList, pList)) list =
     let processedList = aSExprToSExpr rList (concatSafe (fromSafeArray (aSExprToSExpr pList (Value []))) list)
     in case processedList of
         Error err -> Error err
-        Value exprs ->
-            if anyMissingDelimiter (exprs !! 0)
-                then Error "GLaDOS: SyntaxError: Invalid list detected"
-            else Value exprs
+        Value exprs -> Value exprs
 verifyArray (Error err) _ = Error err
-
--- Check if there are consecutive elements without a comma
-anyMissingDelimiter :: SExpr -> Bool
-anyMissingDelimiter (SArray elems) = checkDelimiters elems
-    where
-    checkDelimiters :: [SExpr] -> Bool
-    checkDelimiters [] = False
-    checkDelimiters [_] = False
-    checkDelimiters (x:y:xs) =
-        if not (isSComma x) && not (isSComma y) then True
-        else checkDelimiters (y:xs)
-anyMissingDelimiter _ = True
-
--- Check if the element is a comma
-isSComma :: SExpr -> Bool
-isSComma (SSymbol ",") = True
-isSComma _ = False
 
 verifyFunctionType :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
 verifyFunctionType (Value (rList, pList)) list =
