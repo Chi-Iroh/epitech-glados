@@ -31,7 +31,7 @@ import Data.Functor ((<&>))
 import Data.Word (Word8, Word32)
 import GHC.Float (castFloatToWord32)
 
-import Bits (splitWord32)
+import Bits (splitWord32, word)
 import Limits (checkInt, checkUInt, checkFloat)
 import Type (Type(..))
 import Utils (Safe(..))
