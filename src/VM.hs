@@ -8,7 +8,7 @@ import Data.Word (Word8)
 import System.Exit (die, exitWith, ExitCode (ExitSuccess))
 import Unsafe.Coerce (unsafeCoerce)
 
-import Any (Any(..), makeAny)
+import Any (Any(..), makeAny, anyType)
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary)
 import Bits (combineWord32, u32)
@@ -18,7 +18,7 @@ import DataBuiltins (Symbols, BuiltinsSymbol(..))
 import Deserialize (deserializeTypeAndValue, deserializeType, deserializeUInt, addBytesLen)
 import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
-import Utils (Safe(..), boolToSafe, errorIf)
+import Utils (Safe(..), boolToSafe, errorIf, bind2)
 import VMData (Address, Vm(..), defaultVM)
 
 pushRegister :: Maybe Any -> [Any] -> Safe [Any]
@@ -43,7 +43,12 @@ constructList x _type (a:as) newlist = constructList (x - 1) _type as $ a:newlis
 constructList _ _type [] _ = Error "Not enough value in stack to perform construct"
 
 constructTuple :: [Any] -> Type -> Type -> Safe [Any]
-constructTuple (a : b : as) typeA typeB = makeAny (T_Tuple (typeA, typeB)) (a, b) <&> ((++ as) . singleton)
+constructTuple (a : b : as) typeA typeB = checkTypes >> (Value $ (Tuple (a, b)) : as)
+    where realTypeA = anyType a
+          realTypeB = anyType b
+          checkTypes = bind2 (\realTypeA' realTypeB' ->
+            errorIf (== (typeA, typeB)) (errorMsg realTypeA' realTypeB') (Value (realTypeA', realTypeB'))) realTypeA realTypeB
+          errorMsg realTypeA' realTypeB' = "construct: Type mismatch between expected type { " ++ show typeA ++ ", " ++ show typeB ++ " }, got { " ++ show realTypeA' ++ ", " ++ show realTypeB' ++ " } instead !"
 constructTuple [_] _ _ = Error "Not enough value in stack to perform construct"
 constructTuple _ _ _ = Error "Not enough value in stack to perform construct"
 
@@ -142,7 +147,7 @@ parseInstruction' :: [Word8] -> Safe (AssemblyInstruction, Int)
 parseInstruction' (0x00 : xs) = mapFst PushValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
 parseInstruction' (0x01 : reg : _) = Value (PushRegister reg, 2)
 parseInstruction' (0x10 : reg : _) = Value (Pop reg, 2)
-parseInstruction' (0x20 : xs) = deserializeType xs >>=(\(_type, len, rest) -> deserializeUInt rest >>= \(a, len', _) -> Value (Construct _type a, len + len'))
+parseInstruction' (0x20 : xs) = deserializeType xs >>=(\(_type, len, rest) -> deserializeUInt rest >>= \(a, len', _) -> Value (Construct _type a, len + len' + 1))
 parseInstruction' (0x30 : reg : _) = Value (Test reg, 2)
 parseInstruction' (0x40 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfTrue (combineWord32 [byte1, byte2, byte3, byte4]), 5)
 parseInstruction' (0x50 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfFalse (combineWord32 [byte1, byte2, byte3, byte4]), 5)
