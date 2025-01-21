@@ -110,6 +110,7 @@ getReturnType :: Type -> Type
 getReturnType (T_Function _ t) = t
 getReturnType _ = T_Undefined
 
+-- AST is the AST expression you want the type of ; [AST] correspond to the output of the convert function in which the function will search for procedure definition
 getTypeAST :: AST -> [AST] -> Type
 getTypeAST (ASTInt _) _ = T_Int
 getTypeAST (ASTUInt _) _ = T_UInt
