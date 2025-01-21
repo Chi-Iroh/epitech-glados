@@ -40,7 +40,7 @@ import GHC.Float (int2Float, float2Int, floorFloat)
 
 import Bits (word, i32, int)
 import Hex (showHex8)
-import Serialize (Serializable(..), serializeUInt, serializeTypeNull, serializeTypeEmptyList)
+import Serialize (Serializable(..), serializeTypeNull, serializeTypeEmptyList)
 import Type (Type(..))
 import Utils (Safe(..), safeCast)
 
