@@ -131,7 +131,7 @@ executeInstruction' (MovRegister register1 register2) _ (Vm (reg:rs) cstack bf v
 executeInstruction' (MovValue registerID value) _ (Vm (reg:rs) cstack bf vstack pc) =  moveValue registerID reg value >>=(\_reg -> Value (Vm (_reg:rs) cstack bf vstack pc, Nothing))
 executeInstruction' (OutRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc) = Value (Vm (reg:rs) cstack bf vstack pc, reg !! fromIntegral registerID)
 executeInstruction' (OutValue value) _ vm = Value (vm, Just value)
-executeInstruction' _ _ _ = Error "Instruction not recognized"
+executeInstruction' _ _ vm = Error ("Instruction not recognized " ++ show vm)
 
 executeInstruction :: AssemblyInstruction -> SymbolTable -> Vm -> Safe (Vm, Maybe Any)
 executeInstruction instruction = executeInstruction' (traceShowId instruction)

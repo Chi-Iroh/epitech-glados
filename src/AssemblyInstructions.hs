@@ -28,6 +28,7 @@ data AssemblyInstruction =  PushRegister RegisterID             |
                             Call String                         |
                             RetRegister RegisterID              |
                             RetValue Any                        |
+                            Ret                                 |
                             MovRegister RegisterID RegisterID   |
                             MovValue RegisterID Any             |
                             OutRegister RegisterID              |
@@ -46,6 +47,7 @@ instance Show AssemblyInstruction where
     show (Call symbol) = "call " ++ symbol
     show (RetRegister reg) = "ret r" ++ show reg
     show (RetValue val) = "ret " ++ show val
+    show Ret = "ret "
     show (MovRegister dest src) = "mov r" ++ show dest ++ ", " ++ show src
     show (MovValue dest val) = "mov r" ++ show dest ++ ", " ++ show val
     show (OutRegister reg) = "out r" ++ show reg
@@ -90,6 +92,7 @@ assemble1 (Test reg) = Value [0x30, reg]
 assemble1 (Call name) = concatMapM serialize name <&> (\bytes -> [0x60] ++ bytes ++ [0x00])
 assemble1 (RetValue val) = liftA2 (++) (anyType val >>= serializeType) (serialize val) <&> ([0x70] ++)
 assemble1 (RetRegister reg) = Value [0x71, reg]
+assemble1 Ret = Value [0x72]
 assemble1 (MovValue dest val) = liftA2 (++) (anyType val >>= serializeType) (serialize val) <&> ([0x80, dest] ++)
 assemble1 (MovRegister dest src) = Value [0x81, dest, src]
 assemble1 (OutValue val) = liftA2 (++) (anyType val >>= serializeType) (serialize val) <&> ([0x90] ++)
