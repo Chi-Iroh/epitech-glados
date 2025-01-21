@@ -306,6 +306,102 @@ testParse11 = myAssertEqual "parse '(define (< a b)\n    #t\n)'" (Value [SList [
     where
         a = SList [(SSymbol "<"), (SSymbol "a"), (SSymbol "b")]
 
+testParse12 :: Test
+testParse12 = myAssertEqual "parse '{}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{}")
+
+testParse13 :: Test
+testParse13 = myAssertEqual "parse '{'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, '}' expected\n") (parse "{")
+
+testParse14 :: Test
+testParse14 = myAssertEqual "parse '}'" (Error "SyntaxError: Unexpecting closing curly bracket found") (parse "}")
+
+testParse15 :: Test
+testParse15 = myAssertEqual "parse '{0, 0}'" (Value [STuple (SNumber 0:SNumber 0:[])]) (parse "{0, 0}")
+
+testParse16 :: Test
+testParse16 = myAssertEqual "parse '{0 0}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{0 0}")
+
+testParse17 :: Test
+testParse17 = myAssertEqual "parse '{0, 0'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, '}' expected\n") (parse "{0, 0")
+
+testParse18 :: Test
+testParse18 = myAssertEqual "parse '0, 0}'" (Error "SyntaxError: Unexpecting closing curly bracket found") (parse "0, 0}")
+
+testParse19 :: Test
+testParse19 = myAssertEqual "parse '{{\"a\", 0}, 1}'" (Value [STuple (STuple (SSymbol "a":SNumber 0:[]):SNumber 1:[])]) (parse "{{\"a\", 0}, 1}")
+
+testParse20 :: Test
+testParse20 = myAssertEqual "parse '{0, {\"b\", 1}}'" (Value [STuple (SNumber 0:STuple (SSymbol "b":SNumber 1:[]):[])]) (parse "{0, {\"b\", 1}}")
+
+testParse21 :: Test
+testParse21 = myAssertEqual "parse '{{\"a\", 0}, {\"b\", 1}}'" (Value [STuple (STuple (SSymbol "a":SNumber 0:[]):STuple (SSymbol "b":SNumber 1:[]):[])]) (parse "{{\"a\", 0}, {\"b\", 1}}")
+
+testParse22 :: Test
+testParse22 = myAssertEqual "parse '{{\"a\", 0}, {\"b\", 1}'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, '}' expected\n") (parse "{{\"a\", 0}, {\"b\", 1}")
+
+testParse23 :: Test
+testParse23 = myAssertEqual "parse '{\"a\", 0}, {\"b\", 1}}'" (Error "SyntaxError: Unexpecting closing curly bracket found") (parse "{\"a\", 0}, {\"b\", 1}}")
+
+testParse24 :: Test
+testParse24 = myAssertEqual "parse '{{\"a\", 0} {\"b\", 1}}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{{\"a\", 0} {\"b\", 1}}")
+
+testParse25 :: Test
+testParse25 = myAssertEqual "parse '{{\"a\" 0}, {\"b\", 1}}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{{\"a\" 0}, {\"b\", 1}}")
+
+testParse26 :: Test
+testParse26 = myAssertEqual "parse '[]'" (Value [SArray []]) (parse "[]")
+
+testParse27 :: Test
+testParse27 = myAssertEqual "parse '['" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ']' expected\n") (parse "[")
+
+testParse28 :: Test
+testParse28 = myAssertEqual "parse ']'" (Error "SyntaxError: Unexpecting closing bracket found") (parse "]")
+
+testParse29 :: Test
+testParse29 = myAssertEqual "parse '[0]'" (Value [SArray [SNumber 0]]) (parse "[0]")
+
+testParse30 :: Test
+testParse30 = myAssertEqual "parse '[0, 1, 2, 3]'" (Value [SArray [SNumber 0, SNumber 1, SNumber 2, SNumber 3]]) (parse "[0, 1, 2, 3]")
+
+testParse31 :: Test
+testParse31 = myAssertEqual "parse '[0 1 2 3]'" (Error "GLaDOS: SyntaxError: Missing delimiter in list.") (parse "[0 1 2 3]")
+
+testParse32 :: Test
+testParse32 = myAssertEqual "parse '[[], [0], [1, 2], 3, []]'" (Value [SArray [SArray [], SArray [SNumber 0], SArray [SNumber 1, SNumber 2], SNumber 3, SArray []]]) (parse "[[], [0], [1, 2], 3, []]")
+
+testParse33 :: Test
+testParse33 = myAssertEqual "parse '[[], [0], [1 2], 3, []]'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "[[], [0], [1 2], 3, []]")
+
+testParse34 :: Test
+testParse34 = myAssertEqual "parse '[], [0], [1, 2], 3, []]'" (Error "SyntaxError: Unexpecting closing bracket found") (parse "[], [0], [1, 2], 3, []]")
+
+testParse35 :: Test
+testParse35 = myAssertEqual "parse '[[, [0], [1, 2], 3, []]'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ']' expected\n") (parse "[[, [0], [1, 2], 3, []]")
+
+testParse36 :: Test
+testParse36 = myAssertEqual "parse '[[], [0], [1, 2], 3, []'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, ']' expected\n") (parse "[[], [0], [1, 2], 3, []]")
+
+testParse37 :: Test
+testParse37 = myAssertEqual "parse '<-(a::int b::int) => int->'" (Value [SFunctionType [SList [SSymbol "a::int", SSymbol "b::int"], SSymbol "=>", SSymbol "int"]]) (parse "<-(a::int b::int) => int->")
+
+testParse38 :: Test
+testParse38 = myAssertEqual "parse '\"test with spaces\"'" (Value [SString "test with spaces"]) (parse "\"test with spaces\"")
+
+testParse39 :: Test
+testParse39 = myAssertEqual "parse '([{({0, []}), 0}])'" (Value [SList [SArray [STuple [SList [STuple [SNumber 0, SArray []]], SNumber 0]]]]) (parse "([{({0, []}), 0}])")
+
+testParse40 :: Test
+testParse40 = myAssertEqual "parse '([{({0, [}]), 0}])'" (Error "SyntaxError: Interlocked [] in Tuple") (parse "([{({0, []}), 0}])")
+
+testParse41 :: Test
+testParse41 = myAssertEqual "parse '{([({0, []}), 0}])'" (Error "SyntaxError: Interlocked {} in Array") (parse "([{({0, []}), 0}])")
+
+testParse42 :: Test
+testParse42 = myAssertEqual "parse '([{({0, []}, )}])'" (Error "SyntaxError: Interlocked () in Tuple") (parse "([{({0, []}), 0}])")
+
+testParse43 :: Test
+testParse43 = myAssertEqual "parse '{(0, [}, 0])'" (Error "SyntaxError: Interlocked {} in Array") (parse "([{({0, []}), 0}])")
+
 testParse :: Test
 testParse = TestList [
     TestLabel "parse" testParse1a,
@@ -325,7 +421,39 @@ testParse = TestList [
     TestLabel "parse" testParse8,
     TestLabel "parse" testParse9,
     TestLabel "parse" testParse10,
-    TestLabel "parse" testParse11
+    TestLabel "parse" testParse11,
+    TestLabel "parse" testParse12,
+    TestLabel "parse" testParse13,
+    TestLabel "parse" testParse14,
+    TestLabel "parse" testParse15,
+    TestLabel "parse" testParse16,
+    TestLabel "parse" testParse17,
+    TestLabel "parse" testParse18,
+    TestLabel "parse" testParse19,
+    TestLabel "parse" testParse20,
+    TestLabel "parse" testParse21,
+    TestLabel "parse" testParse22,
+    TestLabel "parse" testParse23,
+    TestLabel "parse" testParse24,
+    TestLabel "parse" testParse25,
+    TestLabel "parse" testParse26,
+    TestLabel "parse" testParse27,
+    TestLabel "parse" testParse28,
+    TestLabel "parse" testParse29,
+    TestLabel "parse" testParse30,
+    TestLabel "parse" testParse31,
+    TestLabel "parse" testParse32,
+    TestLabel "parse" testParse33,
+    TestLabel "parse" testParse34,
+    TestLabel "parse" testParse35,
+    TestLabel "parse" testParse36,
+    TestLabel "parse" testParse37,
+    TestLabel "parse" testParse38,
+    TestLabel "parse" testParse39,
+    TestLabel "parse" testParse40,
+    TestLabel "parse" testParse41,
+    TestLabel "parse" testParse42,
+    TestLabel "parse" testParse43
     ]
 
 -------------------------------------------------------------------------------
