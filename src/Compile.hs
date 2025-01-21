@@ -7,7 +7,6 @@ import Data.Functor ((<&>))
 import Data.List (singleton, elemIndex)
 import Data.Typeable (Typeable)
 import Data.Word (Word8)
-import Debug.Trace
 
 import Any (Any(..), makeAny)
 import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, astToAny, RegisterID)
@@ -137,8 +136,11 @@ compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothVal
 compileAST1 status (ASTLambda params ast _) isNested = if isNested then compileFunction ast params status >>= (status +++) else Value status -- don't execute lambda if not used
 compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)
     where checkArgs = if (length args) > 16 then Error "Too many arguments (16 max) !" else Value args
-          paramNames = traceShowId $ map (\(ASTProcedure name, _) -> name) params
-          argsToAny = checkArgs <&> (\args' -> traceShowId $ reverse $ zip paramNames (map astToAny args'))
+          paramName :: Parameter -> Safe String
+          paramName (ASTProcedure name, _) = Value name
+          paramName (ast, _) = Error ("Illegal parameter " ++ show ast ++ ", must be ASTProcedure ... !")
+
+          argsToAny = liftA2 (\args' paramNames -> reverse $ zip paramNames (map astToAny args')) checkArgs (mapM paramName params)
           pushArgs = argsToAny <&> (map (\(name, any') -> alternativeMap PushValue (Call name) any'))
           functionCode = compileFunction ast params status
 
