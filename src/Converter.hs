@@ -107,12 +107,24 @@ sexprSListHandling [] = Error "GLaDOS: ConverterError: Expected a list of at lea
 -- number
 sexprSListHandling [SNumber a] = Value $ ASTInt a
 
+-- int char
+sexprSListHandling [SChar a] = Value $ ASTChar a
+
+-- uint
+sexprSListHandling [SUint a] = Value $ ASTUInt a
+
+--float
+sexprSListHandling [SFloat a] = Value $ ASTFloat a
+
 -- boolean
 sexprSListHandling [SSymbol "#t"] = Value $ ASTBool True
 sexprSListHandling [SSymbol "#f"] = Value $ ASTBool False
 
 -- NULL
 sexprSListHandling [SSymbol "NULL"] = Value ASTNULL
+
+--String
+sexprSListHandling [SString str] = Value $ ASTString str
 
 -- procedure (variable or function name)
 sexprSListHandling [SSymbol a] = Value (ASTProcedure a)

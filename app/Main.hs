@@ -30,6 +30,10 @@ defaultArgs = Args {
     help = False
 }
 
+getFileName :: [String] -> Maybe String
+getFileName [a] = Just a
+getFileName _ = Nothing
+
 mustShowHelp :: Args -> Bool
 mustShowHelp args
     | help args = True

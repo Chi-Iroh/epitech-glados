@@ -12,33 +12,123 @@ module Parser (
 
 import Text.Read
 import Data.Maybe
-import Data.List (isPrefixOf)
-import Data.Char (isSpace)
+import Data.List (isPrefixOf, isSuffixOf)
+import Data.Char (isSpace, chr)
 
 import SExpression
-
 import Utils
+
+import Base
 
 data AlmostSExpr = ASExpr SExpr | SListBegin | SListEnd | STupleBegin | STupleEnd | SArrayBegin | SArrayEnd | SFunctionTypeBegin | SFunctionTypeEnd deriving (Eq, Show)
 
 -- take any string and return a SNumber if the string is an integer, return a SSymbol otherwise
-convertToASExpr :: String -> [AlmostSExpr]
-convertToASExpr [] = []
+convertToASExpr :: String -> Safe [AlmostSExpr]
+convertToASExpr [] = Value []
 convertToASExpr str@(_:xs)
-    | isPrefixOf "(" str = (SListBegin:(convertToASExpr xs))
-    | isPrefixOf ")" (reverse str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [SListEnd]
-    | isPrefixOf "{" str = (STupleBegin:(convertToASExpr xs))
-    | isPrefixOf "}" (reverse str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [STupleEnd]
-    | isPrefixOf "[" str = (SArrayBegin:(convertToASExpr xs))
-    | isPrefixOf "]" (reverse str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [SArrayEnd]
-    | isPrefixOf "<" str = (SFunctionTypeBegin:(convertToASExpr xs))
-    | isPrefixOf ">" (reverse str) && not (isPrefixOf "=" str) = convertToASExpr (reverse (drop 1 (reverse str))) ++ [SFunctionTypeEnd]
-    | isNothing (readMaybe str :: Maybe Int) = [ASExpr (SSymbol str)]
-    | otherwise = [ASExpr (SNumber (fromJust $ readMaybe str))]
+    | isPrefixOf "(" str = case convertToASExpr xs of
+                                Value result -> Value (SListBegin : result)
+                                Error err -> Error err
 
-stringToASExpr :: [String] -> [AlmostSExpr] -> [AlmostSExpr]
-stringToASExpr [] result = result
-stringToASExpr (x:xs) result = stringToASExpr xs (result ++ (convertToASExpr x))
+    | isPrefixOf ")" (reverse str) = case convertToASExpr (reverse (drop 1 (reverse str))) of
+                                        Value result -> Value (result ++ [SListEnd])
+                                        Error err -> Error err
+
+    | isPrefixOf "{" str = case convertToASExpr xs of
+                                Value result -> Value (STupleBegin : result)
+                                Error err -> Error err
+
+    | isPrefixOf "}" (reverse str) = case convertToASExpr (reverse (drop 1 (reverse str))) of
+                                        Value result -> Value (result ++ [STupleEnd])
+                                        Error err -> Error err
+
+    | isPrefixOf "[" str = case convertToASExpr xs of
+                                Value result -> Value (SArrayBegin : result)
+                                Error err -> Error err
+
+    | isPrefixOf "]" (reverse str) = case convertToASExpr (reverse (drop 1 (reverse str))) of
+                                        Value result -> Value (result ++ [SArrayEnd])
+                                        Error err -> Error err
+
+    | isPrefixOf "<-" str = case convertToASExpr (drop 2 str) of
+                                Value result -> Value (SFunctionTypeBegin : result)
+                                Error err -> Error err
+
+    | isPrefixOf ">-" (reverse str) && not (isPrefixOf "=" str) =
+        case convertToASExpr (reverse (drop 2 (reverse str))) of
+            Value result -> Value (result ++ [SFunctionTypeEnd])
+            Error err -> Error err
+
+    | head str == '\"' && last str == '\"' =
+        case length str of
+            2 -> Error "SyntaxError: litteral can't be empty"
+            _ -> Value [ASExpr (SString (tail (init str)))]
+
+    | head str == '\'' && last str == '\'' =
+        case length str of
+            3 -> Value [ASExpr (SChar (str !! 1))]
+            2 -> Error "SyntaxError: litteral can't be empty"
+            _ -> Error "SyntaxError: string is not a char"
+
+    | isValidFloat str =
+        case readMaybe str of
+            Just f -> Value [ASExpr (SFloat f)]
+            Nothing -> Error "error while converting to float"
+
+    | isSuffixOf "i" str && isValidInt (init str) =
+        case readMaybe (init str) of
+            Just i -> Value [ASExpr (SNumber i)]
+            Nothing -> Error "error while converting to int"
+
+    | isSuffixOf "u" str && isValidInt (init str) =
+        case readMaybe (init str) of
+            Just i ->
+                if i >= 0
+                    then
+                        Value [ASExpr (SUint i)]
+                else
+                    Error "SyntaxError: invalid unsigned int"
+            Nothing -> Error "error while converting to int"
+
+    | isSuffixOf "c" str && isValidInt (init str) = 
+        case readMaybe (init str) of
+            Just i ->
+                (if (i < 0) || (i > 255) then
+                    Error "SyntaxError: char are only between 0 and 255"
+                else
+                    Value [ASExpr (SChar (chr i))])
+            Nothing -> Error "error while converting to int"
+
+    | isNothing (readMaybe str :: Maybe Int) =
+        case processToken str of
+            Value result -> 
+                if result == str
+                    then Error ("SyntaxError: Invalid base number: (" ++ str ++ ")")
+                    else case readMaybe result of
+                            Just n  -> Value [ASExpr (SNumber n)]
+                            Nothing -> Error "SyntaxError: Invalid decimal number format"
+            Error "Basic String" -> Value [ASExpr (SSymbol str)]
+            Error _ -> Value [ASExpr (SSymbol str)]
+
+    | otherwise = case readMaybe str of
+                    Just n  -> Value [ASExpr (SNumber n)]
+                    Nothing -> Error "Invalid number format"
+
+isValidFloat :: String -> Bool
+isValidFloat str = case readMaybe str :: Maybe Float of
+                    Just _  -> True
+                    Nothing -> False
+
+isValidInt :: String -> Bool
+isValidInt str = case readMaybe str :: Maybe Int of
+                    Just _  -> True
+                    Nothing -> False
+
+stringToASExpr :: [String] -> [AlmostSExpr] -> Safe [AlmostSExpr]
+stringToASExpr [] result = Value result
+stringToASExpr (x:xs) result = case convertToASExpr x of
+    Value newExpr -> stringToASExpr xs (result ++ newExpr)
+    Error err -> Error err
 
 -- list [] 0
 -- (le reste de la liste, la liste des paranthèses)
@@ -182,10 +272,10 @@ verifyTuple :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExp
 verifyTuple (Value (rList, pList)) list =
     let tuple = checkValidTuple pList
     in case tuple of
-        Value validTuple -> 
+        Value validTuple ->
             aSExprToSExpr rList (concatSafe (fromSafeTuple (aSExprToSExpr validTuple (Value []))) list)
-        Error err -> 
-            Error err 
+        Error err ->
+            Error err
 verifyTuple (Error err) _ = Error err
 
 verifyArray :: Safe ([AlmostSExpr], [AlmostSExpr]) -> Safe [SExpr] -> Safe [SExpr]
@@ -211,7 +301,7 @@ aSExprToSExpr (SArrayEnd:_) _ = Error "GLaDOS: SyntaxError: unexpected ']' while
 aSExprToSExpr (SFunctionTypeBegin:xs) list = verifyFunctionType (parseFunctionType xs [] 0) list
 aSExprToSExpr (SFunctionTypeEnd:_) _ = Error "GLaDOS: SyntaxError: unexpected '>' while parsing\n"
 
--- recursive function for check if array, tuple, etc.. are not interlocked    
+-- recursive function for check if array, tuple, etc.. are not interlocked
 verifyASExpr :: Maybe Char -> Int -> [AlmostSExpr] -> Safe (Int, [AlmostSExpr])
 verifyASExpr char index list
     | index > length list - 1 = Value (index, list)
@@ -372,11 +462,18 @@ verifyASExpr char index list
 
 customWords :: String -> [String]
 customWords [] = []
+customWords ('"':xs) =
+    let (quoted, rest) = span (/= '"') xs
+    in ['"' : quoted ++ "\""] ++ customWords (drop 1 rest)
+customWords ('\'':xs) =
+    let (quoted, rest) = span (/= '\'') xs
+    in ['\'' : quoted ++ "'"] ++ customWords (drop 1 rest)
 customWords (x:xs)
     | x == ','  = [","] ++ customWords xs
     | isSpace x = customWords xs
-    | otherwise = let (word, rest) = break (\c -> isSpace c || c == ',') (x:xs)
-                in word : customWords rest
+    | otherwise = 
+        let (word, rest) = break (\c -> isSpace c || c == ',') (x:xs)
+        in [word] ++ customWords rest
 
 removeCommas :: Safe [SExpr] -> Safe [SExpr]
 removeCommas (Error err) = Error err
@@ -395,7 +492,10 @@ removeCommas (Value list) = Value (map removeCommasFromExpr list)
 
 parse :: String -> Safe [SExpr]
 parse str =
-    let result = verifyASExpr Nothing 0 (stringToASExpr (customWords str) [])
-            in case result of
+    let result = stringToASExpr (customWords str) []
+    in case result of
+        Value asExprList -> 
+            case verifyASExpr Nothing 0 asExprList of
                 Value (_, list) -> removeCommas (aSExprToSExpr list (Value []))
                 Error err -> Error err
+        Error err -> Error err
