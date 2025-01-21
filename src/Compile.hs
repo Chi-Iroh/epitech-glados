@@ -15,7 +15,7 @@ import AST (AST(..), Call(..), getTypeAST, Parameter)
 import Bits (u32)
 import SymbolTable (SymbolTable, writeSymbolTable)
 import Type
-import Utils (Safe(..), maybeToSafe, alternativeMap, bind2, concatMapM)
+import Utils (Safe(..), maybeToSafe, alternativeMap, bind2, concatMapM, liftSnd, tupleConcat)
 import VMData (Address)
 
 data Symbol = BackendSymbol (String, (Symbols -> [AST] -> Safe AST))
@@ -257,16 +257,17 @@ compileAST' status (x : xs)
     | otherwise = compiled >>= (\status' -> compileAST' status' xs)
     where compiled = compileAST1 status x False
 
-makeSymbolTable' :: Address -> [(String, CompilationStatus)] -> SymbolTable
-makeSymbolTable' offset [] = [("__main", offset)]
-makeSymbolTable' offset ((name, CompilationStatus instructions _ _) : xs) = (name, offset) : makeSymbolTable' (offset + fromIntegral (length instructions)) xs
+makeSymbolTable' :: Address -> [(String, CompilationStatus)] -> Safe (SymbolTable, [Word8])
+makeSymbolTable' offset [] = Value ([("__main", offset)], [])
+makeSymbolTable' offset ((name, CompilationStatus instructions _ _) : xs) = assemble instructions >>= (\instructions' -> next instructions' <&> (tupleConcat ([(name, offset)], instructions')))
+    where next instructions'' = makeSymbolTable' (offset + u32 (length instructions'')) xs
 
-makeSymbolTable :: [(String, CompilationStatus)] -> SymbolTable
+makeSymbolTable :: [(String, CompilationStatus)] -> Safe (SymbolTable, [Word8])
 makeSymbolTable = makeSymbolTable' 0
 
 finishCompilation :: CompilationStatus -> Safe [Word8]
-finishCompilation (CompilationStatus instructions symbols _) = liftA2 (\symbols'' instructions' -> writeSymbolTable (makeSymbolTable symbols) ++ symbols'' ++ instructions') symbols' (assemble instructions)
-    where symbols' = concatMapM (\sym -> assemble (_instructions (snd sym))) symbols
+finishCompilation (CompilationStatus instructions symbols _) = liftA2 (\(symtab', symbols') instructions' -> writeSymbolTable symtab' ++ symbols' ++ instructions') symtab (assemble instructions)
+    where symtab = makeSymbolTable symbols
 
 compileAST :: [AST] -> Safe [Word8]
 compileAST ast = compileAST' emptyCompilationStatus ast >>= finishCompilation
