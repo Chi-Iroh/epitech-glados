@@ -225,5 +225,15 @@ makeAny _type@(T_List elemType) list =
                         Just _ -> (safeCast list :: Safe [a']) >>= mapM (makeAny elemType) <&> Array
                         Nothing -> Error ("'" ++ show list ++ "' of type " ++ show converter ++ " isn't a list !")
 
--- makeAny (T_Tuple (t1, t2)) (a, b) = liftA2 (\a' b' -> Tuple (a', b')) (makeAny t1 a) (makeAny t2 b)
+makeAny _type@(T_Tuple (t1, t2)) tuple =
+    case haskellType t1 of
+        (Converter (_ :: Proxy a1)) ->
+            case haskellType t2 of
+                (Converter (_ :: Proxy a2)) ->
+                    case haskellType _type of
+                        converter@(Converter (_ :: Proxy t)) ->
+                            case eqT @t @(a1, a2) of
+                                Just _ -> (safeCast tuple :: Safe (a1, a2)) >>= (\(a', b') -> liftA2 (\a'' b'' -> Tuple (a'', b'')) (makeAny t1 a') (makeAny t2 b'))
+                                Nothing -> Error ("'" ++ show tuple ++ "' of type " ++ show converter ++ " isn't a tuple !")
+
 makeAny _type _ = Error ("Type " ++ show _type ++ " cannot be converted to Any value !")
