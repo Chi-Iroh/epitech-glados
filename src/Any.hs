@@ -27,7 +27,7 @@ module Any (
     (~/=)
 ) where
 
-import Control.Applicative (liftA3)
+import Control.Applicative (liftA3, (<|>))
 import Data.ByteString.Internal (c2w, w2c)
 import Data.Functor ((<&>))
 import qualified Data.Kind (Type)
@@ -237,7 +237,9 @@ anyType NULL = Value T_NULL
 
 makeAny :: forall a. (Typeable a, Show a) => Type -> a -> Safe Any
 makeAny T_Int a = Int <$> (safeCast a :: Safe Int)
-makeAny T_UInt a = UInt <$> (safeCast a :: Safe Word)
+-- Either Word or Int depending on how it was called, if a was extracted from an AST,
+-- it will be an Int (ASTUint holds an Int), but it it's from another Any, then UInt holds a Word
+makeAny T_UInt a = UInt <$> ((safeCast a :: Safe Word) <|> ((safeCast a :: Safe Int) <&> word))
 makeAny T_Char a = Char <$> (safeCast a :: Safe Char)
 makeAny T_Float a = Float <$> (safeCast a :: Safe Float)
 makeAny T_Bool a = Bool <$> (safeCast a :: Safe Bool)
