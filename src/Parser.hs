@@ -65,21 +65,10 @@ convertToASExpr str@(_:xs)
             _ -> Value [ASExpr (SString (tail (init str)))]
 
     | head str == '\'' && last str == '\'' =
-        if isValidInt (tail (init str))
-            then
-                case readMaybe (tail (init str)) :: Maybe Int of
-                    Just i ->
-                        (if (i < 0) || (i > 255) then
-                            Error "SyntaxError: char are only between 0 and 255"
-                        else
-                            Value [ASExpr (SChar (chr i))])
-                    Nothing -> Error "error while converting to int"
-        else
-            case length str of
-                3 -> Value [ASExpr (SChar (str !! 1))]
-                2 -> Error "SyntaxError: litteral can't be empty"
-                _ -> Error "SyntaxError: string is not a char"
-
+        case length str of
+            3 -> Value [ASExpr (SChar (str !! 1))]
+            2 -> Error "SyntaxError: litteral can't be empty"
+            _ -> Error "SyntaxError: string is not a char"
 
     | isValidFloat str =
         case readMaybe str of
