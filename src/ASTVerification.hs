@@ -6,7 +6,7 @@ import AST
 
 verifArgAST :: AST -> Type -> [AST] -> Bool
 verifArgAST ast@(ASTCall _ _) parameter tt = (verifyType parameter $ getTypeAST ast tt) && (verifParamAST ast tt)
-verifArgAST ast@(ASTIf _ _ _) parameter tt = (verifyType parameter $ getTypeAST ast tt) && (verifParamAST ast tt)
+verifArgAST ast@(ASTIf _ a b) parameter tt = (verifyType parameter $ getTypeAST a tt) && (verifyType parameter $ getTypeAST b tt) && (verifParamAST ast tt)
 verifArgAST ast parameter tt = verifyType parameter $ getTypeAST ast tt
 
 verifBody :: [Parameter] -> AST -> Type -> [AST] -> Bool
