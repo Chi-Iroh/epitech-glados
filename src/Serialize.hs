@@ -24,13 +24,14 @@ module Serialize (
     serializeTypeNull
 ) where
 
-import Data.Bits ((.<<.), Bits)
+
+import Data.Bits ((.>>.))
 import Data.ByteString.Internal (c2w)
 import Data.Functor ((<&>))
-import Data.Word (Word8)
+import Data.Word (Word8, Word32)
 import GHC.Float (castFloatToWord32)
 
-import Bits (splitWord32, i32, u32, word)
+import Bits (splitWord32)
 import Limits (checkInt, checkUInt, checkFloat)
 import Type (Type(..))
 import Utils (Safe(..))
@@ -59,22 +60,22 @@ instance (Serializable a, Serializable b) => Serializable (a, b) where
 instance Serializable a => Serializable [a] where
     serialize = serializeList
 
-serializeInt' :: (Integral a, Bits a) => a -> [Word8]
+serializeInt' :: Word32 -> [Word8]
 serializeInt' value =
-    [ fromIntegral (value .<<. 24)
-    , fromIntegral (value .<<. 16)
-    , fromIntegral (value .<<. 8)
-    , fromIntegral value ]
+    [ fromIntegral (value .>>. 24) :: Word8
+    , fromIntegral (value .>>. 16) :: Word8
+    , fromIntegral (value .>>. 8) :: Word8
+    , fromIntegral value :: Word8 ]
 
 serializeInt :: Int -> Safe [Word8]
 serializeInt int
     | not (checkInt int) = Error "Out of range int !"
-    | otherwise = Value (serializeInt' (i32 int))
+    | otherwise = Value (serializeInt' (fromIntegral $ int :: Word32))
 
 serializeUInt :: Word -> Safe [Word8]
 serializeUInt uint
     | not (checkUInt uint) = Error "Negative uint !"
-    | otherwise = Value (serializeInt' (u32 uint))
+    | otherwise = Value (serializeInt' (fromIntegral uint :: Word32))
 
 serializeChar :: Char -> [Word8]
 serializeChar char = [c2w char]
