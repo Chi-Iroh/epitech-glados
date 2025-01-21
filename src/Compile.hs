@@ -104,7 +104,7 @@ popParams status = status {
 }
 
 compileFunction :: AST -> [Parameter] -> CompilationStatus -> Safe CompilationStatus
-compileFunction ast params status = compileAST1 statusWithParams ast False <&> popParams
+compileFunction ast params status = compileAST1 statusWithParams ast True <&> popParams
     where statusWithParams = pushParams params status
 
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
