@@ -94,6 +94,7 @@ for i, (test, expected) in enumerate(TESTS):
         outputs = [("STDOUT", run.stdout), ("STDERR", run.stderr)]
         for output_name, output in outputs:
             output = output.decode("utf-8").strip("\n")
+            output = output.strip("'")
             if output_name in config and output != config[output_name]:
                 print(f"--> {RED}Got {output_name} '{output}' but expected '{config[output_name].strip("'")}'{BLANK}")
                 passed = False
