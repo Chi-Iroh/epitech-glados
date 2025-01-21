@@ -101,7 +101,6 @@ commonType' _ (Int _) = Int . int . i32 . float2Int
 commonType' (Char _) _ = Char . w2c . (floorFloat :: Float -> Word8)
 commonType' _ (Char _) = Char . w2c . (floorFloat :: Float -> Word8)
 commonType' _ _ = Bool . (/= 0)
-commonType' a b = error ("commonType' : Unexpected error, got " ++ show a ++ " and " ++ show b ++ " !")
 
 commonType :: Any -> Any -> Safe (Float -> Any)
 commonType a b = toFloat a >> toFloat b >> Value (commonType' a b)

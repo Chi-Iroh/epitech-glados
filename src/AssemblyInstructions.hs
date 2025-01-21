@@ -3,10 +3,8 @@
 module AssemblyInstructions (RegisterID, AssemblyInstruction(..), astToAny, assemble, toAssemblyValueInstruction, concatMapM) where
 
 import Data.Functor ((<&>))
-import Data.Typeable (typeOf, Typeable)
 import Data.Word (Word8)
-import Debug.Trace (traceShow, traceShowId)
-import Unsafe.Coerce (unsafeCoerce)
+import Debug.Trace (traceShowId)
 
 import Any (Any(..), makeAny, anyType)
 import AST (AST(..), getTypeAST)
@@ -53,9 +51,6 @@ instance Show AssemblyInstruction where
     show (OutRegister reg) = "out r" ++ show reg
     show (OutValue val) = "out " ++ show val
 
-traceVal :: (Typeable a, Show a) => String -> a -> a
-traceVal msg a = traceShow (msg ++ " = " ++ show a ++ " :: " ++ show (typeOf a)) a
-
 astToAny :: AST -> Safe Any
 astToAny (ASTBool b) = makeAny T_Bool b
 astToAny (ASTChar c) = makeAny T_Char c
@@ -63,13 +58,11 @@ astToAny (ASTInt n) = makeAny T_Int n
 astToAny (ASTUInt n) = makeAny T_UInt n
 astToAny (ASTFloat f) = makeAny T_Float f
 astToAny (ASTString str) = makeAny T_String str
-astToAny (ASTTuple (a, b)) = bind2 (\types' values' -> makeAny (T_Tuple types') values') types values
-    where types = liftA2 (,) (getTypeAST a) (getTypeAST b)
-          values = liftA2 (,) (astToAny a) (astToAny b)
-astToAny list@(ASTArray xs) = getTypeAST list >> (values <&> Array)
-    where values = traceVal "values" (mapM astToAny xs)
+astToAny list@(ASTArray xs) = getTypeAST list >> (mapM astToAny xs <&> Array)
+astToAny (ASTTuple (a, b)) = liftA2 (curry Tuple) a' b'
+    where a' = bind2 makeAny (getTypeAST a) (astToAny a)
+          b' = bind2 makeAny (getTypeAST b) (astToAny b)
 astToAny a = error ("astToAny: Invalid argument : '" ++ show a ++ "'")
--- astToAny a = Error ("astToAny: Invalid argument : '" ++ show a ++ "'")
 
 toAssemblyValueInstruction :: (Any -> AssemblyInstruction) -> AST -> Safe AssemblyInstruction
 toAssemblyValueInstruction instruction ast = fmap instruction (astToAny ast)

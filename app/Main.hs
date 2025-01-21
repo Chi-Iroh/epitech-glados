@@ -4,7 +4,6 @@ import Data.Maybe (isNothing, isJust, fromMaybe, fromJust)
 import Debug.Trace (traceShowId)
 
     -- import Debug (debug, debug2)
-import AST (MainAST, isProcedureType)
 import BinaryIO (writeBinary)
 import Converter (convert)
 import Compile (compileAST)
@@ -58,19 +57,6 @@ checkArgs args
     | compile args == Just True && isNothing (file args) = Error "No file specified !"
     | isJust (run args) && isJust (output args) = Error "Output file is only relevant in compile mode !"
     | otherwise = Value args
-
-showAll' :: Show a => [a] -> String
-showAll' = unlines . filter (not . null) . map show
-
-showAll :: [MainAST] -> String
-showAll [] = ""
-showAll args
-    | length args == 1 && isProcedureType (head args) = "#\\<procedure\\>"
-    | otherwise = showAll' args
-
-putResult :: Safe String -> IO ()
-putResult (Value res) = putStr res
-putResult (Error err) = die err
 
 safeToIO :: Safe a -> IO a
 safeToIO (Error err) = die err
