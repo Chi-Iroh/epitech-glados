@@ -20,13 +20,13 @@ data Vm = Vm {
     _pc :: Address          -- position of current opcode
 } deriving Show
 
-defaultVM :: Vm
-defaultVM = Vm {
+defaultVM :: Address -> Vm
+defaultVM pc = Vm {
     _registers = [replicate 16 Nothing],
     _callStack = [],
     _bf = Nothing,
     _valueStack = [],
-    _pc = 0
+    _pc = pc
 }
 
 addrToBytes :: Address -> [Word8]
