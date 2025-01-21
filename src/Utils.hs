@@ -10,6 +10,7 @@ module Utils
     isValue,
     mapFst,
     mapFst3,
+    mapTuple,
     tupleConcat,
     alternativeMap,
     maybeToSafe,
@@ -105,6 +106,9 @@ mapFst f (a, b) = (f a, b)
 
 mapFst3 :: (a -> d) -> (a, b, c) -> (d, b, c)
 mapFst3 f (a, b, c) = (f a, b, c)
+
+mapTuple :: (a -> b) -> (a, a) -> (b, b)
+mapTuple f (a, b) = (f a, f b)
 
 tupleConcat :: ([a], [b]) -> ([a], [b]) -> ([a], [b])
 tupleConcat (a, b) (a', b') = (a ++ a', b ++ b')
