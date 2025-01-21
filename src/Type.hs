@@ -72,9 +72,13 @@ typeAny = T_Combination [T_Int, T_UInt, T_Char, T_Float, T_Bool, T_Tuple (T_Temp
 
 verifyTypeList :: [Type] -> Type
 verifyTypeList [] = T_EmptyList
+verifyTypeList [T_NULL] = T_EmptyList
+verifyTypeList [T_Undefined] = T_Undefined
 verifyTypeList [x] = T_List x
+verifyTypeList (T_Undefined:_) = T_Undefined
+verifyTypeList (T_NULL:xs) = verifyTypeList xs
 verifyTypeList (x:xs)
-    | all (== x) xs = T_List x
+    | all (\a -> a == x || a == T_NULL) xs = T_List x
     | otherwise = T_Undefined
 
 -------------------------------------------------------------------------------
@@ -98,11 +102,16 @@ verifyType (T_Combination []) _ = False                                        -
 verifyType _ (T_Combination []) = False                                        -- invalid argument type
 verifyType _ T_Undefined = False                                               -- invalid argument type
 verifyType T_Template _ = True
+verifyType _ T_Template = True
 verifyType _ T_NULL = True
+verifyType (T_Tuple (T_Template, T_Template)) (T_Tuple _) = True
+verifyType (T_Tuple _) (T_Tuple (T_Template, T_Template)) = True
+verifyType (T_List T_Template) (T_List _) = True
+verifyType (T_List _) (T_List T_Template) = True
 verifyType T_String T_EmptyList = True
 verifyType (T_List _) T_EmptyList = True
 verifyType T_Procedure (T_Function _ _) = True
-verifyType (T_Combination ps) (T_Combination as) = (foldr (&&) True $ map (\a -> foldr (\x y -> (x == a) || y) False ps) as) || (foldr (&&) True $ map (\a -> foldr (\x y -> (x == a) || y) False as) ps)
+verifyType (T_Combination ps) (T_Combination as) = any (`elem` as) ps
 verifyType (T_Combination ps) a = foldr (\x y -> (x == a) || y) False ps
 verifyType a (T_Combination ps) = foldr (\x y -> (x == a) || y) False ps
 verifyType param arg

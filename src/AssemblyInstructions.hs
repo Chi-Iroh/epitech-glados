@@ -20,6 +20,7 @@ data AssemblyInstruction =  PushRegister RegisterID             |
                             PushValue Any                       |
                             Pop RegisterID                      |
                             Test RegisterID                     |
+                            Jump Address                        |
                             JumpIfTrue Address                  |
                             JumpIfFalse Address                 |
                             Call String                         |
@@ -39,6 +40,7 @@ instance Show AssemblyInstruction where
     show (Pop reg) = "pop r" ++ show reg
     show (Construct _type n) = "construct " ++ show _type ++ " " ++ show n
     show (Test reg) = "test r" ++ show reg
+    show (Jump addr) = "jmp " ++ showHex32 addr
     show (JumpIfTrue addr) = "jt " ++ showHex32 addr ++ " (number of instructions, not actual assembled bytes)"
     show (JumpIfFalse addr) = "jf " ++ showHex32 addr ++ " (number of instructions, not actual assembled bytes)"
     show (Call symbol) = "call " ++ symbol
@@ -63,15 +65,6 @@ astToAny a = Error ("astToAny: Invalid argument : '" ++ show a ++ "'")
 
 toAssemblyValueInstruction :: (Any -> AssemblyInstruction) -> AST -> Safe AssemblyInstruction
 toAssemblyValueInstruction instruction ast = fmap instruction (astToAny ast)
--- toAssemblyValueInstruction instruction (ASTBool b) = Value $ instruction (Any (T_Bool, b))
--- toAssemblyValueInstruction instruction (ASTChar c) = Value $ instruction (Any (T_Char, c))
--- toAssemblyValueInstruction instruction (ASTInt n) = Value $ instruction (Any (T_Int, n))
--- toAssemblyValueInstruction instruction (ASTUInt n) = Value $ instruction (Any (T_UInt, n))
--- toAssemblyValueInstruction instruction (ASTFloat f) = Value $ instruction (Any (T_Float, f))
--- toAssemblyValueInstruction instruction (ASTString str) = Value $ instruction (Any (T_String, str))
--- toAssemblyValueInstruction instruction (ASTTuple (a, b)) = liftA2 (getTypeAST tuple) (astToAny ) instruction . Any . (, tuple) <$> 
--- toAssemblyValueInstruction instruction (ASTList x) = instruction . Any . (, x) <$> getTypeAST x
--- toAssemblyValueInstruction _ _ = Error "Invalid argument !"
 
 assemble1 :: AssemblyInstruction -> Safe [Word8]
 assemble1 (PushValue val) = liftA2 (++) (anyType val >>= serializeType) (serialize val) <&> ([0x00] ++) -- 0x00 : 1st nibble = instruction ID, 2nd nibble = addressing mode
@@ -91,8 +84,10 @@ assemble1 a = Error ("assemble1: Instruction " ++ show a ++ " not implemented !"
 
 assemble :: [AssemblyInstruction] -> Safe [Word8]
 assemble (JumpIfTrue size : xs) = liftA2 (\falseCode' rest' -> [0x40] ++ addrToBytes (u32 $ length falseCode') ++ falseCode' ++ rest') falseCode (assemble rest)
-    where (falseCode, rest) = mapFst (concatMapM assemble1) $ splitAt (fromIntegral size) xs
+    where (falseCode, rest) = mapFst assemble $ splitAt (fromIntegral size) xs
 assemble (JumpIfFalse size : xs) = liftA2 (\trueCode' rest' -> [0x50] ++ addrToBytes (u32 $ length trueCode') ++ trueCode' ++ rest') trueCode (assemble rest)
-    where (trueCode, rest) = mapFst (concatMapM assemble1) $ splitAt (fromIntegral size) xs
+    where (trueCode, rest) = mapFst assemble $ splitAt (fromIntegral size) xs
+assemble (Jump size : xs) = liftA2 (\code' rest' -> [0xA0] ++ addrToBytes (u32 $ length code') ++ code' ++ rest') code (assemble rest)
+    where (code, rest) = mapFst assemble $ splitAt (fromIntegral size) xs
 assemble (x : xs) = liftA2 (++) (assemble1 x) (assemble xs)
 assemble [] = Value []

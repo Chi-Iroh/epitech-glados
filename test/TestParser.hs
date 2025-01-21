@@ -307,7 +307,7 @@ testParse11 = myAssertEqual "parse '(define (< a b)\n    #t\n)'" (Value [SList [
         a = SList [(SSymbol "<"), (SSymbol "a"), (SSymbol "b")]
 
 testParse12 :: Test
-testParse12 = myAssertEqual "parse '{}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{}")
+testParse12 = myAssertEqual "parse '{}'" (Error "GLaDOS: SyntaxError: Invalid tuple detected") (parse "{}")
 
 testParse13 :: Test
 testParse13 = myAssertEqual "parse '{'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, '}' expected\n") (parse "{")
@@ -319,7 +319,7 @@ testParse15 :: Test
 testParse15 = myAssertEqual "parse '{0, 0}'" (Value [STuple (SNumber 0:SNumber 0:[])]) (parse "{0, 0}")
 
 testParse16 :: Test
-testParse16 = myAssertEqual "parse '{0 0}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{0 0}")
+testParse16 = myAssertEqual "parse '{0 0}'" (Error "GLaDOS: SyntaxError: Invalid tuple detected") (parse "{0 0}")
 
 testParse17 :: Test
 testParse17 = myAssertEqual "parse '{0, 0'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, '}' expected\n") (parse "{0, 0")
@@ -328,13 +328,13 @@ testParse18 :: Test
 testParse18 = myAssertEqual "parse '0, 0}'" (Error "SyntaxError: Unexpecting closing curly bracket found") (parse "0, 0}")
 
 testParse19 :: Test
-testParse19 = myAssertEqual "parse '{{\"a\", 0}, 1}'" (Value [STuple (STuple (SSymbol "a":SNumber 0:[]):SNumber 1:[])]) (parse "{{\"a\", 0}, 1}")
+testParse19 = myAssertEqual "parse '{{\"a\", 0}, 1}'" (Value [STuple (STuple (SString "a":SNumber 0:[]):SNumber 1:[])]) (parse "{{\"a\", 0}, 1}")
 
 testParse20 :: Test
-testParse20 = myAssertEqual "parse '{0, {\"b\", 1}}'" (Value [STuple (SNumber 0:STuple (SSymbol "b":SNumber 1:[]):[])]) (parse "{0, {\"b\", 1}}")
+testParse20 = myAssertEqual "parse '{0, {\"b\", 1}}'" (Value [STuple (SNumber 0:STuple (SString "b":SNumber 1:[]):[])]) (parse "{0, {\"b\", 1}}")
 
 testParse21 :: Test
-testParse21 = myAssertEqual "parse '{{\"a\", 0}, {\"b\", 1}}'" (Value [STuple (STuple (SSymbol "a":SNumber 0:[]):STuple (SSymbol "b":SNumber 1:[]):[])]) (parse "{{\"a\", 0}, {\"b\", 1}}")
+testParse21 = myAssertEqual "parse '{{\"a\", 0}, {\"b\", 1}}'" (Value [STuple (STuple (SString "a":SNumber 0:[]):STuple (SString "b":SNumber 1:[]):[])]) (parse "{{\"a\", 0}, {\"b\", 1}}")
 
 testParse22 :: Test
 testParse22 = myAssertEqual "parse '{{\"a\", 0}, {\"b\", 1}'" (Error "GLaDOS: SyntaxError: unexpected EOF while parsing, '}' expected\n") (parse "{{\"a\", 0}, {\"b\", 1}")
@@ -343,10 +343,10 @@ testParse23 :: Test
 testParse23 = myAssertEqual "parse '{\"a\", 0}, {\"b\", 1}}'" (Error "SyntaxError: Unexpecting closing curly bracket found") (parse "{\"a\", 0}, {\"b\", 1}}")
 
 testParse24 :: Test
-testParse24 = myAssertEqual "parse '{{\"a\", 0} {\"b\", 1}}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{{\"a\", 0} {\"b\", 1}}")
+testParse24 = myAssertEqual "parse '{{\"a\", 0} {\"b\", 1}}'" (Error "GLaDOS: SyntaxError: Invalid tuple detected") (parse "{{\"a\", 0} {\"b\", 1}}")
 
 testParse25 :: Test
-testParse25 = myAssertEqual "parse '{{\"a\" 0}, {\"b\", 1}}'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "{{\"a\" 0}, {\"b\", 1}}")
+testParse25 = myAssertEqual "parse '{{\"a\" 0}, {\"b\", 1}}'" (Error "GLaDOS: SyntaxError: Invalid tuple detected") (parse "{{\"a\" 0}, {\"b\", 1}}")
 
 testParse26 :: Test
 testParse26 = myAssertEqual "parse '[]'" (Value [SArray []]) (parse "[]")
@@ -364,13 +364,13 @@ testParse30 :: Test
 testParse30 = myAssertEqual "parse '[0, 1, 2, 3]'" (Value [SArray [SNumber 0, SNumber 1, SNumber 2, SNumber 3]]) (parse "[0, 1, 2, 3]")
 
 testParse31 :: Test
-testParse31 = myAssertEqual "parse '[0 1 2 3]'" (Error "GLaDOS: SyntaxError: Missing delimiter in list.") (parse "[0 1 2 3]")
+testParse31 = myAssertEqual "parse '[0 1 2 3]'" (Error "GLaDOS: SyntaxError: Invalid list detected") (parse "[0 1 2 3]")
 
 testParse32 :: Test
 testParse32 = myAssertEqual "parse '[[], [0], [1, 2], 3, []]'" (Value [SArray [SArray [], SArray [SNumber 0], SArray [SNumber 1, SNumber 2], SNumber 3, SArray []]]) (parse "[[], [0], [1, 2], 3, []]")
 
 testParse33 :: Test
-testParse33 = myAssertEqual "parse '[[], [0], [1 2], 3, []]'" (Error "GLaDOS: SyntaxError: Missing delimiter in tuple.") (parse "[[], [0], [1 2], 3, []]")
+testParse33 = myAssertEqual "parse '[[], [0], [1 2], 3, []]'" (Error "GLaDOS: SyntaxError: Missing delimiter in array") (parse "[[], [0], [1 2], 3, []]")
 
 testParse34 :: Test
 testParse34 = myAssertEqual "parse '[], [0], [1, 2], 3, []]'" (Error "SyntaxError: Unexpecting closing bracket found") (parse "[], [0], [1, 2], 3, []]")
@@ -391,16 +391,16 @@ testParse39 :: Test
 testParse39 = myAssertEqual "parse '([{({0, []}), 0}])'" (Value [SList [SArray [STuple [SList [STuple [SNumber 0, SArray []]], SNumber 0]]]]) (parse "([{({0, []}), 0}])")
 
 testParse40 :: Test
-testParse40 = myAssertEqual "parse '([{({0, [}]), 0}])'" (Error "SyntaxError: Interlocked [] in Tuple") (parse "([{({0, []}), 0}])")
+testParse40 = myAssertEqual "parse '([{({0, [}]), 0}])'" (Error "GLaDOS: SyntaxError: Invalid list detected") (parse "([{({0, []}), 0}])")
 
 testParse41 :: Test
-testParse41 = myAssertEqual "parse '{([({0, []}), 0}])'" (Error "SyntaxError: Interlocked {} in Array") (parse "([{({0, []}), 0}])")
+testParse41 = myAssertEqual "parse '{([({0, []}), 0}])'" (Error "GLaDOS: SyntaxError: Invalid list detected") (parse "([{({0, []}), 0}])")
 
 testParse42 :: Test
-testParse42 = myAssertEqual "parse '([{({0, []}, )}])'" (Error "SyntaxError: Interlocked () in Tuple") (parse "([{({0, []}), 0}])")
+testParse42 = myAssertEqual "parse '([{({0, []}, )}])'" (Error "GLaDOS: SyntaxError: Invalid list detected") (parse "([{({0, []}), 0}])")
 
 testParse43 :: Test
-testParse43 = myAssertEqual "parse '{(0, [}, 0])'" (Error "SyntaxError: Interlocked {} in Array") (parse "([{({0, []}), 0}])")
+testParse43 = myAssertEqual "parse '{(0, [}, 0])'" (Error "GLaDOS: SyntaxError: Invalid list detected") (parse "([{({0, []}), 0}])")
 
 testParse :: Test
 testParse = TestList [
