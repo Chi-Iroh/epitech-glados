@@ -2,7 +2,7 @@ module BinaryOperator(binaryBuiltins) where
 import Utils (Safe(..))
 import Data.Bits
 import Data.Char(ord, chr)
-import VMData(Any)
+import VMData(Any(..))
 import DataBuiltins (Symbols, BuiltinsSymbol(BackendBuiltins))
 
 binaryBuiltins :: Symbols

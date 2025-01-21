@@ -30,7 +30,7 @@ data Any =  Int Int             |
             EmptyArray          |
             Array [Any]         |
             Tuple (Any, Any)    |
-            NULL                deriving (Eq, Typeable)
+            NULL                deriving (Eq, Ord, Typeable)
 
 instance Show Any where
     show :: Any -> String

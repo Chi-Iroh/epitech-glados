@@ -1,6 +1,6 @@
 module BooleanOperator(booleanBuiltins) where
 import Utils (Safe(..))
-import VMData(Any)
+import VMData(Any(..))
 import DataBuiltins (Symbols, BuiltinsSymbol(BackendBuiltins))
 
 nand :: Bool -> Bool -> Bool
@@ -23,14 +23,14 @@ booleanBuiltins = [ BackendBuiltins ("==", pdpComparisonOp "==" (==))
             ,   BackendBuiltins ("eq", pdpComparisonOp "eq" (==))
             ,   BackendBuiltins ("!=", pdpComparisonOp "!=" (/=))
             ,   BackendBuiltins ("neq", pdpComparisonOp "neq" (/=))
-            ,   BackendBuiltins ("<", pdpComparisonOp "<" (<))
-            ,   BackendBuiltins ("lw", pdpComparisonOp "lw" (<))
-            ,   BackendBuiltins (">", pdpComparisonOp ">" (>))
-            ,   BackendBuiltins ("gt", pdpComparisonOp "gt" (>))
-            ,   BackendBuiltins ("<=", pdpComparisonOp "<=" (<=))
-            ,   BackendBuiltins ("lweq", pdpComparisonOp "lweq" (<=))
-            ,   BackendBuiltins (">=", pdpComparisonOp ">=" (>=))
-            ,   BackendBuiltins ("gteq", pdpComparisonOp "gteq" (>=))
+            ,   BackendBuiltins ("<", pdpNumberComparison "<" (<))
+            ,   BackendBuiltins ("lw", pdpNumberComparison "lw" (<))
+            ,   BackendBuiltins (">", pdpNumberComparison ">" (>))
+            ,   BackendBuiltins ("gt", pdpNumberComparison "gt" (>))
+            ,   BackendBuiltins ("<=", pdpNumberComparison "<=" (<=))
+            ,   BackendBuiltins ("lweq", pdpNumberComparison "lweq" (<=))
+            ,   BackendBuiltins (">=", pdpNumberComparison ">=" (>=))
+            ,   BackendBuiltins ("gteq", pdpNumberComparison "gteq" (>=))
             ,   BackendBuiltins ("!", pdpNot)
             ,   BackendBuiltins ("not", pdpNot)
             ,   BackendBuiltins ("&&", pdpBoolOperations "&&" (&&))
@@ -44,14 +44,21 @@ booleanBuiltins = [ BackendBuiltins ("==", pdpComparisonOp "==" (==))
             ,   BackendBuiltins (":|", pdpBoolOperations ":|" xor)
             ,   BackendBuiltins ("xor", pdpBoolOperations "xor" xor)
             ,   BackendBuiltins ("!:", pdpBoolOperations "!:" xnor)
-            ,   BackendBuiltins ("xnor", pdpBoolOperations "xnor" xnor)
-            ,   BackendBuiltins ("if", pdpIf)]
+            ,   BackendBuiltins ("xnor", pdpBoolOperations "xnor" xnor)]
+            -- ,   BackendBuiltins ("if", pdpIf)]
 
-pdpComparisonOp :: String -> (Int -> Int -> Bool) -> [Any] -> Safe Any
-pdpComparisonOp name f args@[_, _] = mapM toNumber args >>= compare'
+pdpComparisonOp :: String -> (Any -> Any -> Bool) -> [Any] -> Safe Any
+pdpComparisonOp name f args@[_, _] = compare' args
     where compare' [a', b'] = Value $ Bool (f a' b')
-          compare' args' = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare booleans and integers, but got " ++ show args' ++ " !")
+          compare' args' = Error ("Bad arguments when attempting to call " ++ name ++ " !")
 pdpComparisonOp name _ args = Error ("Bad arguments when attempting to call " ++ name ++ ", can only compare 2 arguments, but got " ++ show (length args) ++ " !")
+
+pdpNumberComparison :: String -> (Any -> Any -> Bool) -> [Any] -> Safe Any
+pdpNumberComparison _ f [Int a, Int b] = Value $ Bool (f (Int a) (Int b))
+pdpNumberComparison _ f [UInt a, UInt b] = Value $ Bool (f (UInt a) (UInt b))
+pdpNumberComparison _ f [Char a, Char b] = Value $ Bool (f (Char a) (Char b))
+pdpNumberComparison _ f [Float a, Float b] = Value $ Bool (f (Float a) (Float b))
+pdpNumberComparison name _ args = Error $ "Bad arguments when attempting to call " ++ name ++ ", can only compare two number of same type, but got " ++ show args ++ " !" 
 
 -- pdpIf' :: Symbols -> [Any] -> Safe Any
 -- pdpIf' symbols [(Bool condition), a, b] = if condition then eval a else eval b
