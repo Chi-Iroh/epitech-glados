@@ -5,17 +5,18 @@ module Compile (compileAST, Symbol(..), Symbols) where
 import Control.Applicative (liftA3, (<|>))
 import Data.Functor ((<&>))
 import Data.List (singleton, find, elemIndex)
+import Data.Typeable (Typeable)
 import Data.Word (Word8)
 import Debug.Trace
 
-import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, toAny, RegisterID)
+import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, astToAny, RegisterID)
 import AST (AST(..), Call(..), getTypeAST, Parameter)
 import Bits (u32)
 import Serialize (Serializable)
 import SymbolTable (SymbolTable, writeSymbolTable)
 import Type
 import Utils (Safe(..), maybeToSafe, alternativeMap, bind2, concatMapM)
-import VMData (Any(..), Address)
+import VMData (Any(..), Address, makeAny)
 
 data Symbol = BackendSymbol (String, (Symbols -> [AST] -> Safe AST))
 type Symbols = [Symbol]
@@ -128,8 +129,8 @@ addSymbol status name status'
         _symbols = (_symbols status) ++ [(name, status')]
     }
 
-compileValue :: (Serializable a, Show a) => Type -> a -> Bool -> CompilationStatus
-compileValue _type value isNested = compileValueFromAny (Any (_type, value)) isNested
+compileValue :: Typeable a => Type -> a -> Bool -> Safe CompilationStatus
+compileValue _type value isNested = makeAny _type value <&> (\val -> compileValueFromAny val isNested)
 
 compileValueFromAny :: Any -> Bool -> CompilationStatus
 compileValueFromAny val isNested = CompilationStatus {
@@ -149,8 +150,8 @@ compileCall symbol args status = concatMapM compileArg (reverse args) <&> (statu
 
 compileElem :: AST -> Safe [AssemblyInstruction]
 compileElem a = case a of
-    (ASTCall (FunctionCall name) args) -> mapM (\a' -> toAny a' <&> PushValue) (reverse args) <&> (++ [Call name])
-    _ -> toAny a <&> singleton . PushValue
+    (ASTCall (FunctionCall name) args) -> mapM (\a' -> astToAny a' <&> PushValue) (reverse args) <&> (++ [Call name])
+    _ -> astToAny a <&> singleton . PushValue
 
 allEqual :: Eq a => [a] -> Bool
 allEqual [] = True
@@ -182,11 +183,11 @@ compileFunction ast params status = compileAST1 statusWithParams ast False <&> p
     where statusWithParams = pushParams params status
 
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
-compileAST1 status (ASTInt n) isNested = status +++ compileValue T_Int n isNested
-compileAST1 status (ASTBool b) isNested = status +++ compileValue T_Bool b isNested
+compileAST1 status (ASTInt n) isNested = compileValue T_Int n isNested >>= (status +++)
+compileAST1 status (ASTBool b) isNested = compileValue T_Bool b isNested >>= (status +++)
 compileAST1 status (ASTCall (FunctionCall f) args) _ = compileCall f args status >>= (status +++)
 compileAST1 status (ASTDefine s _type ast) _ = compileAST1 emptyCompilationStatus ast True >>= addSymbol status s
-compileAST1 status (ASTArray []) isNested = status +++ compileValue T_EmptyList ([] :: [Int]) isNested
+compileAST1 status (ASTArray []) isNested = compileValue T_EmptyList ([] :: [Int]) isNested >>= (status +++)
 compileAST1 status (ASTProcedure name) isNested = status +++ (statusFromInstructions $ singleton $ alternativeMap (PushRegister) (Call name) index)
     where index = findParamIndex name status
 
@@ -207,7 +208,7 @@ compileAST1 status (ASTLambda params ast _) isNested = if isNested then compileF
 compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)
     where checkArgs = if (length args) > 16 then Error "Too many arguments (16 max) !" else Value args
           paramNames = traceShowId $ map (\(ASTProcedure name, _) -> name) params
-          argsToAny = checkArgs <&> (\args' -> traceShowId $ reverse $ zip paramNames (map toAny args'))
+          argsToAny = checkArgs <&> (\args' -> traceShowId $ reverse $ zip paramNames (map astToAny args'))
           pushArgs = argsToAny <&> (map (\(name, any) -> alternativeMap PushValue (Call name) any))
           functionCode = compileFunction ast params status
 

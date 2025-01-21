@@ -1,6 +1,7 @@
 module VM (mainVM) where
 
 import Data.Functor ((<&>))
+import Data.List (singleton)
 import Data.Word (Word8)
 import Debug.Trace (traceShowId)
 import System.Exit (die)
@@ -13,7 +14,7 @@ import Deserialize (deserializeTypeAndValue, deserializeList, deserializeType, d
 import SymbolTable (readSymbolTable, SymbolTable)
 import Type (Type(..))
 import Utils (Safe(..))
-import VMData (Address, Vm(..), defaultVM, Any(..))
+import VMData (Address, Vm(..), defaultVM, Any(..), makeAny)
 
 pushRegister :: Maybe Any -> [Any] -> Safe [Any]
 pushRegister (Just a) stack = Value $ a:stack
@@ -29,12 +30,12 @@ popStack _ [] _ = Error "Stack empty"
 popStack _ _ [] = Error "Register out of bounds"
 
 constructList :: Int -> Type -> [Any] -> [Any] -> Safe [Any]
-constructList 0 _type stack newlist = Value $ Any (T_List _type, newlist):stack 
+constructList 0 _type stack newlist = makeAny (T_List _type) newlist <&> ((++ stack) . singleton)
 constructList x _type (a:as) newlist = constructList (x - 1) _type as $ a:newlist
 constructList _ _type [] _ = Error "Not enough value in stack to perform construct"
 
 constructTupple :: [Any] -> Type -> Type -> Safe [Any]
-constructTupple (a : b : as) typeA typeB = Value $ Any (T_Tuple (typeA, typeB), (a, b)):as
+constructTupple (a : b : as) typeA typeB = makeAny (T_Tuple (typeA, typeB)) (a, b) <&> ((++ as) . singleton)
 constructTupple [_] _ _ = Error "Not enough value in stack to perform construct"
 constructTupple _ _ _ = Error "Not enough value in stack to perform construct"
 
@@ -58,7 +59,7 @@ moveRegister x y (r : rs) (_: rs') = moveRegister (x - 1) (y - 1) rs rs' >>=(\_r
 moveRegister _ _ _ _ = Error "moveRegister error"
 
 testReg :: Maybe Any -> Safe Bool
-testReg (Just (Any(T_Bool, val)))
+testReg (Just (Bool val))
                     | unsafeCoerce val :: Bool = Value True
                     | otherwise = Value False
 testReg (Just _) = Error "Register doesn't contain a boolean value"
@@ -120,7 +121,7 @@ parseInstruction' (0x20 : xs) = deserializeType xs >>=(\(_type, len, _) -> deser
 parseInstruction' (0x30 : reg : _) = Value (Test reg, 2)
 parseInstruction' (0x40 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfTrue (combineWord32 [byte1, byte2, byte3, byte4]), 5)
 parseInstruction' (0x50 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfFalse (combineWord32 [byte1, byte2, byte3, byte4]), 5)
-parseInstruction' (0x60 : xs) = deserializeList T_Char 0 xs [] <&> (\(str, i) -> (map (\(Any (_, a)) -> unsafeCoerce a :: Char) str, i)) <&> mapFst Call
+parseInstruction' (0x60 : xs) = deserializeList T_Char xs <&> (\((Array str), i, _) -> (map (\(Char c) -> c) str, i)) <&> mapFst Call
 parseInstruction' (0x70 : xs) = mapFst RetValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
 parseInstruction' (0x71 : reg : _) = Value (RetRegister reg, 2)
 parseInstruction' (0x80 : reg : xs) = mapFst (MovValue reg) <$> addBytesLen 2 <$> deserializeTypeAndValue xs

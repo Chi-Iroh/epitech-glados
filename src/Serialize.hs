@@ -5,13 +5,15 @@ module Serialize (
     Serializable,
     serialize,
     serializeChar,
-    serializeType
+    serializeType,
+    serializeTypeNull,
+    serializeTypeEmptyList,
+    serializeUInt
 ) where
 
 import Data.Bits ((.<<.), Bits)
 import Data.ByteString.Internal (c2w)
 import Data.Functor ((<&>))
-import Data.Int (Int32)
 import Data.Word (Word8)
 import GHC.Float (castFloatToWord32)
 
@@ -19,11 +21,6 @@ import Bits (splitWord32, i32, u32)
 import Limits (checkInt, checkUInt, checkFloat)
 import Type (Type(..))
 import Utils (Safe(..))
-
-import Data.Char(ord)
-
-newtype Combination = C_Combination [Type]
-newtype Null = C_Null (Maybe Int)
 
 class Serializable a where
     serialize :: a -> Safe [Word8]
@@ -39,9 +36,6 @@ instance Serializable Float where
 
 instance Serializable Char where
     serialize = Value . serializeChar
-
-instance Serializable Null where
-    serialize = Value . const serializeTypeNull
 
 instance (Serializable a, Serializable b) => Serializable (a, b) where
     serialize = serializeTuple
@@ -106,9 +100,7 @@ serializeType T_NULL = Value serializeTypeNull
 serializeType (T_Tuple types) = serializeTypeTuple types
 serializeType (T_List elemType) = serializeTypeList elemType
 serializeType (T_Combination types) = serializeTypeCombination types
-serializeType (T_Function params ret) = Error "Function type serialization not implemented !"
-serializeType T_Undefined = Error "Tried to serialize undefined type !"
-serializeType T_Procedure = Error "Tried to serialize a procedure type !"
+serializeType _type = Error ("Cannot serialize type " ++ show _type)
 
 serializeTypeBool :: [Word8]
 serializeTypeBool = [0x01]
@@ -132,15 +124,15 @@ serializeTypeList :: Type -> Safe [Word8]
 serializeTypeList t = serializeType t <&> ([0x07] ++)
 
 serializeTypeEmptyList :: [Word8]
-serializeTypeEmptyList = [0x07] ++ serializeTypeInt
+serializeTypeEmptyList = [0x0A]
 
 serializeTypeCombination' :: [Type] -> Safe [Word8]
 serializeTypeCombination' (x:xs) = liftA2 (++) (serializeType x) (serializeTypeCombination' xs)
 serializeTypeCombination' [] = Value []
 
 serializeTypeCombination :: [Type] -> Safe [Word8]
-serializeTypeCombination list = liftA2 (++) (serializeInt (length list)) (serializeTypeCombination' list) <&> ([0x08] ++)
 serializeTypeCombination [] = Error "Empty Combination !"
+serializeTypeCombination list = liftA2 (++) (serializeInt (length list)) (serializeTypeCombination' list) <&> ([0x08] ++)
 
 serializeTypeNull :: [Word8]
 serializeTypeNull = [0x09]
