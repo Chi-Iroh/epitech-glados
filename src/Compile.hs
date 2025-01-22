@@ -103,8 +103,8 @@ popParams status = status {
     _params = drop 1 (_params status) -- tail is partial, thus causes a fatal error if the list is empty, but drop does not.
 }
 
-compileFunction :: AST -> [Parameter] -> CompilationStatus -> Safe CompilationStatus
-compileFunction ast params status = compileAST1 statusWithParams ast True <&> popParams
+compileFunction :: AST -> [Parameter] -> CompilationStatus -> Bool -> Safe CompilationStatus
+compileFunction ast params status isNested = compileAST1 statusWithParams ast isNested <&> popParams
     where statusWithParams = pushParams params status
 
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
@@ -134,8 +134,8 @@ compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothVal
           falseValueCompiled = compileAST1 status falseValue isNested <&> _instructions
           concatInstructions = liftA3 (\conditionCode trueCode falseCode -> conditionCode ++ [JumpIfFalse (u32 $ 1 + length trueCode)] ++ trueCode ++ [Jump (u32 $ length falseCode)] ++ falseCode) -- +1 for true code length because of the extra jmp
 
-compileAST1 status (ASTLambda params ast _) isNested = if isNested then compileFunction ast params status >>= (status +++) else Value status -- don't execute lambda if not used
-compileAST1 status (ASTCall (LambdaCall params ast _) args) _ = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)
+compileAST1 status (ASTLambda params ast _) isNested = if isNested then compileFunction ast params status isNested >>= (status +++) else Value status -- don't execute lambda if not used
+compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)
     where checkArgs = if (length args) > 16 then Error "Too many arguments (16 max) !" else Value args
           paramName :: Parameter -> Safe String
           paramName (ASTProcedure name, _) = Value name
@@ -143,10 +143,10 @@ compileAST1 status (ASTCall (LambdaCall params ast _) args) _ = bind2 (\args' co
 
           argsToAny = liftA2 (\args' paramNames -> reverse $ zip paramNames (map astToAny args')) checkArgs (mapM paramName params)
           pushArgs = argsToAny <&> (map (\(name, any') -> alternativeMap PushValue (Call name) any'))
-          functionCode = compileFunction ast params status
+          functionCode = compileFunction ast params status isNested
 
-compileAST1 status (ASTFunction name params ast returnType) isNested = compileAST1 status (ASTDefine name functionType (ASTLambda params ast returnType)) isNested
-    where functionType = T_Function (map snd params) returnType
+compileAST1 status (ASTFunction name params ast returnType) isNested = nestedProcedureError >> compileFunction ast params status True >>= (+++ statusFromInstructions [Ret]) >>= addSymbol status name
+    where nestedProcedureError = if isNested then Error ("Error when trying to define procedure " ++ name ++ ": nested procedures are forbidden !") else Value (0 :: Int)
 
 compileAST1 _ a _ = Error ("Compiling " ++ show a ++ " isn't not implemented for now !")
 
