@@ -7,7 +7,7 @@ import Data.List (singleton, genericSplitAt)
 import Data.Word (Word8)
 import System.Exit (die, exitWith, ExitCode (ExitSuccess))
 import Unsafe.Coerce (unsafeCoerce)
-
+import Debug.Trace
 import Any (Any(..), AnyVM(..), anyType)
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary)
@@ -72,12 +72,12 @@ moveRegister x 0 (r : rs) reg2 = moveRegister (x - 1) 0 rs reg2 >>=(\_reg -> Val
 moveRegister x y (r : rs) (_: rs') = moveRegister (x - 1) (y - 1) rs rs' >>=(\_reg -> Value (r:_reg))
 moveRegister _ _ _ _ = Error "moveRegister error"
 
-testReg :: Maybe Any -> Safe Bool
-testReg (Just (Bool val))
+testReg :: [Any] -> Safe Bool
+testReg [] = Error "Can't test on empty stack"
+testReg ((Bool val):_)
                     | unsafeCoerce val :: Bool = Value True
                     | otherwise = Value False
-testReg (Just _) = Error "Register doesn't contain a boolean value"
-testReg Nothing = Error "Register is empty"
+testReg _ = Error "Register doesn't contain a boolean value"
 
 jumpTrue :: Address -> Maybe Bool -> Safe Address
 jumpTrue _ Nothing = Error "BF not set, please use test before conditional jump"
@@ -126,7 +126,7 @@ executeInstruction' (PushRegister registerID) _ (Vm (reg:rs) cstack bf vstack pc
 executeInstruction' (PushValue value) _ (Vm (reg:rs) cstack bf vstack pc) = pushValue value vstack >>=(\ _stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
 executeInstruction' (Pop registerID) _ (Vm (reg:rs) cstack bf vstack pc) = popStack registerID vstack reg >>=(\(_reg, _stack) -> Value (Vm (_reg:rs) cstack bf _stack pc, Nothing))
 executeInstruction' (Construct _type _size) _ (Vm (reg:rs) cstack bf vstack pc) = construct _type _size vstack >>=(\_stack -> Value (Vm (reg:rs) cstack bf _stack pc, Nothing))
-executeInstruction' (Test registerID) _ (Vm (reg:rs) cstack _ vstack pc) = testReg (reg !! fromIntegral registerID) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc, Nothing))
+executeInstruction' (Test) _ (Vm (reg:rs) cstack _ (tested:vstack) pc) = testReg (tested:vstack) >>=(\_bf -> Value (Vm (reg:rs) cstack (Just _bf) vstack pc, Nothing))
 executeInstruction' (Jump addr) _ (Vm reg cstack bf vstack pc) = Value (Vm reg cstack bf vstack (pc + addr), Nothing) 
 executeInstruction' (JumpIfTrue addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpTrue addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
 executeInstruction' (JumpIfFalse addr) _ (Vm (reg:rs) cstack bf vstack pc) = jumpFalse addr bf >>=(\move -> Value (Vm (reg:rs) cstack bf vstack (pc + move), Nothing))
@@ -150,7 +150,7 @@ parseInstruction' (0x00 : xs) = mapFst PushValue <$> addBytesLen 1 <$> deseriali
 parseInstruction' (0x01 : reg : _) = Value (PushRegister reg, 2)
 parseInstruction' (0x10 : reg : _) = Value (Pop reg, 2)
 parseInstruction' (0x20 : xs) = deserializeType xs >>=(\(_type, len, rest) -> deserializeUInt rest >>= \(a, len', _) -> Value (Construct _type (int a), len + len' + 1))
-parseInstruction' (0x30 : reg : _) = Value (Test reg, 2)
+parseInstruction' (0x30 : _) = Value (Test, 1)
 parseInstruction' (0x40 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfTrue (combineWord32 [byte1, byte2, byte3, byte4]), 5)
 parseInstruction' (0x50 : byte1 : byte2 : byte3 : byte4 : _) = Value (JumpIfFalse (combineWord32 [byte1, byte2, byte3, byte4]), 5)
 parseInstruction' (0x60 : xs) = name' <&> ((, length name + 2) . Call) -- +2 for leading 0x60 and trailing 0x00
@@ -164,7 +164,7 @@ parseInstruction' (0x80 : reg : xs) = mapFst (MovValue reg) <$> addBytesLen 2 <$
 parseInstruction' (0x81 : reg1 : reg2 : _) = Value (MovRegister reg1 reg2, 3)
 parseInstruction' (0x90 : xs) = mapFst OutValue <$> addBytesLen 1 <$> deserializeTypeAndValue xs
 parseInstruction' (0x91 : reg : _) = Value (OutRegister reg, 2)
-parseInstruction' (0xA : byte1 : byte2 : byte3 : byte4 : _) = Value (Jump (combineWord32 [byte1, byte2, byte3, byte4]), 5)
+parseInstruction' (0xA0 : byte1 : byte2 : byte3 : byte4 : _) = Value (Jump (combineWord32 [byte1, byte2, byte3, byte4]), 5)
 parseInstruction' _ = Error endOfFile
 
 movePc :: Int -> Vm -> Vm
@@ -173,7 +173,7 @@ movePc increment vm = vm {
 }
 
 parseInstruction :: Vm -> [Word8] -> SymbolTable -> Safe (Vm, Maybe Any)
-parseInstruction vm bytes table = parseInstruction' (drop (fromIntegral $ _pc vm) bytes) >>=(\(instruction, movement) -> executeInstruction instruction table (movePc movement vm))
+parseInstruction vm bytes table = parseInstruction' (drop (fromIntegral $ _pc vm) bytes) >>=(\(instruction, movement) -> executeInstruction (traceShowId instruction) table (movePc movement vm))
 
 parseFile :: Vm -> SymbolTable -> [Word8] -> IO ()
 parseFile vm table bytes = case parseInstruction vm bytes table of
