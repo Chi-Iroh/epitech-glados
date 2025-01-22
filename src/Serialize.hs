@@ -21,10 +21,12 @@ module Serialize (
     serializeTypeList,
     serializeTypeEmptyList,
     serializeTypeCombination,
-    serializeTypeNull
+    serializeTypeNull,
+    Func(..)
 ) where
 
 
+import Control.Applicative (liftA3)
 import Data.Bits ((.>>.))
 import Data.ByteString.Internal (c2w)
 import Data.Functor ((<&>))
@@ -34,7 +36,9 @@ import GHC.Float (castFloatToWord32)
 import Bits (splitWord32, word)
 import Limits (checkInt, checkUInt, checkFloat)
 import Type (Type(..))
-import Utils (Safe(..))
+import Utils (Safe(..), concatMapM)
+
+data Func = Func [Type] Type
 
 class Serializable a where
     serialize :: a -> Safe [Word8]
@@ -59,6 +63,9 @@ instance (Serializable a, Serializable b) => Serializable (a, b) where
 
 instance Serializable a => Serializable [a] where
     serialize = serializeList
+
+instance Serializable Func where
+    serialize _ = Value serializeTypeNull
 
 serializeInt' :: Word32 -> [Word8]
 serializeInt' value =
@@ -116,6 +123,7 @@ serializeType T_NULL = Value serializeTypeNull
 serializeType (T_Tuple types) = serializeTypeTuple types
 serializeType (T_List elemType) = serializeTypeList elemType
 serializeType (T_Combination types) = serializeTypeCombination types
+serializeType (T_Function params returnType) = serializeFunctionType params returnType
 serializeType _type = Error ("Cannot serialize type " ++ show _type)
 
 serializeTypeInt :: [Word8]
@@ -152,3 +160,9 @@ serializeTypeCombination list = liftA2 (++) (serializeInt (length list)) (serial
 
 serializeTypeNull :: [Word8]
 serializeTypeNull = [0x09]
+
+serializeFunctionType :: [Type] -> Type -> Safe [Word8]
+serializeFunctionType params returnType = liftA3 (\nParams' params'' returnType'' -> [0x0B] ++ nParams' ++ params'' ++ returnType'') nParams params' returnType'
+    where nParams = serializeUInt (word $ length params)
+          params' = concatMapM serializeType params
+          returnType' = serializeType returnType
