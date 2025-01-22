@@ -18,11 +18,12 @@ module Utils
     safeCast,
     errorIf,
     bind2,
+    bind3,
     concatMapM,
     fromSafe
     ) where
 
-import Control.Applicative ((<|>), empty, Alternative)
+import Control.Applicative ((<|>), empty, Alternative, liftA3)
 import Control.Monad (join)
 import Data.Functor ((<&>))
 import Data.Typeable (Typeable, cast, typeOf)
@@ -119,6 +120,9 @@ alternativeMap f _default a = fromSafe ((f <$> a) <|> (Value _default))
 
 bind2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
 bind2 f a b = join (liftA2 f a b)
+
+bind3 :: Monad m => (a -> b -> c -> m d) -> m a -> m b -> m c -> m d
+bind3 f a b c = join (liftA3 f a b c)
 
 concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs = mapM f xs <&> concat

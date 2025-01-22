@@ -2,7 +2,9 @@
 {-# LANGUAGE InstanceSigs #-}
 module AssemblyInstructions (RegisterID, AssemblyInstruction(..), astToAny, assemble, toAssemblyValueInstruction, concatMapM, OutputAssemblyInstruction(..)) where
 
+import Control.Applicative (liftA3)
 import Data.Functor ((<&>))
+import Data.List (intersperse)
 import Data.Word (Word8)
 
 import Any (Any(..), AnyAssembly(..), makeAny, anyType)
@@ -11,26 +13,27 @@ import Bits (u32)
 import Hex (showHex32)
 import Serialize
 import Type (Type(..))
-import Utils (Safe(..), mapFst, concatMapM)
+import Utils (Safe(..), concatMapM)
 import VMData (Address, addrToBytes)
 
 type RegisterID = Word8
 
-data AssemblyInstruction =  PushRegister RegisterID             |
-                            PushValue Any                       |
-                            Pop RegisterID                      |
-                            Test RegisterID                     |
-                            Jump Address                        |
-                            JumpIfTrue Address                  |
-                            JumpIfFalse Address                 |
-                            Call String                         |
-                            RetRegister RegisterID              |
-                            RetValue Any                        |
-                            Ret                                 |
-                            MovRegister RegisterID RegisterID   |
-                            MovValue RegisterID Any             |
-                            OutRegister RegisterID              |
-                            OutValue Any                        |
+data AssemblyInstruction =  PushRegister RegisterID                                                 |
+                            PushValue Any                                                           |
+                            Pop RegisterID                                                          |
+                            Test                                                                    |
+                            Jump Address                                                            |
+                            JumpIfTrue Address                                                      |
+                            JumpIfFalse Address                                                     |
+                            If [AssemblyInstruction] [AssemblyInstruction] [AssemblyInstruction]    |
+                            Call String                                                             |
+                            RetRegister RegisterID                                                  |
+                            RetValue Any                                                            |
+                            Ret                                                                     |
+                            MovRegister RegisterID RegisterID                                       |
+                            MovValue RegisterID Any                                                 |
+                            OutRegister RegisterID                                                  |
+                            OutValue Any                                                            |
                             Construct Type Int
 
 data OutputAssemblyInstruction = OutputAssemblyInstruction AssemblyInstruction |
@@ -46,11 +49,9 @@ instance Show AssemblyInstruction where
     show (PushRegister reg) = "push r" ++ show reg
     show (PushValue val) = "push " ++ show (AnyAssembly val)
     show (Pop reg) = "pop r" ++ show reg
+    show Test = "test"
     show (Construct _type n) = "construct " ++ show _type ++ " " ++ show n
-    show (Test reg) = "test r" ++ show reg
-    show (Jump addr) = "jmp " ++ showHex32 addr
-    show (JumpIfTrue addr) = "jt " ++ showHex32 addr ++ " (number of instructions, not actual assembled bytes)"
-    show (JumpIfFalse addr) = "jf " ++ showHex32 addr ++ " (number of instructions, not actual assembled bytes)"
+    show (If cond trueCode falseCode) = "if\n" ++ concat (intersperse "\n" (map (("\t" ++) . show) cond)) ++ "\nthen\n" ++ concat (intersperse "\n" (map (("\t" ++) . show) falseCode)) ++ "\nelse\n" ++ concat (intersperse "\n" (map (("\t" ++) . show) trueCode)) ++ "\nend"
     show (Call symbol) = "call " ++ symbol
     show (RetRegister reg) = "ret r" ++ show reg
     show (RetValue val) = "ret " ++ show (AnyAssembly val)
@@ -59,6 +60,9 @@ instance Show AssemblyInstruction where
     show (MovValue dest val) = "mov r" ++ show dest ++ ", " ++ show (AnyAssembly val)
     show (OutRegister reg) = "out r" ++ show reg
     show (OutValue val) = "out " ++ show (AnyAssembly val)
+    show (Jump jmp) = "jmp " ++ showHex32 jmp
+    show (JumpIfFalse jmp) = "jf " ++ showHex32 jmp ++ " (instructions, not actual bytes)"
+    show (JumpIfTrue jmp) = "jt " ++ showHex32 jmp ++ " (instructions, not actual bytes)"
 
 astToAny :: AST -> Safe Any
 astToAny (ASTBool b) = makeAny T_Bool b
@@ -79,7 +83,7 @@ assemble1 (PushValue val) = liftA2 (++) (anyType val >>= serializeType) (seriali
 assemble1 (PushRegister reg) = Value [0x01, reg]
 assemble1 (Pop reg) = Value [0x10, reg]
 assemble1 (Construct _type n) = liftA2 (++) (serializeType _type) (serialize n) <&> ([0x20] ++)
-assemble1 (Test reg) = Value [0x30, reg]
+assemble1 Test = Value [0x30]
 assemble1 (Call name) = concatMapM serialize name <&> (\bytes -> [0x60] ++ bytes ++ [0x00])
 assemble1 (RetValue val) = liftA2 (++) (anyType val >>= serializeType) (serialize val) <&> ([0x70] ++)
 assemble1 (RetRegister reg) = Value [0x71, reg]
@@ -88,14 +92,15 @@ assemble1 (MovValue dest val) = liftA2 (++) (anyType val >>= serializeType) (ser
 assemble1 (MovRegister dest src) = Value [0x81, dest, src]
 assemble1 (OutValue val) = liftA2 (++) (anyType val >>= serializeType) (serialize val) <&> ([0x90] ++)
 assemble1 (OutRegister reg) = Value [0x91, reg]
+assemble1 (If cond trueCode falseCode) = liftA3 (
+        \cond'' trueCode'' falseCode'' -> let skipFalse = [0xA0] ++ addrToBytes (u32 $ (length falseCode''))
+                                          in cond'' ++ ([0x50] ++ addrToBytes (u32 $ length trueCode'' + length skipFalse)) ++ trueCode'' ++ skipFalse ++ falseCode''
+    ) cond' trueCode' falseCode'
+    where cond' = assemble cond
+          trueCode' = assemble trueCode
+          falseCode' = assemble falseCode
+
 assemble1 a = Error ("assemble1: Instruction " ++ show a ++ " not implemented !")
 
 assemble :: [AssemblyInstruction] -> Safe [Word8]
-assemble (JumpIfTrue size : xs) = liftA2 (\falseCode' rest' -> [0x40] ++ addrToBytes (u32 $ length falseCode') ++ falseCode' ++ rest') falseCode (assemble rest)
-    where (falseCode, rest) = mapFst assemble $ splitAt (fromIntegral size) xs
-assemble (JumpIfFalse size : xs) = liftA2 (\trueCode' rest' -> [0x50] ++ addrToBytes (u32 $ length trueCode') ++ trueCode' ++ rest') trueCode (assemble rest)
-    where (trueCode, rest) = mapFst assemble $ splitAt (fromIntegral size) xs
-assemble (Jump size : xs) = liftA2 (\code' rest' -> [0xA0] ++ addrToBytes (u32 $ length code') ++ code' ++ rest') code (assemble rest)
-    where (code, rest) = mapFst assemble $ splitAt (fromIntegral size) xs
-assemble (x : xs) = liftA2 (++) (assemble1 x) (assemble xs)
-assemble [] = Value []
+assemble = concatMapM assemble1

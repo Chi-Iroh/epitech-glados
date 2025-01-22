@@ -7,7 +7,7 @@ import Data.Functor ((<&>))
 import Data.List (singleton, elemIndex)
 import Data.Typeable (Typeable)
 import Data.Word (Word8)
-
+import Debug.Trace
 import Any (Any(..), makeAny)
 import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, astToAny, RegisterID, OutputAssemblyInstruction(..))
 import AST (AST(..), Call(..), getTypeAST, Parameter)
@@ -129,10 +129,10 @@ compileAST1 status astTuple@(ASTTuple (a, b)) isNested = Value (getTypeAST astTu
 
 compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothValuesTheSameType >> concatInstructions conditionCompiled trueValueCompiled falseValueCompiled >>= ((status +++) . statusFromInstructions)
     where haveBothValuesTheSameType = haveSameType [trueValue, falseValue]
-          conditionCompiled = compileAST1 status condition True <&> _instructions <&> (++ [Pop 0, Test 0])
+          conditionCompiled = compileAST1 status condition True <&> _instructions <&> (++ [Test])
           trueValueCompiled = compileAST1 status trueValue isNested <&> _instructions
           falseValueCompiled = compileAST1 status falseValue isNested <&> _instructions
-          concatInstructions = liftA3 (\conditionCode trueCode falseCode -> conditionCode ++ [JumpIfFalse (u32 $ 1 + length trueCode)] ++ trueCode ++ [Jump (u32 $ length falseCode)] ++ falseCode) -- +1 for true code length because of the extra jmp
+          concatInstructions = liftA3 (\conditionCode trueCode falseCode -> [If conditionCode trueCode falseCode])
 
 compileAST1 status (ASTLambda params ast _) isNested = if isNested then compileFunction ast params status isNested >>= (status +++) else Value status -- don't execute lambda if not used
 compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)
