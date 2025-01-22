@@ -7,7 +7,7 @@ import Data.List (singleton, genericSplitAt)
 import Data.Word (Word8)
 import System.Exit (die, exitWith, ExitCode (ExitSuccess))
 import Unsafe.Coerce (unsafeCoerce)
-import Debug.Trace
+
 import Any (Any(..), AnyVM(..), anyType)
 import AssemblyInstructions (AssemblyInstruction(..), RegisterID)
 import BinaryIO (readBinary)
@@ -173,7 +173,7 @@ movePc increment vm = vm {
 }
 
 parseInstruction :: Vm -> [Word8] -> SymbolTable -> Safe (Vm, Maybe Any)
-parseInstruction vm bytes table = parseInstruction' (drop (fromIntegral $ _pc vm) bytes) >>=(\(instruction, movement) -> executeInstruction (traceShowId instruction) table (movePc movement vm))
+parseInstruction vm bytes table = parseInstruction' (drop (fromIntegral $ _pc vm) bytes) >>=(\(instruction, movement) -> executeInstruction instruction table (movePc movement vm))
 
 parseFile :: Vm -> SymbolTable -> [Word8] -> IO ()
 parseFile vm table bytes = case parseInstruction vm bytes table of

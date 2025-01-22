@@ -137,7 +137,7 @@ compileAST1 status (ASTIf condition trueValue falseValue) isNested = haveBothVal
           falseValueCompiled = compileAST1 status falseValue isNested <&> _instructions
           concatInstructions = liftA3 (\conditionCode trueCode falseCode -> [If conditionCode trueCode falseCode])
 
-compileAST1 status (ASTLambda params ast _) isNested = if isNested then compileFunction ast params status isNested >>= (status +++) else Value status -- don't execute lambda if not used
+compileAST1 status (ASTLambda params ast returnType) isNested = if isNested then compileFunction ast params status isNested >>= (status +++) else makeAny (T_Function (map snd params) returnType) (0 :: Int) >>= (\lambdaType -> status +++ (statusFromInstructions [OutValue lambdaType])) -- don't execute lambda if not used
 compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\args' code -> statusFromInstructions args' +++ code) pushArgs functionCode >>= (status +++)
     where checkArgs = if (length args) > 16 then Error "Too many arguments (16 max) !" else Value args
           paramName :: Parameter -> Safe String

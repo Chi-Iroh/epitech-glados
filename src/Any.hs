@@ -40,20 +40,21 @@ import GHC.Float (int2Float, float2Int, floorFloat)
 
 import Bits (word, i32, int)
 import Hex (showHex8)
-import Serialize (Serializable(..), serializeTypeNull, serializeTypeEmptyList)
+import Serialize (Serializable(..), serializeTypeNull, serializeTypeEmptyList, serializeType, Func(..))
 import Type (Type(..))
 import Utils (Safe(..), safeCast)
 
-data Any =  Int Int             |
-            UInt Word           |
-            Char Char           |
-            Float Float         |
-            Bool Bool           |
-            String String       |
-            EmptyArray          |
-            Array [Any]         |
-            Tuple (Any, Any)    |
-            NULL                deriving (Eq, Show, Typeable)
+data Any =  Int Int                         |
+            UInt Word                       |
+            Char Char                       |
+            Float Float                     |
+            Bool Bool                       |
+            String String                   |
+            EmptyArray                      |
+            Array [Any]                     |
+            Tuple (Any, Any)                |
+            UncalledFunction [Type] Type    |
+            NULL                            deriving (Eq, Show, Typeable)
 
 data AnyAssembly = AnyAssembly Any
 
@@ -68,6 +69,7 @@ instance Show AnyAssembly where
     show (AnyAssembly EmptyArray) = "[]"
     show (AnyAssembly (Array xs)) = "[" ++ (concat (intersperse ", " (map show xs))) ++ "]"
     show (AnyAssembly (Tuple (a, b))) = "{" ++ show a ++ ", " ++ show b ++ "}"
+    show (AnyAssembly (UncalledFunction types returnType)) = "<-(" ++ concat (intersperse " " (map show types)) ++ ") => " ++ show returnType ++ "->"
     show (AnyAssembly NULL) = "NULL"
 
 data AnyVM = AnyVM Any
@@ -87,6 +89,7 @@ instance Show AnyVM where
               toChar _ = ""
     show (AnyVM (Array xs)) = "[" ++ (concat (intersperse ", " (map show (map AnyVM xs)))) ++ "]"
     show (AnyVM (Tuple (a, b))) = "{" ++ show (AnyVM a) ++ ", " ++ show (AnyVM b) ++ "}"
+    show (AnyVM func@(UncalledFunction _ _)) = show (AnyAssembly func)
     show (AnyVM NULL) = "NULL"
 
 instance Serializable Any where
@@ -100,6 +103,7 @@ instance Serializable Any where
     serialize EmptyArray = Value serializeTypeEmptyList
     serialize (Array xs) = serialize xs
     serialize (Tuple tuple) = serialize tuple
+    serialize (UncalledFunction args returnType) = serialize (Func args returnType)
     serialize NULL = Value serializeTypeNull
 
 class SafeOrd a where
@@ -231,6 +235,7 @@ anyType (Float _) = Value T_Float
 anyType (Bool _) = Value T_Bool
 anyType (String _) = Value T_String
 anyType EmptyArray = Value T_EmptyList
+anyType (UncalledFunction params returnType) = Value (T_Function params returnType)
 anyType (Array xs) = mapM anyType xs >>= reduceList "Array must have at least 1 value, use EmptyArray instead !" "Array are homogeneous !" <&> T_List
 anyType (Tuple (a, b)) = liftA2 (\a' b' -> T_Tuple (a', b')) (anyType a) (anyType b)
 anyType NULL = Value T_NULL
@@ -246,6 +251,7 @@ makeAny T_Bool a = Bool <$> (safeCast a :: Safe Bool)
 makeAny T_NULL _ = Value NULL
 makeAny T_String str = String <$> (safeCast str :: Safe String)
 makeAny T_EmptyList _ = Value EmptyArray
+makeAny (T_Function params returnType) _ = Value (UncalledFunction params returnType)
 makeAny _type@(T_List elemType) list =
     case haskellType elemType of
         (Converter (_ :: Proxy a')) ->

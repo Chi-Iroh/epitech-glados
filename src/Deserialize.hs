@@ -10,7 +10,7 @@ import Data.Word (Word8)
 import GHC.Float (castWord32ToFloat)
 
 import Any (Any(..))
-import Bits (u32, i32)
+import Bits (u32, i32, int, combineWord32)
 import Hex (showHex8)
 import Type (Type(..))
 import Utils (Safe(..), errorIf, mapFst3)
@@ -28,6 +28,7 @@ deserialize T_Float bytes = deserializeFloat bytes <&> toAnyAndBytes Float
 deserialize T_EmptyList bytes = deserializeTypeEmptyList bytes <&> toAnyAndBytes (const EmptyArray)
 deserialize _type@(T_List _) bytes = deserializeList _type bytes
 deserialize _type@(T_Tuple _) bytes = deserializeTuple _type bytes
+deserialize (T_Function params ret) bytes = Value (UncalledFunction params ret, 0, bytes)
 deserialize a _ = Error ("Deserializing " ++ show a ++ " isn't implemented for now !")
 
 deserializeBool :: [Word8] -> Safe (Bool, Int, [Word8])
@@ -41,8 +42,8 @@ deserializeChar (x : xs) = Value (w2c x, 1, xs)
 deserializeChar [] = Error "Cannot deserialize a char, no byte to read !"
 
 deserializeInt' :: Bits a => (Word8 -> a) -> [Word8] -> Safe (a, Int, [Word8])
-deserializeInt' fromIntegral' (b1 : b2 : b3 : b4 : bytes) = Value (int, 4, bytes)
-    where int = ((fromIntegral' b1) .<<. 24) .|. ((fromIntegral' b2) .<<. 16) .|. ((fromIntegral' b3) .<<. 8)  .|. (fromIntegral' b4)
+deserializeInt' fromIntegral' (b1 : b2 : b3 : b4 : bytes) = Value (int', 4, bytes)
+    where int' = ((fromIntegral' b1) .<<. 24) .|. ((fromIntegral' b2) .<<. 16) .|. ((fromIntegral' b3) .<<. 8)  .|. (fromIntegral' b4)
 deserializeInt' _ bytes = error ("Cannot deserialize an int/uint, less than 4 bytes to read (got " ++ show (length bytes) ++ " bytes : " ++ show bytes ++ ") !")
 
 deserializeInt :: [Word8] -> Safe (Int, Int, [Word8])
@@ -53,7 +54,7 @@ deserializeUInt bytes = deserializeInt' u32 bytes <&> (\(a, b, c) -> (fromIntegr
 
 deserializeTypeNull :: [Word8] -> Safe (Int, Int, [Word8])
 deserializeTypeNull (0x09 : xs) = Value (0x00, 1, xs) -- 0x00 is a dummy value
-deserializeTypeNull _ = Error "Cannot deserialize NULL type, no byte to read !"
+deserializeTypeNull _ = error "Cannot deserialize NULL type, no byte to read !"
 
 deserializeFloat :: [Word8] -> Safe (Float, Int, [Word8])
 deserializeFloat (b1 : b2 : b3 : b4 : bytes) = Value (castWord32ToFloat float, 4, bytes)
@@ -75,7 +76,11 @@ deserializeType (0x06 : xs) = deserializeType xs >>=(\(type1, size1, rest) -> de
 deserializeType (0x07 : xs) = deserializeType xs >>=(\(_type, _size, rest) -> Value (T_List _type, _size + 1, rest))
 deserializeType (0x08 : xs) = deserializeInt xs >>=(\(_value, len, rest)-> deserializeTypeCombinationTypes _value rest >>= (\(_type, _size, _rest) -> Value (T_Combination _type, _size + 1 + len, _rest)))
 deserializeType (0x0A : xs) = deserializeTypeEmptyList xs
+deserializeType (0x0B : a : b : c : d : xs) = deserializeFunction (int $ combineWord32 [a, b, c, d]) xs
 deserializeType bytes = Value (T_NULL, 1, bytes)
+
+deserializeFunction :: Int -> [Word8] -> Safe (Type, Int, [Word8])
+deserializeFunction n bytes = deserializeTypeCombinationTypes (n - 1) bytes >>= \(params, n', rest) -> deserializeType rest <&> (\(ret, n'', rest') -> (T_Function params ret, n' + n'' + 5, rest'))
 
 deserializeTypeEmptyList :: [Word8] -> Safe (Type, Int, [Word8])
 deserializeTypeEmptyList (0x0A : rest) = Value (T_EmptyList, 1, rest)
