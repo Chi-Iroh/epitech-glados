@@ -36,6 +36,7 @@ getTypeSExpr (STuple (a:b:rest))
 getTypeSExpr (STuple _) = T_Undefined
 getTypeSExpr (SArray [a]) = T_List $ getTypeSExpr a
 getTypeSExpr (SArray _) = T_Undefined
+getTypeSExpr (SFunctionType (SList params:_:ret:_)) = T_Function (map getTypeSExpr params) (getTypeSExpr ret)
 getTypeSExpr _ = T_Undefined
 
 -------------------------------------------------------------------------------
