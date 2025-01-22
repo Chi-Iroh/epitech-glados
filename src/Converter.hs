@@ -136,8 +136,8 @@ sexprSListHandling [SArray elements] =
         Error err -> Error err
 
 -- tuple
-sexprSListHandling (STuple (a:b):_) =
-    case (sexprSListHandling [a], sexprSListHandling b) of
+sexprSListHandling (STuple (a:b:[]):_) =
+    case (sexprSListHandling [a], sexprSListHandling [b]) of
         (Value astA, Value astB) -> Value (ASTTuple (astA, astB))
         (Error err, _) -> Error err
         (_, Error err) -> Error err
@@ -172,6 +172,7 @@ sexprSListHandling (SSymbol "if":condition:trueStatment:[falseStatment]) = makeS
 sexprSListHandling (SSymbol "if":_) = Error "GLaDOS: ConverterError: Invalid if declaration. [Converter.hs]\n"
 
 -- function call
+sexprSListHandling (SList list:_) = sexprSListHandling list
 sexprSListHandling (SSymbol symbol:rest) =
     case sexprToAST rest of
         Value arguments -> Value (ASTCall (FunctionCall symbol) arguments)
