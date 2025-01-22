@@ -5,4 +5,4 @@
     )
     integer
 )
-(factorial 2)
+(factorial 10)

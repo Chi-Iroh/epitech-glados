@@ -7,7 +7,7 @@ import Data.Functor ((<&>))
 import Data.List (singleton, elemIndex)
 import Data.Typeable (Typeable)
 import Data.Word (Word8)
-import Debug.Trace
+
 import Any (Any(..), makeAny)
 import AssemblyInstructions (AssemblyInstruction(..), assemble, toAssemblyValueInstruction, astToAny, RegisterID, OutputAssemblyInstruction(..))
 import AST (AST(..), Call(..), getTypeAST, Parameter)
@@ -63,13 +63,16 @@ compileValueFromAny val isNested = CompilationStatus {
     _params = []
 }
 
+popAllArgs :: Int -> [AssemblyInstruction]
+popAllArgs n = map Pop [0..((fromIntegral n) - 1)]
+
 compileCall :: String -> [AST] -> Bool -> CompilationStatus -> Safe CompilationStatus
 compileCall symbol args isNested status = concatMapM compileArg (reverse args) <&> (statusFromInstructions . (++ outIfNotNested) . (++ [Call symbol]))
     where outIfNotNested = if isNested then [] else [Pop 0, OutRegister 0]
           compileArg :: AST -> Safe [AssemblyInstruction]
           compileArg arg = case arg of
             ASTCall (FunctionCall symbol') args' -> compileCall symbol' args' True status <&> _instructions
-            ASTProcedure name -> (paramIndex name <&> (\i -> [Pop i, PushRegister i])) <|> Value [Call name]
+            ASTProcedure name -> (paramIndex name <&> (\i -> [PushRegister i])) <|> Value [Call name]
             _ -> singleton <$> toAssemblyValueInstruction PushValue arg
             where paramIndex name' = findParamIndex name' status
 
@@ -104,7 +107,7 @@ popParams status = status {
 }
 
 compileFunction :: AST -> [Parameter] -> CompilationStatus -> Bool -> Safe CompilationStatus
-compileFunction ast params status isNested = compileAST1 statusWithParams ast isNested <&> popParams
+compileFunction ast params status isNested = compileAST1 statusWithParams ast isNested <&> popParams >>= ((statusFromInstructions (popAllArgs (length params))) +++)
     where statusWithParams = pushParams params status
 
 compileAST1 :: CompilationStatus -> AST -> Bool -> Safe CompilationStatus
