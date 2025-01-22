@@ -148,7 +148,7 @@ compileAST1 status (ASTCall (LambdaCall params ast _) args) isNested = bind2 (\a
           pushArgs = argsToAny <&> (map (\(name, any') -> alternativeMap PushValue (Call name) any'))
           functionCode = compileFunction ast params status isNested
 
-compileAST1 status (ASTFunction name params ast returnType) isNested = nestedProcedureError >> compileFunction ast params status True >>= (+++ statusFromInstructions [Ret]) >>= addSymbol status name
+compileAST1 status (ASTFunction name params ast _) isNested = nestedProcedureError >> compileFunction ast params status True >>= (+++ statusFromInstructions [Ret]) >>= addSymbol status name
     where nestedProcedureError = if isNested then Error ("Error when trying to define procedure " ++ name ++ ": nested procedures are forbidden !") else Value (0 :: Int)
 
 compileAST1 _ a _ = Error ("Compiling " ++ show a ++ " isn't not implemented for now !")
