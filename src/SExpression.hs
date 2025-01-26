@@ -8,7 +8,17 @@ module SExpression
 
 import Utils
 
-data SExpr = SNumber Int | SSymbol String | SList [SExpr] | STuple [SExpr] | SArray [SExpr] | SFunctionType [SExpr] | SString String | SFloat Float | SUint Int | SChar Char deriving (Eq, Show)
+data SExpr =    SNumber Int             | 
+                SSymbol String          |
+                SList [SExpr]           |
+                STuple [SExpr]          |
+                SArray [SExpr]          |
+                SFunctionType [SExpr]   |
+                SString String          |
+                SFloat Float            |
+                SUint Int               |
+                SChar Char
+                deriving (Eq, Show)
 
 getSymbol :: SExpr -> Safe String
 getSymbol (SSymbol symbol) = Value symbol

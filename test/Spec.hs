@@ -1,6 +1,8 @@
 import Test.HUnit
+import TestSExpression
 import TestParser
 import TestType
+import TestAST
 import TestConverter
 import TestASTVerification
 import TestSymbolTable
@@ -8,8 +10,10 @@ import TestSerialize
 
 tests :: Test
 tests = TestList [
+    TestLabel "SExpression" testSExpression,
     TestLabel "Parser" testParser,
     TestLabel "Type" testType,
+    TestLabel "AST" testAST,
     TestLabel "Converter" testConverter,
     TestLabel "ASTVerification" testASTVerification,
     TestLabel "SymbolTable" testSymbolTable,

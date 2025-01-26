@@ -2,10 +2,8 @@ module AST (
     Parameter,
     Call(..),
     AST(..),
-    MainAST(..),
     getTypeFunctionCall,
-    getTypeAST,
-    isProcedureType
+    getTypeAST
     ) where
 
 import Type
@@ -30,8 +28,6 @@ data AST =  ASTInt Int                              |
             ASTCall Call [AST]                      |
             ASTIf AST AST AST                       |
             ASTNULL deriving (Eq, Show)
-
-data MainAST = MainAST AST
 
 getTypeProcedure :: String -> [AST] -> Type
 getTypeProcedure "e" _ = T_Float
@@ -168,13 +164,3 @@ getTypeAST (ASTCall (FunctionCall a) _) tt = getReturnType $ getTypeFunctionCall
 getTypeAST (ASTIf _ a b) tt = T_Combination ((getTypeAST a tt):(getTypeAST b tt):[])
 getTypeAST (ASTArray list) tt = verifyTypeList $ map (\x -> getTypeAST x tt) list
 getTypeAST ASTNULL _ = T_NULL
-
-isProcedureType :: MainAST -> Bool
-isProcedureType (MainAST (ASTLambda _ _ _)) = True
-isProcedureType (MainAST (ASTDefine _ _ _)) = True
-isProcedureType _ = False
-
-instance Show MainAST where
-    show (MainAST (ASTInt n)) = show n
-    show (MainAST (ASTBool b)) = if b then "#t" else "#f"
-    show _ = ""
