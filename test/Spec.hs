@@ -1,4 +1,5 @@
 import Test.HUnit
+import TestUtils
 import TestSExpression
 import TestParser
 import TestType
@@ -10,6 +11,7 @@ import TestSerialize
 
 tests :: Test
 tests = TestList [
+    TestLabel "Utils" testUtils,
     TestLabel "SExpression" testSExpression,
     TestLabel "Parser" testParser,
     TestLabel "Type" testType,
