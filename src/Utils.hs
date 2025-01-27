@@ -28,7 +28,7 @@ import Control.Monad (join)
 import Data.Functor ((<&>))
 import Data.Typeable (Typeable, cast, typeOf)
 
-data Safe a = Value a | Error String deriving (Eq, Ord, Read)
+data Safe a = Value a | Error String deriving (Eq, Ord)
 
 instance Functor Safe where
     fmap f (Value a) = Value (f a)
