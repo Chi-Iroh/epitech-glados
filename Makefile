@@ -1,4 +1,10 @@
-BIN	=	glados
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Linux)
+	BIN	=	glados
+else
+	BIN = glados.exe
+endif
 
 all:
 	stack build
